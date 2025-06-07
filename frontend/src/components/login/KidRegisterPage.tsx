@@ -3,37 +3,116 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { register } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function KidRegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    parentId: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    console.log('Submitting form with data:', formData);
+
+    try {
+      const response = await register({
+        ...formData,
+        role: "child",
+      });
+      console.log('Registration response:', response);
+      
+      toast({
+        title: "Registration successful!",
+        description: "You can now login to your account.",
+      });
+      navigate("/login/kid");
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   return (
     <LoginPage
       mode="register"
-      userType="kid"
+      userType="child"
       onSwitchMode={() => navigate('/login/kid')}
       key={location.pathname}
     >
-      <div className="grid gap-3">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" type="text" placeholder="Your name" required />
-      </div>
-      <div className="grid gap-3">
-        <Label htmlFor="age">Age</Label>
-        <Input id="age" type="number" min="1" max="18" placeholder="Your age" required />
-      </div>
-      <div className="grid gap-3">
-        <Label htmlFor="parentId">Parent ID</Label>
-        <Input id="parentId" type="text" placeholder="Parent ID or Email" required />
-      </div>
-      <div className="grid gap-3">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" required />
-      </div>
-      <Button type="submit" className="w-full">
-        Register
-      </Button>
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            placeholder="Your name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="m@example.com"
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            minLength={6}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="parentId">Parent ID</Label>
+          <Input
+            id="parentId"
+            name="parentId"
+            type="text"
+            placeholder="Enter your parent's ID"
+            value={formData.parentId}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Registering..." : "Register"}
+        </Button>
+      </form>
     </LoginPage>
   );
 } 
