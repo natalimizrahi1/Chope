@@ -1,58 +1,65 @@
 import express from 'express';
+import { protect } from '../middleware/auth.js';
 import Animal from '../models/Animal.js';
 import Child from '../models/Child.js';
-import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Simple JWT auth middleware
-function auth(req, res, next) {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(401).json({ error: 'No token' });
+// Create animal
+router.post('/', protect, async (req, res) => {
   try {
-    const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
+    const { type, name, owner } = req.body;
+    const animal = await Animal.create({
+      type,
+      name,
+      owner
+    });
 
-// Get child's animal
-router.get('/child/:childId', auth, async (req, res) => {
-  try {
-    const child = await Child.findById(req.params.childId);
-    if (!child) return res.status(404).json({ error: 'Child not found' });
-    const animal = await Animal.findById(child.animal);
-    if (!animal) return res.status(404).json({ error: 'Animal not found' });
-    res.json(animal);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    // Add animal to child
+    const child = await Child.findById(owner);
+    child.animal = animal._id;
+    await child.save();
+
+    res.status(201).json(animal);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Update animal (feed, play, etc.)
-router.patch('/:animalId', auth, async (req, res) => {
+// Get child's animal
+router.get('/child/:childId', protect, async (req, res) => {
+  try {
+    const animal = await Animal.findOne({ owner: req.params.childId });
+    if (!animal) {
+      return res.status(404).json({ error: 'Animal not found' });
+    }
+    res.json(animal);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Feed animal
+router.patch('/:animalId', protect, async (req, res) => {
   try {
     const animal = await Animal.findById(req.params.animalId);
-    if (!animal) return res.status(404).json({ error: 'Animal not found' });
-    
-    const { action } = req.body;
-    switch (action) {
-      case 'feed':
-        animal.hunger = Math.max(0, animal.hunger - 20);
-        break;
-      case 'play':
-        animal.happiness = Math.min(100, animal.happiness + 20);
-        break;
-      default:
-        return res.status(400).json({ error: 'Invalid action' });
+    if (!animal) {
+      return res.status(404).json({ error: 'Animal not found' });
     }
+
+    // Update last fed time
+    animal.lastFed = new Date();
     
+    // Level up if enough time has passed
+    const hoursSinceLastFed = (new Date() - animal.lastFed) / (1000 * 60 * 60);
+    if (hoursSinceLastFed >= 24) {
+      animal.level += 1;
+    }
+
     await animal.save();
     res.json(animal);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
