@@ -16,32 +16,37 @@ export default function KidLoginPage() {
     email: "",
     password: "",
   });
+  const [remember, setRemember] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log('Submitting login form with data:', formData);
+    console.log("Submitting login form with data:", formData);
 
     try {
       const response = await login(formData);
-      console.log('Login response:', response);
-      
-      // Store token in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: response._id,
-        name: response.name,
-        email: response.email,
-        role: response.role
-      }));
-      
+      console.log("Login response:", response);
+
+      // Store token and user in localStorage or sessionStorage based on remember
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem("token", response.token);
+      storage.setItem(
+        "user",
+        JSON.stringify({
+          id: response._id || response.id,
+          name: response.name,
+          email: response.email,
+          role: "child",
+        })
+      );
+
       toast({
         title: "Login successful!",
         description: "Welcome back!",
       });
       navigate("/kid/dashboard");
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",
@@ -58,45 +63,29 @@ export default function KidLoginPage() {
   };
 
   return (
-    <LoginPage
-      mode="login"
-      userType="child"
-      onSwitchMode={() => navigate('/register/kid')}
-      key={location.pathname}
-    >
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="m@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+    <LoginPage mode='login' userType='child' onSwitchMode={() => navigate("/register/kid")} key={location.pathname}>
+      <form onSubmit={handleSubmit} className='grid gap-4'>
+        <div className='grid gap-2'>
+          <Label htmlFor='email'>Email</Label>
+          <Input id='email' name='email' type='email' placeholder='m@example.com' value={formData.email} onChange={handleChange} required />
         </div>
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <a href="#" className="text-sm text-primary hover:underline underline-offset-4">
+        <div className='grid gap-2'>
+          <div className='flex items-center justify-between'>
+            <Label htmlFor='password'>Password</Label>
+            <a href='#' className='text-sm text-primary hover:underline underline-offset-4'>
               Forgot password?
             </a>
           </div>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <Input id='password' name='password' type='password' value={formData.password} onChange={handleChange} required />
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
+        <div className='flex items-center gap-2'>
+          <input id='remember' type='checkbox' checked={remember} onChange={e => setRemember(e.target.checked)} className='accent-primary' />
+          <Label htmlFor='remember'>Remember Me</Label>
+        </div>
+        <Button type='submit' className='w-full' disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </Button>
       </form>
     </LoginPage>
   );
-} 
+}
