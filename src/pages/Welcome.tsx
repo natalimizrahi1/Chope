@@ -8,8 +8,8 @@ const Welcome: React.FC = () => {
 
   return (
     <div className='Wrapper'>
-          <h1 className='Title'>Welcome to Chope! 🐾</h1>
-          <button type='button' className='Button' onClick={() => setShowSignUp(true)}>
+  <h1 className='Title'>Welcome to Chope! 🐾</h1>
+          <button type='button' className='Button' onClick={() => navigate('/login')}>
             I'm a Parent
           </button>
           <button type='button' className='Button'>
