@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getChildren, getChildProgress, createTask, createAnimal } from '../../lib/api';
+import { getChildren, getChildProgress, createTask } from '../../lib/api';
 import type { Task, Animal } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -29,7 +29,6 @@ export default function ParentDashboard() {
   const [newTask, setNewTask] = useState({ title: '', description: '', reward: 0 });
   const { toast } = useToast();
   const [parentId, setParentId] = useState('');
-  const [newAnimal, setNewAnimal] = useState({ name: '', type: '' });
 
   useEffect(() => {
     // Check if user is logged in and is a parent
@@ -95,63 +94,6 @@ export default function ParentDashboard() {
       toast({
         title: "Failed to create task",
         description: "Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateAnimal = async () => {
-    if (!selectedChild) return;
-    
-    // Validate input
-    if (!newAnimal.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a name for the pet",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!newAnimal.type) {
-      toast({
-        title: "Error",
-        description: "Please select a pet type",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      console.log('Creating animal with data:', {
-        name: newAnimal.name,
-        type: newAnimal.type,
-        owner: selectedChild._id
-      });
-
-      const response = await createAnimal(token, {
-        name: newAnimal.name,
-        type: newAnimal.type,
-        owner: selectedChild._id
-      });
-
-      console.log('Animal creation response:', response);
-
-      setNewAnimal({ name: '', type: '' });
-      // Refresh child data to show new animal
-      const updatedChildren = await getChildren(token);
-      console.log('Updated children data:', updatedChildren);
-      setChildren(updatedChildren);
-
-      toast({
-        title: "Animal created successfully",
-        description: "Your child now has a new pet!",
-      });
-    } catch (error) {
-      console.error('Failed to create animal:', error);
-      toast({
-        title: "Failed to create animal",
-        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
     }
@@ -298,41 +240,8 @@ export default function ParentDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid gap-4">
-                        <div className="flex items-center gap-2">
-                          <PawPrint className="h-5 w-5 text-primary" />
-                          <span className="text-lg font-medium">Create New Pet</span>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="animal-name">Pet Name</Label>
-                          <Input
-                            id="animal-name"
-                            value={newAnimal.name}
-                            onChange={(e) => setNewAnimal({ ...newAnimal, name: e.target.value })}
-                            placeholder="Enter pet name"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="animal-type">Pet Type</Label>
-                          <Select
-                            value={newAnimal.type}
-                            onValueChange={(value: string) => setNewAnimal({ ...newAnimal, type: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select pet type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="dog">🐕 Dog</SelectItem>
-                              <SelectItem value="cat">🐱 Cat</SelectItem>
-                              <SelectItem value="rabbit">🐰 Rabbit</SelectItem>
-                              <SelectItem value="hamster">🐹 Hamster</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button onClick={handleCreateAnimal} className="w-full">
-                          <PawPrint className="mr-2 h-4 w-4" />
-                          Create Pet
-                        </Button>
+                      <div className="text-center text-muted-foreground">
+                        Your child hasn't created a pet yet.
                       </div>
                     )}
                   </div>
