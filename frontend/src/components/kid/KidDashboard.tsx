@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { getTasks, completeTask, getAnimal, feedAnimal } from '../../lib/api';
+import { getTasks, completeTask, getAnimal, feedAnimal, createAnimal } from '../../lib/api';
 import type { Task, Animal } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { useToast } from '../ui/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { Trophy, Star, Gift, LogOut } from 'lucide-react';
+import { Trophy, Star, Gift, LogOut, PawPrint } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 export default function KidDashboard() {
   const navigate = useNavigate();
@@ -17,6 +20,7 @@ export default function KidDashboard() {
   const [token] = useState(localStorage.getItem('token') || '');
   const [childId, setChildId] = useState('');
   const { toast } = useToast();
+  const [newAnimal, setNewAnimal] = useState({ name: '', type: '' });
 
   useEffect(() => {
     // Check if user is logged in and is a child
@@ -97,6 +101,60 @@ export default function KidDashboard() {
     navigate('/login/kid');
   };
 
+  const handleCreateAnimal = async () => {
+    // Validate input
+    if (!newAnimal.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your pet",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!newAnimal.type) {
+      toast({
+        title: "Error",
+        description: "Please select a pet type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('Creating animal with data:', {
+        name: newAnimal.name,
+        type: newAnimal.type,
+        owner: childId
+      });
+
+      const response = await createAnimal(token, {
+        name: newAnimal.name,
+        type: newAnimal.type,
+        owner: childId
+      });
+
+      console.log('Animal creation response:', response);
+
+      setNewAnimal({ name: '', type: '' });
+      // Refresh animal data
+      const updatedAnimal = await getAnimal(token, childId);
+      setAnimal(updatedAnimal);
+
+      toast({
+        title: "Pet created successfully",
+        description: "You now have a new pet to take care of!",
+      });
+    } catch (error) {
+      console.error('Failed to create animal:', error);
+      toast({
+        title: "Failed to create pet",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const completedTasks = tasks.filter(task => task.completed).length;
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -163,18 +221,52 @@ export default function KidDashboard() {
                 {animal ? (
                   <div className="flex flex-col items-center gap-4">
                     <div className="text-2xl font-bold">{animal.name}</div>
-                    <Badge variant="secondary">{animal.type}</Badge>
+                    <Badge variant="secondary" className="capitalize">{animal.type}</Badge>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">Level {animal.level}</span>
                       <Progress value={(animal.level / 10) * 100} className="w-32" />
                     </div>
                     <Button onClick={handleFeedAnimal} className="mt-2">
+                      <PawPrint className="mr-2 h-4 w-4" />
                       Feed Pet
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center text-muted-foreground">
-                    You don't have a pet yet. Complete tasks to earn one!
+                  <div className="grid gap-4">
+                    <div className="flex items-center gap-2">
+                      <PawPrint className="h-5 w-5 text-primary" />
+                      <span className="text-lg font-medium">Create Your Pet</span>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="animal-name">Pet Name</Label>
+                      <Input
+                        id="animal-name"
+                        value={newAnimal.name}
+                        onChange={(e) => setNewAnimal({ ...newAnimal, name: e.target.value })}
+                        placeholder="Enter pet name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="animal-type">Pet Type</Label>
+                      <Select
+                        value={newAnimal.type}
+                        onValueChange={(value: string) => setNewAnimal({ ...newAnimal, type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select pet type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dog">🐕 Dog</SelectItem>
+                          <SelectItem value="cat">🐱 Cat</SelectItem>
+                          <SelectItem value="rabbit">🐰 Rabbit</SelectItem>
+                          <SelectItem value="hamster">🐹 Hamster</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleCreateAnimal} className="w-full">
+                      <PawPrint className="mr-2 h-4 w-4" />
+                      Create Pet
+                    </Button>
                   </div>
                 )}
               </CardContent>
