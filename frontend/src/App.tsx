@@ -5,7 +5,7 @@ import ParentRegisterPage from "./components/login/ParentRegisterPage";
 import KidLoginPage from "./components/login/KidLoginPage";
 import KidRegisterPage from "./components/login/KidRegisterPage";
 import ParentDashboard from "./components/parent/ParentDashboard";
-import KidDashboard from "./components/kid/KidDashboard";
+import ChildDashboard from "./components/kid/KidDashboard";
 import { Toaster } from "./components/ui/toaster";
 
 function App() {
@@ -18,7 +18,7 @@ function App() {
         <Route path='/login/kid' element={<KidLoginPage />} />
         <Route path='/register/kid' element={<KidRegisterPage />} />
         <Route path='/parent/dashboard' element={<ParentDashboard />} />
-        <Route path='/kid/dashboard' element={<KidDashboard />} />
+        <Route path='/kid/dashboard' element={<ChildDashboard />} />
       </Routes>
       <Toaster />
     </BrowserRouter>

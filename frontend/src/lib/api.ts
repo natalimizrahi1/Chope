@@ -1,9 +1,6 @@
-// API utility for backend communication
-export type UserRole = 'parent' | 'child';
-export type User = { id: string; name: string; role: UserRole; email?: string; parent?: string; coins?: number };
-export type Task = { _id: string; title: string; description: string; reward: number; completed: boolean; child: string };
-export type Animal = { _id: string; type: string; name: string; owner: string; level: number; lastFed: string };
+import { Task, Animal, UserRole, User } from './types';
 
+// API utility for backend communication
 const API = 'http://localhost:5001/api';
 
 export async function register(data: { role: UserRole; name: string; email: string; password: string; parentId?: string }) {
@@ -83,8 +80,18 @@ export async function completeTask(token: string, taskId: string) {
   return res.json();
 }
 
+export async function createAnimal(token: string, data: { type: string; name: string; owner: string }) {
+  const res = await fetch(`${API}/animals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to create animal');
+  return res.json();
+}
+
 export async function getAnimal(token: string, childId: string) {
-  const res = await fetch(`${API}/animal/child/${childId}`, {
+  const res = await fetch(`${API}/animals/child/${childId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch animal');
@@ -92,21 +99,56 @@ export async function getAnimal(token: string, childId: string) {
 }
 
 export async function feedAnimal(token: string, animalId: string) {
-  const res = await fetch(`${API}/animal/${animalId}`, {
+  const res = await fetch(`${API}/animals/${animalId}/feed`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ action: 'feed' }),
   });
   if (!res.ok) throw new Error((await res.json()).error || 'Failed to feed animal');
   return res.json();
 }
 
-export async function createAnimal(token: string, data: { type: string; name: string; owner: string }) {
-  const res = await fetch(`${API}/animal`, {
+export async function playWithAnimal(token: string, animalId: string) {
+  const res = await fetch(`${API}/animals/${animalId}/play`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to play with animal');
+  return res.json();
+}
+
+export async function letAnimalSleep(token: string, animalId: string) {
+  const res = await fetch(`${API}/animals/${animalId}/sleep`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to let animal sleep');
+  return res.json();
+}
+
+export async function buyAccessory(token: string, animalId: string, data: { type: string; name: string; price: number }) {
+  const res = await fetch(`${API}/animals/${animalId}/accessories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error((await res.json()).error || 'Failed to create animal');
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to buy accessory');
+  return res.json();
+}
+
+export async function toggleAccessory(token: string, animalId: string, accessoryId: string) {
+  const res = await fetch(`${API}/animals/${animalId}/accessories/${accessoryId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to toggle accessory');
+  return res.json();
+}
+
+export async function equipAccessory(token: string, animalId: string, accessoryId: string) {
+  const res = await fetch(`${API}/animals/${animalId}/accessories/${accessoryId}/equip`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Failed to equip accessory');
   return res.json();
 } 
