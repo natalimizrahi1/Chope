@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 import Parent from '../models/Parent.js';
 import Child from '../models/Child.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {

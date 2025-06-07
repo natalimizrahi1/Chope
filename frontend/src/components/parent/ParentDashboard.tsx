@@ -7,7 +7,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Plus, PawPrint, Star, Trophy, Gift } from 'lucide-react';
+import { Copy, Plus, PawPrint, Star, Trophy, Gift, LogOut } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -58,14 +58,23 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     if (selectedChild && token) {
-      getChildProgress(token, selectedChild._id).then(setTasks).catch(error => {
-        console.error('Failed to load child progress:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load child progress. Please try again.",
-          variant: "destructive",
+      getChildProgress(token, selectedChild._id)
+        .then(response => {
+          // Ensure we're working with an array
+          const tasksArray = Array.isArray(response) ? response : [];
+          setTasks(tasksArray);
+        })
+        .catch(error => {
+          console.error('Failed to load child progress:', error);
+          setTasks([]); // Set empty array on error
+          toast({
+            title: "Error",
+            description: "Failed to load child progress. Please try again.",
+            variant: "destructive",
+          });
         });
-      });
+    } else {
+      setTasks([]); // Reset tasks when no child is selected
     }
   }, [selectedChild, token, toast]);
 
@@ -156,6 +165,16 @@ export default function ParentDashboard() {
     });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/login/parent');
+  };
+
   const completedTasks = tasks.filter(task => task.completed).length;
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -188,10 +207,13 @@ export default function ParentDashboard() {
       <div className="flex-1 overflow-auto">
         <div className="flex h-14 items-center justify-between border-b px-4">
           <h1 className="text-lg font-semibold">Dashboard</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground">Parent ID: {parentId}</div>
             <Button variant="ghost" size="icon" onClick={copyParentId}>
               <Copy className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>

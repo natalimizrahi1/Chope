@@ -7,7 +7,7 @@ import { useToast } from '../ui/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { Trophy, Star, Gift } from 'lucide-react';
+import { Trophy, Star, Gift, LogOut } from 'lucide-react';
 
 export default function KidDashboard() {
   const navigate = useNavigate();
@@ -87,6 +87,16 @@ export default function KidDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/login/kid');
+  };
+
   const completedTasks = tasks.filter(task => task.completed).length;
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -95,8 +105,11 @@ export default function KidDashboard() {
     <div className="flex min-h-screen">
       {/* Main content */}
       <div className="flex-1 overflow-auto">
-        <div className="flex h-14 items-center border-b px-4">
+        <div className="flex h-14 items-center justify-between border-b px-4">
           <h1 className="text-lg font-semibold">My Dashboard</h1>
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
         <div className="p-6">
           <div className="grid gap-6">
