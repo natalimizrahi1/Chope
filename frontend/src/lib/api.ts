@@ -64,7 +64,7 @@ export async function createTask(token: string, data: { title: string; descripti
 }
 
 export async function getTasks(token: string, childId: string) {
-  const res = await fetch(`${API}/task/child/${childId}`, {
+  const res = await fetch(`${API}/tasks/child/${childId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch tasks');
