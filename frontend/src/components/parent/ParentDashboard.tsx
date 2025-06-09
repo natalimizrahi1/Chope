@@ -10,7 +10,19 @@ import { useNavigate } from 'react-router-dom';
 import { Copy, Plus, PawPrint, Star, Trophy, Gift, LogOut } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { AppSidebar } from "../ui/app-sidebar"
+import { ChartAreaInteractive } from "../ui/chart-area-interactive"
+import { DataTable } from "../ui/data-table"
+import { SectionCards } from "../ui/section-cards"
+import { SiteHeader } from "../ui/site-header"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
+import { IconUsers } from "@tabler/icons-react";
+
+import data from "../../app/dashboard/data.json"
 
 type Child = {
   _id: string;
@@ -121,7 +133,45 @@ export default function ParentDashboard() {
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
+  // Map children to the format required by AppSidebar/NavDocuments
+  const childrenList = children.map(child => ({
+    name: child.name,
+    url: child._id, // Use _id for selection
+    icon: IconUsers,
+  }));
+
+  // Handler for selecting a child from the sidebar
+  const handleChildSelect = (id: string) => {
+    const child = children.find(c => c._id === id);
+    setSelectedChild(child || null);
+  };
+
   return (
+    <>
+      <SidebarProvider
+        style={{
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties}
+      >
+        <AppSidebar variant="inset" childrenList={childrenList} onChildSelect={handleChildSelect} />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                <SectionCards />
+                <div className="px-4 lg:px-6">
+                  <ChartAreaInteractive />
+                </div>
+                <DataTable data={data} />
+              </div>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+  
+{/* /////////////// */}
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <div className="hidden lg:flex w-64 flex-col border-r bg-muted/40">
@@ -324,6 +374,7 @@ export default function ParentDashboard() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+      </>
   );
 } 
