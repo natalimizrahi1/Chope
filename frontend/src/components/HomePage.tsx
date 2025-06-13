@@ -135,11 +135,11 @@ export default function WelcomePage() {
 
       {/* Header Bar */}
       <nav className='bg-transperent relative z-10'>
-        <div className='mx-auto max-w-7xl px-2 sm:px-6 lg:px-8'>
+        <div className='max-w-7xl px-2 sm:px-6 lg:px-8 '>
           <div className='relative flex h-16 items-center justify-between'>
             <div className='absolute inset-y-0 left-0 flex items-center sm:hidden'>
               {/* Mobile menu button */}
-              <Button type='button' variant='ghost' size='icon' className='relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-none focus:ring-inset' aria-controls='mobile-menu' aria-expanded={mobileMenuOpen ? "true" : "false"} onClick={() => setMobileMenuOpen(v => !v)}>
+              <Button type='button' variant='ghost' size='icon' className='relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-none focus:ring-inset mr-2' aria-controls='mobile-menu' aria-expanded={mobileMenuOpen ? "true" : "false"} onClick={() => setMobileMenuOpen(v => !v)}>
                 <span className='absolute -inset-0.5'></span>
                 <span className='sr-only'>Open main menu</span>
                 {/* Hamburger icon */}
@@ -153,12 +153,11 @@ export default function WelcomePage() {
                   </svg>
                 )}
               </Button>
+              {/* Logo for mobile - moved to flex container */}
+              <div className='text-xl font-bold text-white'>Chope</div>
             </div>
             <div className='flex flex-1 items-center'>
-              <div className='flex items-center'>
-                <div className='w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center'>
-                  <span className='text-white font-bold text-sm'>C</span>
-                </div>
+              <div className='hidden sm:flex items-center'>
                 <div className='text-xl font-bold text-white ml-2'>Chope</div>
               </div>
               <div className='hidden sm:ml-6 sm:block'>
@@ -179,13 +178,42 @@ export default function WelcomePage() {
               </div>
             </div>
             <div className='flex items-center gap-2'>
-              <Button className='bg-cyan-400 text-white hover:bg-cyan-300 px-6 py-2 rounded-full' onClick={() => navigate("/login/parent")}>
-                I'm a Parent
-              </Button>
-              <Button className='bg-cyan-400 text-white hover:bg-cyan-300 px-6 py-2 rounded-full' onClick={() => navigate("/login/kid")}>
-                I'm a Kid
-              </Button>
-            </div>
+  {/* Desktop buttons */}
+  <div className='hidden sm:flex gap-2'>
+    <Button className='bg-cyan-400 text-white hover:bg-cyan-300 px-6 py-2 rounded-full' onClick={() => navigate("/login/parent")}>
+      I'm a Parent
+    </Button>
+    <Button className='bg-cyan-400 text-white hover:bg-cyan-300 px-6 py-2 rounded-full' onClick={() => navigate("/login/kid")}>
+      I'm a Kid
+    </Button>
+  </div>
+  
+  {/* Mobile dropdown */}
+  <div className='sm:hidden'>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className='bg-cyan-400 text-white hover:bg-cyan-300 px-4 py-2 rounded-full flex items-center gap-2'>
+          Login
+          <ChevronDown className='w-4 h-4' />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className='bg-white border border-gray-200 rounded-lg shadow-lg'>
+        <DropdownMenuItem 
+          className='cursor-pointer hover:bg-gray-100 px-4 py-2'
+          onClick={() => navigate("/login/parent")}
+        >
+          I'm a Parent
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className='cursor-pointer hover:bg-gray-100 px-4 py-2'
+          onClick={() => navigate("/login/kid")}
+        >
+          I'm a Kid
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+</div>
           </div>
         </div>
         {/* Mobile menu, show/hide based on state */}
