@@ -225,6 +225,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { Player } from '@lottiefiles/react-lottie-player';
+import leftAnim from '@/assets/animations/left-decor.json';
+import rightAnim from '@/assets/animations/right-decor.json';
+
 
 const KidDashboard = () => {
   const [tasks, setTasks] = useState(mockTasks);
@@ -267,9 +271,9 @@ const KidDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex"  style={{ background: '#f7f6fb' }}>
       {/* Sidebar */}
-      <Card className="w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col min-h-screen p-0">
+      <Card className="w-64 bg-white shadow-none border-0 flex flex-col min-h-screen p-0 m-4 mr-0">
         {/* Logo */}
         <CardHeader className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
@@ -317,7 +321,7 @@ const KidDashboard = () => {
         {activeTab === 'home' ? (
           <>
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 px-6 py-4">
+            <header className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
@@ -325,7 +329,7 @@ const KidDashboard = () => {
                     <Input
                       type="text"
                       placeholder="Search..."
-                      className="pl-10 pr-4 py-2 w-96 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="pl-10 pr-4 py-2 w-70 border-0 rounded-lg focus:outline-none focus:ring-0 focus:ring-purple-500 bg-white"
                     />
                   </div>
                 </div>
@@ -341,28 +345,21 @@ const KidDashboard = () => {
             </header>
 
             {/* Main Content Area */}
-            <main className="p-6 space-y-8 overflow-y-auto h-full">
+            <main className="space-y-8 overflow-y-auto h-full p-5 pt-0 pb-0">
               {/* Hero Section */}
-              <Card className="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 rounded-2xl text-white relative overflow-hidden border-0">
-                <CardContent className="relative z-10 max-w-lg p-8">
-                  <CardTitle className="text-2xl font-bold mb-2">Hi, Irham Muhammad Shidiq</CardTitle>
-                  <CardDescription className="text-purple-100 mb-6">The library serves as a welcoming home for knowledge seekers and avid readers alike</CardDescription>
-                  <Button className="bg-white/20 backdrop-blur-sm text-white px-6 py-2 rounded-lg hover:bg-white/30 transition-colors">Learn more</Button>
+              <Card className="bg-gradient-to-b from-[#8f8ef2] to-[#6a6ae7] rounded-2xl text-white relative overflow-hidden border-0 flex flex-col items-center text-center justify-center h-60 mb-5 shadow-none ">
+                <CardContent className="relative z-10 max-w-lg p-8 ">
+                  <CardTitle className="text-3xl font-bold mb-3">Hi, Irham Muhammad Shidiq</CardTitle>
+                  <CardDescription className="text-[#c6c7f8] mb-5 text-md">The library serves as a welcoming home for knowledge <br/> seekers and avid readers alike</CardDescription>
+                  <Button className="bg-transparent border-2 border-white/20 backdrop-blur-sm text-[#bcbcf1] px-7 py-2 rounded-lg hover:bg-white/30 hover:text-white transition-colors">Learn more</Button>
                 </CardContent>
                 {/* Decorative Elements */}
-                <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-80">
-                  <div className="relative">
-                    <div className="w-24 h-16 bg-orange-400 rounded-lg transform rotate-3"></div>
-                    <div className="w-20 h-12 bg-blue-400 rounded-lg absolute -top-2 -left-2 transform -rotate-6"></div>
-                    <div className="w-16 h-10 bg-red-400 rounded-lg absolute -top-4 -left-4 transform rotate-12"></div>
-                    <div className="w-32 h-6 bg-yellow-400 rounded-full absolute top-20 -left-8"></div>
-                  </div>
+                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 z-0 ml-20">
+                  <Player autoplay loop src={leftAnim} style={{ width: 170, height: 170 }} />
                 </div>
-                <div className="absolute left-8 top-1/2 transform -translate-y-1/2 opacity-60">
-                  <div className="w-16 h-20 bg-green-400 rounded-lg transform -rotate-12"></div>
-                  <div className="w-12 h-16 bg-orange-400 rounded-lg absolute top-4 left-4 transform rotate-6"></div>
-                  <div className="w-8 h-12 bg-purple-300 rounded-lg absolute top-8 left-8 transform -rotate-3"></div>
-                  <div className="w-16 h-4 bg-yellow-300 rounded-full absolute -top-2 left-2"></div>
+
+                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 z-0 mr-10">
+                  <Player autoplay loop src={rightAnim} style={{ width: 220, height: 220 }} />
                 </div>
                 {/* Floating circles */}
                 <div className="absolute top-4 right-1/4 w-4 h-4 bg-yellow-300 rounded-full opacity-60"></div>
@@ -370,14 +367,14 @@ const KidDashboard = () => {
                 <div className="absolute top-1/3 right-1/3 w-2 h-2 bg-blue-300 rounded-full opacity-70"></div>
               </Card>
 
-              <div className="flex gap-8">
+              <div className="flex gap-5 mb-4">
                 {/* Left Column */}
-                <div className="flex-1 space-y-8">
+                <div className="flex-1 space-y-8 rounded-2xl bg-white p-5 shadow-none">
                   {/* Popular Section */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-bold text-gray-900">Popular</h2>
-                      <Button variant="link" className="text-purple-600 text-sm font-medium hover:text-purple-700 p-0 h-auto">VIEW ALL</Button>
+                      <h2 className="text-xl font-bold text-gray-900">Completed</h2>
+                      <Button variant="link" className="text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto">VIEW ALL</Button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                       {incompleteTasks.map((task: any, i: number) => (
@@ -406,7 +403,7 @@ const KidDashboard = () => {
                   <div className="mt-10">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-bold text-gray-900">Ongoing</h2>
-                      <Button variant="link" className="text-purple-600 text-sm font-medium hover:text-purple-700 p-0 h-auto">VIEW ALL</Button>
+                      <Button variant="link" className="text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto">VIEW ALL</Button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                       {completedTasksArr.map((task: any, i: number) => (
@@ -433,9 +430,9 @@ const KidDashboard = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="w-80 space-y-6">
+                <div className="w-80 space-y-6 mb-0">
                   {/* Achievement Section */}
-                  <Card className="bg-white rounded-xl p-0 shadow-sm border border-gray-200">
+                  <Card className="bg-white rounded-xl p-0 shadow-none border-0 mb-4">
                     <CardHeader className="flex items-center justify-between mb-0 p-6 pb-0">
                       <CardTitle className="font-semibold text-gray-900 text-base">Unlock achievement</CardTitle>
                       <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
@@ -478,7 +475,7 @@ const KidDashboard = () => {
                   </Card>
 
                   {/* Best Sales Section */}
-                  <Card className="bg-white rounded-xl p-0 shadow-sm border border-gray-200">
+                  <Card className="bg-white rounded-xl p-0 shadow-none border-0">
                     <CardHeader className="flex items-center justify-between mb-0 p-6 pb-0">
                       <CardTitle className="font-semibold text-gray-900 text-base">Best sales</CardTitle>
                       <Button variant="link" className="text-purple-600 text-sm font-medium hover:text-purple-700 p-0 h-auto">VIEW ALL</Button>
