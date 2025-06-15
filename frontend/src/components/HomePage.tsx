@@ -57,7 +57,7 @@ function JumpInCard({ delay = 0, children, className = "", ...props }: JumpInCar
     return () => observer.disconnect();
   }, []);
   return (
-    <div ref={ref} className={className + (inView ? " animate-jump-in" : "")} style={{ animationDelay: `${delay}s` }} {...props}>
+    <div ref={ref} className={className + (inView ? " animate-jump-in opacity-100 visible" : " opacity-0 invisible")} style={{ animationDelay: `${delay}s` }} {...props}>
       {children}
     </div>
   );
@@ -431,7 +431,7 @@ export default function WelcomePage() {
             ))}
           </div>
           <div className='flex justify-center mt-8'>
-            <JumpInCard delay={3 * 0.3} className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 max-w-xl w-full'>
+            <JumpInCard delay={0.6} className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 max-w-xl w-full'>
               <div className='w-16 h-16 bg-[oklch(87%_0.065_274.039)] rounded-full flex items-center justify-center mx-auto mb-4'>
                 <Heart className='w-8 h-8 text-white' />
               </div>
