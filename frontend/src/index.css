@@ -1,5 +1,5 @@
 /* ✅ טעינת גופן Comic Neue מגוגל */
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap");
 
 /* ✅ טעינת Tailwind */
 @import "tailwindcss";
@@ -59,9 +59,28 @@
   }
 }
 
+@keyframes jumpIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(40px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-jump-in {
+  animation: jumpIn 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
 /* ✅ ברירת מחדל: כל הטקסטים בגופן משחקי */
 body {
-  font-family: 'Comic Neue', cursive;
+  font-family: "Comic Neue", cursive;
   text-align: center;
 }
 
