@@ -63,6 +63,22 @@ function JumpInCard({ delay = 0, children, className = "", ...props }: JumpInCar
   );
 }
 
+type FlipDownSectionProps = React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode };
+function FlipDownSection({ children, className = "", ...props }: FlipDownSectionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const observer = new window.IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className + (inView ? " animate-flip-down" : "")} {...props}>
+      {children}
+    </div>
+  );
+}
+
 export default function WelcomePage() {
   const [activeSection, setActiveSection] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -500,26 +516,25 @@ export default function WelcomePage() {
       </div>
 
       {/* FAQ Section */}
-      <div className='relative'>
+      <FlipDownSection>
         <svg viewBox='0 0 1200 120' className='w-full'>
           <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='oklch(89.4% 0.057 293.283)' />
         </svg>
-      </div>
-
-      <div id='faq' className='bg-[oklch(88.2%_0.059_254.128)] py-16 px-6'>
-        <div className='text-center mb-12'>
-          <div className='w-16 h-16 bg-[oklch(62.7%_0.265_303.9)] rounded-full flex items-center justify-center mx-auto mb-4'>
-            <HelpCircle className='w-8 h-8 text-white' />
+        <div id='faq' className='bg-[oklch(88.2%_0.059_254.128)] py-16 px-6'>
+          <div className='text-center mb-12'>
+            <div className='w-16 h-16 bg-[oklch(62.7%_0.265_303.9)] rounded-full flex items-center justify-center mx-auto mb-4'>
+              <HelpCircle className='w-8 h-8 text-white' />
+            </div>
+            <h2 className='text-4xl font-bold text-gray-800 mb-4'>Frequently Asked Questions</h2>
+            <p className='text-gray-600 text-lg'>Everything you need to know about Chope and how it works for your family.</p>
           </div>
-          <h2 className='text-4xl font-bold text-gray-800 mb-4'>Frequently Asked Questions</h2>
-          <p className='text-gray-600 text-lg'>Everything you need to know about Chope and how it works for your family.</p>
+          <div className='bg-[oklch(88.2%_0.059_254.128)] rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full'>
+            {faqData.map((faq, idx) => (
+              <FAQCard key={idx} question={faq.question} answer={faq.answer} />
+            ))}
+          </div>
         </div>
-        <div className='bg-[oklch(88.2%_0.059_254.128)] rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full'>
-          {faqData.map((faq, idx) => (
-            <FAQCard key={idx} question={faq.question} answer={faq.answer} />
-          ))}
-        </div>
-      </div>
+      </FlipDownSection>
 
       {/* Call to Action Section */}
       <div className='relative'>

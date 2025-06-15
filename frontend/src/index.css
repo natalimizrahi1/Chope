@@ -77,6 +77,22 @@
 .animate-jump-in {
   animation: jumpIn 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
+@keyframes flipDown {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-flip-down {
+  animation: flipDown 0.8s cubic-bezier(0.23, 1, 0.32, 1) both;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
 
 /* ✅ ברירת מחדל: כל הטקסטים בגופן משחקי */
 body {
