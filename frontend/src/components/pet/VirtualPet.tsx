@@ -77,16 +77,16 @@ interface VirtualPetProps {
 
 function Benny() {
   return (
-  <div
-  style={{
-    width: 329,
-    height: 447,
-    background: 'url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0',
-    zIndex: 2000,
-    animation: 'moveX 1.5s steps(10) infinite',
-  }}
-/> 
-);
+    <div
+      style={{
+        width: 329,
+        height: 447,
+        background: "url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0",
+        zIndex: 2000,
+        animation: "moveX 1.5s steps(10) infinite",
+      }}
+    />
+  );
 }
 
 export default function VirtualPet({
@@ -131,6 +131,9 @@ export default function VirtualPet({
   const [showAddedStar, setShowAddedStar] = useState(false);
   const [showAddedHeart, setShowAddedHeart] = useState(false);
   const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
+  const isAllStatsEmpty = animal.stats.hunger <= 0 && animal.stats.happiness <= 0 && animal.stats.energy <= 0;
+  const [petScale, setPetScale] = useState(0.5);
+  const maxScale = 1.2;
 
   useEffect(() => {
     // Initialize audio elements
@@ -184,6 +187,12 @@ export default function VirtualPet({
     setLocalEnergy(animal.stats.energy);
   }, [animal.stats.hunger, animal.stats.happiness, animal.stats.energy]);
 
+  useEffect(() => {
+    if (isAllStatsEmpty) {
+      setPetScale(0.5);
+    }
+  }, [isAllStatsEmpty]);
+
   const flyToStat = (btnRef: React.RefObject<HTMLButtonElement | null>, statRef: React.RefObject<HTMLDivElement | null>, type: "donut" | "star" | "heart", src: string) => {
     if (!btnRef.current || !statRef.current) return;
     const btnRect = btnRef.current.getBoundingClientRect();
@@ -216,6 +225,7 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
+    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleDrink = () => {
@@ -227,6 +237,7 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
+    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleHeal = () => {
@@ -242,6 +253,7 @@ export default function VirtualPet({
     flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
     setShowAddedHeart(true);
     setTimeout(() => setShowAddedHeart(false), 700);
+    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handlePlay = () => {
@@ -257,6 +269,7 @@ export default function VirtualPet({
     flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
+    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleRestart = () => {
@@ -363,7 +376,7 @@ export default function VirtualPet({
 
           {/* Static stats bar */}
           <div
-            className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
+            className='absolute left-1/2 top-0 -translate-x-1/2 z-10 
                           bg-blue-100 border-4 border-amber-700 rounded-xl 
                           shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
           >
@@ -385,16 +398,13 @@ export default function VirtualPet({
           </div>
 
           {/* Pet in the center */}
-          <div
-            className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10
-                          scale-50 sm:scale-50 md:scale-65 lg:scale-80 mt-10'
-          >
+          <div className='absolute left-1/2 top-32 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
             <Benny />
           </div>
         </div>
 
         {/* Buttons row */}
-        <div className='bg-white/80 backdrop-blur-sm border-t-2 border-gray-200 p-4 z-30'>
+        <div className='bg-white/80 backdrop-blur-sm border-t-2 border-gray-200 p-0 z-0'>
           <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
             <button ref={playBtnRef} onClick={handlePlay} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='משחק'>
               <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
