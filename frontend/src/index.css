@@ -59,9 +59,9 @@
   }
 }
 
-/* ✅ ברירת מחדל: כל הטקסטים בגופן משחקי */
+
 body {
-  font-family: 'Comic Neue', cursive;
+  font-family: 'Fredoka', 'sans-serif';
   text-align: center;
 }
 

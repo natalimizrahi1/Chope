@@ -3,49 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Star, Circle, Globe, Cloud, CheckCircle, Users, Shield, Award, HelpCircle, ChevronDown, ChevronUp, Heart, Target, Zap } from "lucide-react";
 import { motion, useInView } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "./ui/dropdown-menu";
-
-const transition = { duration: 4, yoyo: Infinity, ease: "easeInOut" };
-const animalPath = "M 239 17 C 142 17 48.5 103 48.5 213.5 C 48.5 324 126 408 244 408 C 362 408 412 319 412 213.5 C 412 108 334 68.5 244 68.5 C 154 68.5 102.68 135.079 99 213.5 C 95.32 291.921 157 350 231 345.5 C 305 341 357.5 290 357.5 219.5 C 357.5 149 314 121 244 121 C 174 121 151.5 167 151.5 213.5 C 151.5 260 176 286.5 224.5 286.5 C 273 286.5 296.5 253 296.5 218.5 C 296.5 184 270 177 244 177 C 218 177 197 198 197 218.5 C 197 239 206 250.5 225.5 250.5 C 245 250.5 253 242 253 218.5";
-
-const boxStyle = (color: string) => ({
-  width: 80,
-  height: 80,
-  backgroundColor: "#fff",
-  border: `4px dashed ${color}`,
-  borderRadius: "50%",
-  position: "absolute" as const,
-  top: 0,
-  left: 0,
-  offsetPath: `path(\"${animalPath}\")`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "3rem",
-  zIndex: 2,
-});
-
-const pathSvgStyle = {
-  position: "absolute" as const,
-  top: 0,
-  left: 0,
-  zIndex: 1,
-};
-
-function AnimalMotionCircle({ emoji, color, delay = 0, pathColor = "#67e8f9" }: { emoji: string; color: string; delay?: number; pathColor?: string }) {
-  return (
-    <div style={{ position: "relative", width: 451, height: 437 }}>
-      <svg xmlns='http://www.w3.org/2000/svg' width='451' height='437' style={pathSvgStyle}>
-        <motion.path d={animalPath} fill='transparent' strokeWidth='12' stroke={pathColor} strokeLinecap='round' initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={transition} />
-      </svg>
-      <motion.div style={boxStyle(color)} initial={{ offsetDistance: "0%", scale: 2.5 }} animate={{ offsetDistance: "100%", scale: 1 }} transition={{ ...transition, delay }}>
-        {emoji}
-      </motion.div>
-    </div>
-  );
-}
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
+// import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+// import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
+import AnimalMotionCircle  from "./AnimalMotionCircle";
+import PerfectAppContent from "./PerfectAppContent";
 
 export default function WelcomePage() {
   const [activeSection, setActiveSection] = useState("home");
@@ -133,180 +95,106 @@ export default function WelcomePage() {
       </div>
 
       {/* Header Bar */}
-      <nav className='bg-[#223668] relative z-10'>
-        <div className='max-w-7xl px-2 sm:px-6 lg:px-8 '>
-          <div className='relative flex h-16 items-center justify-between'>
-            <div className='absolute inset-y-0 left-0 flex items-center sm:hidden'>
-              {/* Mobile menu button */}
-              <Button type='button' variant='ghost' size='icon' className='relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-none focus:ring-inset mr-2' aria-controls='mobile-menu' aria-expanded={mobileMenuOpen ? "true" : "false"} onClick={() => setMobileMenuOpen(v => !v)}>
-                <span className='absolute -inset-0.5'></span>
-                <span className='sr-only'>Open main menu</span>
-                {/* Hamburger icon */}
-                {!mobileMenuOpen ? (
-                  <svg className='block size-6' fill='none' viewBox='0 0 24 24' strokeWidth='1.5' stroke='currentColor' aria-hidden='true'>
-                    <path strokeLinecap='round' strokeLinejoin='round' d='M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5' />
-                  </svg>
-                ) : (
-                  <svg className='block size-6' fill='none' viewBox='0 0 24 24' strokeWidth='1.5' stroke='currentColor' aria-hidden='true'>
-                    <path strokeLinecap='round' strokeLinejoin='round' d='M6 18 18 6M6 6l12 12' />
-                  </svg>
-                )}
-              </Button>
-              {/* Logo for mobile - moved to flex container */}
-              <div className='text-xl font-bold text-white'>Chope</div>
-            </div>
-            <div className='flex flex-1 items-center'>
-              <div className='hidden sm:flex items-center'>
-                <div className='text-xl font-bold text-white ml-2'>Chope</div>
-              </div>
-              <div className='hidden sm:ml-6 sm:block'>
-                <div className='flex space-x-4'>
-                  <Button variant='ghost' className={`${activeSection === "home" ? "bg-[rgb(253,186,116)]" : ""} text-white hover:bg-orange-300 px-4 py-2 rounded-full`} onClick={() => scrollToSection("home")}>
-                    Home
-                  </Button>
-                  <Button variant='ghost' className='text-white hover:bg-white/10 px-4 py-2 rounded-full' onClick={() => scrollToSection("core-values")}>
-                    Our Core Values
-                  </Button>
-                  <Button variant='ghost' className='text-white hover:bg-white/10 px-4 py-2 rounded-full' onClick={() => scrollToSection("about")}>
-                    About
-                  </Button>
-                  <Button variant='ghost' className='text-white hover:bg-white/10 px-4 py-2 rounded-full' onClick={() => scrollToSection("faq")}>
-                    FAQ
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <div className='flex items-center gap-2'>
-              {/* Desktop buttons */}
-              <div className='hidden sm:flex gap-2'>
-                <Button className='bg-[oklch(88.2%_0.059_254.128)] text-black hover:bg-[oklch(89.4%_0.057_293.283)] px-6 py-2 rounded-full' onClick={() => navigate("/login/parent")}>
-                  I'm a Parent
-                </Button>
-                <Button className='bg-[oklch(88.2%_0.059_254.128)] text-black hover:bg-[oklch(89.4%_0.057_293.283)] px-6 py-2 rounded-full' onClick={() => navigate("/login/kid")}>
-                  I'm a Kid
-                </Button>
-              </div>
-
-              {/* Mobile dropdown */}
-              <div className='sm:hidden'>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className='bg-[oklch(88.2%_0.059_254.128)] text-black hover:bg-[oklch(89.4%_0.057_293.283)] px-4 py-2 rounded-full flex items-center gap-2'>
-                      Login
-                      <ChevronDown className='w-4 h-4' />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align='end' className='bg-white border border-gray-200 rounded-lg shadow-lg'>
-                    <DropdownMenuItem className='cursor-pointer hover:bg-gray-100 px-4 py-2' onClick={() => navigate("/login/parent")}>
-                      I'm a Parent
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className='cursor-pointer hover:bg-gray-100 px-4 py-2' onClick={() => navigate("/login/kid")}>
-                      I'm a Kid
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Mobile menu, show/hide based on state */}
-        {mobileMenuOpen && (
-          <div className='sm:hidden' id='mobile-menu'>
-            <div className='space-y-1 px-2 pt-2 pb-3'>
-              <Button
-                variant='ghost'
-                className={`${activeSection === "home" ? "bg-orange-400" : ""} w-full text-left text-white hover:bg-orange-300 px-4 py-2 rounded-full`}
-                onClick={() => {
-                  scrollToSection("home");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Home
-              </Button>
-              <Button
-                variant='ghost'
-                className='w-full text-left text-white hover:bg-white/10 px-4 py-2 rounded-full'
-                onClick={() => {
-                  scrollToSection("core-values");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Our Core Values
-              </Button>
-              <Button
-                variant='ghost'
-                className='w-full text-left text-white hover:bg-white/10 px-4 py-2 rounded-full'
-                onClick={() => {
-                  scrollToSection("about");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                About
-              </Button>
-              <Button
-                variant='ghost'
-                className='w-full text-left text-white hover:bg-white/10 px-4 py-2 rounded-full'
-                onClick={() => {
-                  scrollToSection("faq");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                FAQ
-              </Button>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero Section */}
-      <div id='home' className='relative text-left py-16 px-6 lg:px-12 bg-[#223668]'>
-        <div className='container mx-auto flex flex-col lg:flex-row items-center justify-between gap-10'>
-          <div className='flex-1 relative z-10'>
-            <div className='bg-[rgb(253,186,116)] text-white px-4 py-1 rounded-full text-sm inline-block mb-4'>WELCOME TO CHOPE!</div>
-            <h1 className='text-5xl lg:text-6xl font-bold text-white mb-8 leading-tight'>
-              The Most <span className='text-[oklch(71.4%_0.203_305.504)]'>Fun</span>
-              <br />
-              Way to Do <span className='text-[oklch(71.4%_0.203_305.504)]'>Chores</span>
-            </h1>
-            <p className='text-white/90 text-lg mb-6 leading-relaxed'>Transform household chores into an exciting adventure! Your children will love completing tasks while raising adorable virtual pets.</p>
-          </div>
-
-          <div className='flex-1 flex justify-center relative'>
-            <div className='relative w-[500px] h-[400px] flex items-center justify-center'>
-              {/* Hero Illustration */}
-              <div className='flex-1 flex justify-center relative'>
-                <div className='relative w-[400px] h-[400px]'>
-                  {/* Blob shape background */}
-                  <div className='absolute inset-0 bg-gradient-to-br from-[oklch(71.4%_0.203_305.504)] via-[oklch(71.4%_0.203_305.504)] to-[oklch(82.7%_0.119_306.383)] rounded-[60px] transform rotate-12'></div>
-                  <div className='absolute inset-4 bg-gradient-to-br from-orange-300 via-red-300 to-pink-400 rounded-[50px] transform -rotate-6'></div>
-                  <div className='absolute inset-8 bg-white rounded-[40px] overflow-hidden shadow-2xl'>
-                    {/* Child image placeholder */}
-                    <div className='w-full h-full bg-gradient-to-br from-[oklch(82.7%_0.119_306.383)] to-[oklch(71.4%_0.203_305.504)] flex items-center justify-center'>
-                      <div className='text-6xl'>👧</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+<nav className='bg-white shadow-md relative z-50'>
+  <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+    <div className='flex justify-between items-center h-20'>
+      {/* Logo */}
+      <div className='flex-shrink-0 flex items-center'>
+        {/* <img className='h-10 w-auto' src='/logo-dino.svg' alt='Little Dino Logo' /> */}
+        <span className='ml-2 text-lg font-extrabold text-[#102358]'>Little <span className='text-[#60a5fa]'>Dino</span></span>
       </div>
 
-      {/* Wave Transition */}
-      <div className='relative'>
-        <svg viewBox='0 0 1200 120' className='w-full rotate-180 bg-[#89d4f2]'>
-          <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#223668' />
-        </svg>
+      {/* Menu */}
+      <div className='hidden md:flex space-x-6'>
+        <button onClick={() => scrollToSection("home")} className={`text-sm font-bold px-3 py-1 rounded-md ${activeSection === "home" ? "bg-[#ffd986] text-[#ffffff]" : "text-[#102358] hover:bg-[#ffd986]"}`}>Home</button>
+        <button onClick={() => scrollToSection("core-values")} className='text-sm font-bold text-[#102358] hover:bg-[#ffd986] hover:text-[#ffffff] px-3 py-1 rounded-md'>Our Core Values</button>
+        <button onClick={() => scrollToSection("about")} className='text-sm font-bold text-[#102358] hover:bg-[#ffd986] hover:text-[#ffffff] px-3 py-1 rounded-md'>About</button>
+        <button onClick={() => scrollToSection("faq")} className='text-sm font-bold text-[#102358] hover:bg-[#ffd986] hover:text-[#ffffff] px-3 py-1 rounded-md'>FAQ</button>
       </div>
+
+      {/* Action Buttons */}
+      <div className='hidden md:flex gap-4'>
+        <Button className='bg-[#ffd986] text-white hover:bg-yellow-400 px-5 outline-2 outline-offset-2 outline-dashed outline-[#ffd986] rounded-full text-sm font-semibold' onClick={() => navigate("/login/parent")}>I'm a Parent</Button>
+        <Button className='bg-[#ffbacc] text-white hover:bg-pink-400 px-5 outline-2 outline-offset-2 outline-dashed outline-[#ffbacc] rounded-full text-sm font-semibold' onClick={() => navigate("/login/kid")}>I'm a Kid</Button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+{/* Hero Section */}
+<div className="relative bg-[#faf8f2] overflow-hidden min-h-[650px] flex items-center">
+  {/* קישוטים */}
+  {/* <img src="/decor/cloud-blue.svg" className="absolute left-0 top-0 w-48 z-0" alt="" />
+  <img src="/decor/star-pink.svg" className="absolute right-10 top-20 w-12 z-0" alt="" />
+  <img src="/decor/rocket.svg" className="absolute left-10 bottom-10 w-32 z-0" alt="" />
+  <img src="/decor/bike.svg" className="absolute left-1/3 top-32 w-24 z-0" alt="" />
+  <img src="/decor/stars.svg" className="absolute right-10 top-1/2 w-16 z-0" alt="" /> */}
+
+  <div className="absolute right-0 w-7/10 h-full z-0 overflow-hidden">
+    <img
+      src="/images/hero-kids.jpg"
+      alt="Kid learning"
+      className="w-full h-full object-cover object-center"
+      style={{
+        maskImage: "linear-gradient(to left, black 80%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to left, black 70%, transparent 100%)",
+        background: "#faf8f2"
+      }}
+    />
+   
+  </div>
+
+  {/* תוכן מרכזי */}
+  <div className="container mx-auto flex items-center justify-between relative z-10">
+    <div className="max-w-xl z-20">
+      <div className="bg-[#87d4ee] text-white px-4 py-1 rounded-md text-sm font-bold mb-8 w-fit">WELCOME TO LITTLEDINO!</div>
+      <h1 className="text-6xl font-extrabold text-[#23326a] mb-8 justify-self-start">
+        Earn <span className="text-[#4ec3f7]">&</span> Play!
+      </h1>
+      <p className="text-[#7d7d7d] text-lg mb-10 text-left">Transform household chores into an exciting adventure! Your children will love completing tasks while raising adorable virtual pets.</p>
+      <button
+        className="relative bg-[#ffd986] text-white font-bold px-8 py-2 rounded-full shadow hover:bg-[#ffd36a] transition overflow-hidden border-none mr-50"
+      >
+        Read More
+        <span
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{
+            border: "2px dashed #fff",
+            top: "2px",
+            left: "2px",
+            right: "2px",
+            bottom: "2px",
+            position: "absolute",
+            borderRadius: "9999px",
+            boxSizing: "border-box",
+            zIndex: 1
+          }}
+        />
+          </button>
+    </div>
+        </div>
+         {/* גל חותך למטה */}
+    <svg
+      className="absolute left-0 bottom-0 w-full h-20"
+      viewBox="0 0 1200 120"
+      preserveAspectRatio="none"
+      style={{ pointerEvents: "none" }}
+    >
+      <path
+        d="M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z"
+        fill="#ffffff"
+      />
+    </svg>
+</div>
 
       {/* Features Section */}
-      <div className='bg-[#89d4f2] py-16 px-6'>
+      <div className='bg-[#ffffff] px-6'>
         <div className='container mx-auto'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-8 text-center'>
             <div className='flex flex-col items-center'>
-              <AnimalMotionCircle emoji='🦕' color='#67e8f9' pathColor='#67e8f9' />
-              <h3 className='font-bold text-xl mb-3 text-white'>Fun Daily Tasks</h3>
-              <p className='text-white/90 text-sm leading-relaxed'>
+              <AnimalMotionCircle emoji='🦕' color='#67e8f9' pathColor='#67e8f9' scale={0.7} />
+              <h3 className='font-bold text-xl mb-3 text-[#142757]'>Fun Daily Tasks</h3>
+              <p className='text-[#142757] text-sm leading-relaxed'>
                 Kids complete daily tasks
                 <br />
                 in an engaging and fun way
@@ -314,9 +202,9 @@ export default function WelcomePage() {
             </div>
 
             <div className='flex flex-col items-center'>
-              <AnimalMotionCircle emoji='🐸' color='#f9a8d4' delay={1.3} pathColor='#f9a8d4' />
-              <h3 className='font-bold text-xl mb-3 text-white'>Virtual Pet</h3>
-              <p className='text-white/90 text-sm leading-relaxed'>
+              <AnimalMotionCircle emoji='🐸' color='#f9a8d4' delay={1.3} pathColor='#f9a8d4' scale={0.7} />
+              <h3 className='font-bold text-xl mb-3 text-[#142757]'>Virtual Pet</h3>
+              <p className='text-[#142757] text-sm leading-relaxed'>
                 Kids raise a virtual pet
                 <br />
                 by completing their tasks
@@ -324,9 +212,9 @@ export default function WelcomePage() {
             </div>
 
             <div className='flex flex-col items-center'>
-              <AnimalMotionCircle emoji='🐋' color='#fdba74' delay={2.6} pathColor='#fdba74' />
-              <h3 className='font-bold text-xl mb-3 text-white'>Progress Tracking</h3>
-              <p className='text-white/90 text-sm leading-relaxed'>
+              <AnimalMotionCircle emoji='🐋' color='#fdba74' delay={2.6} pathColor='#fdba74' scale={0.7} />
+              <h3 className='font-bold text-xl mb-3 text-[#142757]'>Progress Tracking</h3>
+              <p className='text-[#142757] text-sm leading-relaxed'>
                 Parents can track their
                 <br />
                 kids' progress in real-time
@@ -338,30 +226,55 @@ export default function WelcomePage() {
 
       {/* Bottom Wave */}
       <div className='relative'>
-        <svg viewBox='0 0 1200 120' className='w-full rotate-180 bg-[#ffffff]'>
-          <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#89d4f2' />
+        <svg viewBox='0 0 1200 120' className='w-full rotate-180 bg-[#fcf8f5]'>
+          <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#ffffff' />
         </svg>
       </div>
 
       {/* Perfect App Section */}
-      <div className='bg-[#ffffff] py-16 px-6 relative overflow-hidden'>
-        <div className='container mx-auto flex flex-col lg:flex-row items-center gap-12'>
-          {/* Phone Animation */}
-          <PerfectAppPhone />
+      <div className="relative bg-[#fcf8f5] py-5 px-6 overflow-hidden">
+        {/* קישוטים */}
+        {/* <img src="/decor/dino-yellow.svg" className="absolute left-32 top-8 w-32" alt="" /> */}
+        {/* <img src="/decor/pencil-yellow.svg" className="absolute left-8 top-1/3 w-16" alt="" /> */}
+        {/* <img src="/decor/cloud-yellow.svg" className="absolute right-12 top-10 w-28" alt="" /> */}
+        {/* <img src="/decor/balloons-pink.svg" className="absolute right-16 bottom-32 w-20" alt="" /> */}
+        {/* <img src="/decor/dino-blue.svg" className="absolute left-1/2 bottom-0 w-40" alt="" /> */}
 
-          {/* Text Content */}
-          <PerfectAppContent scrollToSection={scrollToSection} />
+        <div className="container mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10 justify-around">
+          {/* תמונה במסגרת מקווקוות */}
+          <div className="relative flex items-center justify-center w-[540px] h-[450px]">
+            <div
+              className="absolute left-0 top-0 w-[500px] h-[400px] rounded-3xl border-2 border-dashed border-pink-200 bg-white"
+              style={{ zIndex: 0 }}
+            />
+            <img
+              src="/images/parent-kid.png"
+              alt="Kids"
+              className="relative z-10 rounded-3xl w-[500px] h-[400px] object-cover"
+              style={{
+                marginTop: "10px",
+                marginLeft: "20px",
+                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.04)"
+              }}
+            />
+          </div>
+
+          {/* תוכן טקסטואלי */}
+          <div className="flex-1 flex flex-col justify-center items-start max-w-lg whitespace-normal">
+            <PerfectAppContent scrollToSection={scrollToSection} />
+          </div>
         </div>
       </div>
 
-      {/* Core Values Section */}
       <div className='relative'>
-        <svg viewBox='0 0 1200 120' className='w-full bg-[#ffffff]'>
-          <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#fcf8f5' />
+        <svg viewBox='0 0 1200 120' className='w-full bg-[#fcf8f5]'>
+          <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#89d4f2' />
         </svg>
       </div>
 
-      <div id='core-values' className='bg-[#fcf8f5] px-6 relative overflow-hidden'>
+
+      {/* Core Values Section */}
+      <div id='core-values' className='bg-[#89d4f2] px-6 relative overflow-hidden'>
         <Star className='absolute text-pink-300 w-6 h-6 top-12 left-16 animate-pulse z-0' fill='currentColor' />
         <Star className='absolute text-yellow-300 w-4 h-4 top-20 right-32 animate-pulse z-0' fill='currentColor' />
         <Star className='absolute text-pink-300 w-5 h-5 bottom-20 left-24 animate-pulse z-0' fill='currentColor' />
@@ -403,13 +316,13 @@ export default function WelcomePage() {
         </div>
       </div>
 
-      {/* About Section */}
       <div className='relative'>
-        <svg viewBox='0 0 1200 120' className='w-full rotate-180 bg-red'>
+        <svg viewBox='0 0 1200 120' className='w-full bg-[#89d4f2]'>
           <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#fcf8f5' />
         </svg>
       </div>
 
+      {/* About Section */}
       <div id='about' className='bg-gradient-to-b py-16 px-6'>
         <div className='container mx-auto'>
           <div className='text-center mb-12'>
@@ -532,93 +445,34 @@ export default function WelcomePage() {
   );
 }
 
-function PerfectAppPhone() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-  return (
-    <motion.div ref={ref} className='flex-1' initial={{ opacity: 0, x: -100, scale: 0.8 }} animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: -100, scale: 0.8 }} transition={{ duration: 0.8, ease: "easeOut" }}>
-      <div className='relative w-full h-96 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl'>
-        <motion.div className='text-center' initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }} transition={{ duration: 0.6, delay: 0.3 }}>
-          <motion.div className='text-6xl mb-4' initial={{ scale: 0, rotate: -180 }} animate={isInView ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -180 }} transition={{ duration: 0.7, delay: 0.5, type: "spring", stiffness: 200 }}>
-            📱
-          </motion.div>
-          <motion.div className='flex justify-center gap-2 mb-4' initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.6, delay: 0.7 }}>
-            <motion.div className='w-12 h-12 bg-[oklch(88.2%_0.059_254.128)] rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: -20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: -20 }} transition={{ duration: 0.4, delay: 0.8, type: "spring" }}>
-              👨
-            </motion.div>
-            <motion.div className='w-8 h-8 bg-pink-400 rounded-full flex items-center justify-center mt-2' initial={{ scale: 0, y: -10 }} animate={isInView ? { scale: 1, y: 0 } : { scale: 0, y: -10 }} transition={{ duration: 0.4, delay: 1, type: "spring" }}>
-              ❤️
-            </motion.div>
-            <motion.div className='w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: 20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: 20 }} transition={{ duration: 0.4, delay: 1.2, type: "spring" }}>
-              👧
-            </motion.div>
-          </motion.div>
-          <motion.div className='text-purple-800 font-bold' initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} transition={{ duration: 0.5, delay: 1.4 }}>
-            Connected Families
-          </motion.div>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}
+// function PerfectAppPhone() {
+//   const ref = useRef(null);
+//   const isInView = useInView(ref, { once: true, amount: 0.3 });
+//   return (
+//     <motion.div ref={ref} className='flex-1' initial={{ opacity: 0, x: -100, scale: 0.8 }} animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: -100, scale: 0.8 }} transition={{ duration: 0.8, ease: "easeOut" }}>
+//       <div className='relative w-full h-96 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl'>
+//         <motion.div className='text-center' initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }} transition={{ duration: 0.6, delay: 0.3 }}>
+//           <motion.div className='text-6xl mb-4' initial={{ scale: 0, rotate: -180 }} animate={isInView ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -180 }} transition={{ duration: 0.7, delay: 0.5, type: "spring", stiffness: 200 }}>
+//             📱
+//           </motion.div>
+//           <motion.div className='flex justify-center gap-2 mb-4' initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.6, delay: 0.7 }}>
+//             <motion.div className='w-12 h-12 bg-[oklch(88.2%_0.059_254.128)] rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: -20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: -20 }} transition={{ duration: 0.4, delay: 0.8, type: "spring" }}>
+//               👨
+//             </motion.div>
+//             <motion.div className='w-8 h-8 bg-pink-400 rounded-full flex items-center justify-center mt-2' initial={{ scale: 0, y: -10 }} animate={isInView ? { scale: 1, y: 0 } : { scale: 0, y: -10 }} transition={{ duration: 0.4, delay: 1, type: "spring" }}>
+//               ❤️
+//             </motion.div>
+//             <motion.div className='w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: 20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: 20 }} transition={{ duration: 0.4, delay: 1.2, type: "spring" }}>
+//               👧
+//             </motion.div>
+//           </motion.div>
+//           <motion.div className='text-purple-800 font-bold' initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} transition={{ duration: 0.5, delay: 1.4 }}>
+//             Connected Families
+//           </motion.div>
+//         </motion.div>
+//       </div>
+//     </motion.div>
+//   );
+// }
 
-function PerfectAppContent({ scrollToSection }: { scrollToSection: (sectionId: string) => void }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-  const textVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0 },
-  };
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
-  };
-  return (
-    <motion.div ref={ref} className='flex-1' variants={containerVariants} initial='hidden' animate={isInView ? "visible" : "hidden"}>
-      <motion.h2 className='text-3xl sm:text-4xl font-bold text-white mb-6' variants={textVariants} transition={{ duration: 0.6 }}>
-        The Perfect App
-        <br />
-        For Parents & Kids
-      </motion.h2>
-      <motion.p className='text-white mb-8 leading-relaxed text-sm sm:text-base' variants={textVariants} transition={{ duration: 0.6 }}>
-        Chope transforms household chores into an exciting and engaging experience. Your kids will receive carefully planned tasks, raise adorable virtual pets, and you can track their progress in real-time.
-        <br />
-        <br />
-        The app encourages responsibility, independence, and moves kids away from screens to real-world activities.
-      </motion.p>
-      <motion.div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8' variants={containerVariants}>
-        {[
-          { icon: CheckCircle, text: "Safe & Secure" },
-          { icon: CheckCircle, text: "Age Appropriate" },
-          { icon: CheckCircle, text: "Real-time Updates" },
-          { icon: CheckCircle, text: "Family Friendly" },
-        ].map((item, index) => (
-          <motion.div key={index} className='flex items-center gap-2' variants={textVariants} transition={{ duration: 0.4 }}>
-            <motion.div
-              initial={{ scale: 0, rotate: -90 }}
-              animate={isInView ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -90 }}
-              transition={{
-                duration: 0.5,
-                delay: 0.8 + index * 0.1,
-                type: "spring",
-                stiffness: 200,
-              }}
-            >
-              <item.icon className='w-5 h-5 text-green-500' />
-            </motion.div>
-            <span className='text-white text-sm sm:text-base'>{item.text}</span>
-          </motion.div>
-        ))}
-      </motion.div>
-      <motion.div variants={textVariants} transition={{ duration: 0.6 }}>
-        <Button className='bg-[rgb(103,232,249)] hover:bg-[rgb(83,212,229)] text-black px-6 sm:px-8 py-3 rounded-full font-semibold text-sm sm:text-base' onClick={() => scrollToSection("core-values")}>
-          Learn More
-        </Button>
-      </motion.div>
-    </motion.div>
-  );
-}
+

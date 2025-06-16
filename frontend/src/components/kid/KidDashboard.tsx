@@ -367,7 +367,7 @@ const KidDashboard = () => {
                 <div className="absolute top-1/3 right-1/3 w-2 h-2 bg-blue-300 rounded-full opacity-70"></div>
               </Card>
 
-              <div className="flex gap-5 mb-4">
+              <div className="flex gap-4">
                 {/* Left Column */}
                 <div className="flex-1 space-y-8 rounded-2xl bg-white p-5 shadow-none">
                   {/* Popular Section */}
@@ -400,7 +400,7 @@ const KidDashboard = () => {
                   </div>
 
                   {/* Ongoing Section */}
-                  <div className="mt-10">
+                  <div className="mt-0">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-bold text-gray-900">Ongoing</h2>
                       <Button variant="link" className="text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto">VIEW ALL</Button>
@@ -430,10 +430,10 @@ const KidDashboard = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="w-80 space-y-6 mb-0">
+                <div className="w-80 space-y-4 mb-0">
                   {/* Achievement Section */}
                   <Card className="bg-white rounded-xl p-0 shadow-none border-0 mb-4">
-                    <CardHeader className="flex items-center justify-between mb-0 p-6 pb-0">
+                    <CardHeader className="flex items-center justify-between mb-0 p-4 pb-0">
                       <CardTitle className="font-semibold text-gray-900 text-base">Unlock achievement</CardTitle>
                       <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                         <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
