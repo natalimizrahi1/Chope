@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import WelcomePage from "./components/HomePage";
+import WelcomePage from "./components/homepage/HomePage";
 import ParentLoginPage from "./components/login/ParentLoginPage";
 import ParentRegisterPage from "./components/login/ParentRegisterPage";
 import KidLoginPage from "./components/login/KidLoginPage";
