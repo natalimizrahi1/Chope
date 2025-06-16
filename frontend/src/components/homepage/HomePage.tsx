@@ -9,6 +9,38 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import AnimalMotionCircle  from "./AnimalMotionCircle";
 import PerfectAppContent from "./PerfectAppContent";
 
+type JumpInCardProps = React.HTMLAttributes<HTMLDivElement> & { delay?: number; children?: React.ReactNode };
+function JumpInCard({ delay = 0, children, className = "", ...props }: JumpInCardProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const observer = new window.IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className + (inView ? " animate-jump-in opacity-100 visible" : " opacity-0 invisible")} style={{ animationDelay: `${delay}s` }} {...props}>
+      {children}
+    </div>
+  );
+}
+
+type FlipDownSectionProps = React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode };
+function FlipDownSection({ children, className = "", ...props }: FlipDownSectionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const observer = new window.IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className + (inView ? " animate-flip-down" : "")} {...props}>
+      {children}
+    </div>
+  );
+}
+
 export default function WelcomePage() {
   const [activeSection, setActiveSection] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -284,34 +316,41 @@ export default function WelcomePage() {
           <p className='text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed'>At Chope, we believe in building stronger families through shared responsibility, fun, and meaningful connections. Our values guide everything we do.</p>
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-8 mb-12'>
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300'>
-              <div className='w-16 h-16 bg-[oklch(88.2%_0.059_254.128)] rounded-full flex items-center justify-center mx-auto mb-4'>
+            {[
+              {
+                icon: <Heart className='w-8 h-8 text-white' />,
+                bg: "bg-[oklch(88.2%_0.059_254.128)]",
+                title: "Family Connection",
+                desc: "We strengthen family bonds by creating shared experiences and meaningful interactions between parents and children.",
+              },
+              {
+                icon: <Target className='w-8 h-8 text-white' />,
+                bg: "bg-[oklch(87%_0.065_274.039)]",
+                title: "Responsibility",
+                desc: "We help children develop a sense of responsibility and independence through age-appropriate tasks and achievements.",
+              },
+              {
+                icon: <Zap className='w-8 h-8 text-white' />,
+                bg: "bg-[oklch(87%_0.065_274.039)]",
+                title: "Joyful Learning",
+                desc: "We make learning and growing fun by gamifying daily tasks and celebrating every achievement along the way.",
+              },
+            ].map((card, idx) => (
+              <JumpInCard key={card.title} delay={idx * 0.3} className={`bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300`}>
+                <div className={`w-16 h-16 ${card.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>{card.icon}</div>
+                <h3 className='text-xl font-bold text-white mb-3'>{card.title}</h3>
+                <p className='text-white/90 leading-relaxed'>{card.desc}</p>
+              </JumpInCard>
+            ))}
+          </div>
+          <div className='flex justify-center mt-8'>
+            <JumpInCard delay={0.6} className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300 max-w-xl w-full'>
+              <div className='w-16 h-16 bg-[oklch(87%_0.065_274.039)] rounded-full flex items-center justify-center mx-auto mb-4'>
                 <Heart className='w-8 h-8 text-white' />
               </div>
-              <h3 className='text-xl font-bold text-white mb-3'>Family Connection</h3>
-              <p className='text-white/90 leading-relaxed'>We strengthen family bonds by creating shared experiences and meaningful interactions between parents and children.</p>
-            </div>
-
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300'>
-              <div className='w-16 h-16 bg-[oklch(87%_0.065_274.039)] rounded-full flex items-center justify-center mx-auto mb-4'>
-                <Target className='w-8 h-8 text-white' />
-              </div>
-              <h3 className='text-xl font-bold text-white mb-3'>Responsibility</h3>
-              <p className='text-white/90 leading-relaxed'>We help children develop a sense of responsibility and independence through age-appropriate tasks and achievements.</p>
-            </div>
-
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-white/20 transition-all duration-300'>
-              <div className='w-16 h-16 bg-[oklch(87%_0.065_274.039)] rounded-full flex items-center justify-center mx-auto mb-4'>
-                <Zap className='w-8 h-8 text-white' />
-              </div>
-              <h3 className='text-xl font-bold text-white mb-3 '>Joyful Learning</h3>
-              <p className='text-white/90 leading-relaxed'>We make learning and growing fun by gamifying daily tasks and celebrating every achievement along the way.</p>
-            </div>
-          </div>
-
-          <div className='bg-gradient-to-r from-[oklch(88.2%_0.059_254.128)/20] to-[oklch(87%_0.065_274.039)/20] rounded-2xl p-8 max-w-4xl mx-auto hover:bg-white/20 transition-all duration-300'>
-            <h3 className='text-2xl font-bold text-white mb-4'>Why These Values Matter</h3>
-            <p className='text-white/90 leading-relaxed text-lg'>In today's digital world, it's more important than ever to create meaningful connections within families. Chope bridges the gap between technology and real-world responsibility, ensuring that screen time leads to productive offline activities. We believe that when children feel valued, responsible, and connected to their families, they develop confidence and life skills that last a lifetime.</p>
+              <h3 className='text-xl font-bold text-white mb-3'>Why These Values Matter</h3>
+              <p className='text-white/90 leading-relaxed'>In today's digital world, it's more important than ever to create meaningful connections within families. Chope bridges the gap between technology and real-world responsibility, ensuring that screen time leads to productive offline activities. We believe that when children feel valued, responsible, and connected to their families, they develop confidence and life skills that last a lifetime.</p>
+            </JumpInCard>
           </div>
         </div>
       </div>
@@ -390,26 +429,25 @@ export default function WelcomePage() {
       </div>
 
       {/* FAQ Section */}
-      <div className='relative'>
+      <FlipDownSection>
         <svg viewBox='0 0 1200 120' className='w-full'>
           <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='oklch(89.4% 0.057 293.283)' />
         </svg>
-      </div>
-
-      <div id='faq' className='bg-[oklch(88.2%_0.059_254.128)] py-16 px-6'>
-        <div className='text-center mb-12'>
-          <div className='w-16 h-16 bg-[oklch(62.7%_0.265_303.9)] rounded-full flex items-center justify-center mx-auto mb-4'>
-            <HelpCircle className='w-8 h-8 text-white' />
+        <div id='faq' className='bg-[oklch(88.2%_0.059_254.128)] py-16 px-6'>
+          <div className='text-center mb-12'>
+            <div className='w-16 h-16 bg-[oklch(62.7%_0.265_303.9)] rounded-full flex items-center justify-center mx-auto mb-4'>
+              <HelpCircle className='w-8 h-8 text-white' />
+            </div>
+            <h2 className='text-4xl font-bold text-gray-800 mb-4'>Frequently Asked Questions</h2>
+            <p className='text-gray-600 text-lg'>Everything you need to know about Chope and how it works for your family.</p>
           </div>
-          <h2 className='text-4xl font-bold text-gray-800 mb-4'>Frequently Asked Questions</h2>
-          <p className='text-gray-600 text-lg'>Everything you need to know about Chope and how it works for your family.</p>
+          <div className='bg-[oklch(88.2%_0.059_254.128)] rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full'>
+            {faqData.map((faq, idx) => (
+              <FAQCard key={idx} question={faq.question} answer={faq.answer} />
+            ))}
+          </div>
         </div>
-        <div className='bg-[oklch(88.2%_0.059_254.128)] rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full'>
-          {faqData.map((faq, idx) => (
-            <FAQCard key={idx} question={faq.question} answer={faq.answer} />
-          ))}
-        </div>
-      </div>
+      </FlipDownSection>
 
       {/* Call to Action Section */}
       <div className='relative'>
