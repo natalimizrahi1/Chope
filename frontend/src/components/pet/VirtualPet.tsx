@@ -132,7 +132,10 @@ export default function VirtualPet({
   const [showAddedHeart, setShowAddedHeart] = useState(false);
   const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
   const isAllStatsEmpty = animal.stats.hunger <= 0 && animal.stats.happiness <= 0 && animal.stats.energy <= 0;
-  const [petScale, setPetScale] = useState(0.5);
+  const [petScale, setPetScale] = useState(() => {
+    const stored = localStorage.getItem("petScale");
+    return stored ? parseFloat(stored) : 0.5;
+  });
   const maxScale = 1.2;
 
   useEffect(() => {
@@ -192,6 +195,9 @@ export default function VirtualPet({
       setPetScale(0.5);
     }
   }, [isAllStatsEmpty]);
+  useEffect(() => {
+    localStorage.setItem("petScale", petScale.toString());
+  }, [petScale]);
 
   const flyToStat = (btnRef: React.RefObject<HTMLButtonElement | null>, statRef: React.RefObject<HTMLDivElement | null>, type: "donut" | "star" | "heart", src: string) => {
     if (!btnRef.current || !statRef.current) return;
