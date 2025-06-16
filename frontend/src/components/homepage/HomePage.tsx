@@ -111,7 +111,7 @@ export default function WelcomePage() {
   return (
     <div className='bg-transparent text-white min-h-screen font-sans relative overflow-hidden'>
       {/* Decorative Elements */}
-      <div className='absolute inset-0 overflow-hidden pointer-events-none'>
+      {/* <div className='absolute inset-0 overflow-hidden pointer-events-none'>
         <Star className='absolute text-pink-300 w-10 h-6 top-100 left-10 animate-pulse' fill='currentColor' />
         <Star className='absolute text-yellow-300 w-4 h-4 top-24 right-24 animate-pulse' fill='currentColor' />
         <Star className='absolute text-pink-300 w-5 h-5 bottom-24 left-20 animate-pulse' fill='currentColor' />
@@ -124,7 +124,7 @@ export default function WelcomePage() {
 
         <div className='absolute bottom-16 left-0 w-32 h-16 bg-gradient-to-r from-[oklch(62.7%_0.265_303.9)/30] to-[oklch(62.7%_0.265_303.9)/30] rounded-full blur-sm'></div>
         <div className='absolute bottom-12 right-0 w-40 h-20 bg-gradient-to-l from-[oklch(62.7%_0.265_303.9)/30] to-[oklch(62.7%_0.265_303.9)/30] rounded-full blur-sm'></div>
-      </div>
+      </div> */}
 
       {/* Header Bar */}
 <nav className='bg-white shadow-md relative z-50'>
@@ -483,34 +483,6 @@ export default function WelcomePage() {
   );
 }
 
-// function PerfectAppPhone() {
-//   const ref = useRef(null);
-//   const isInView = useInView(ref, { once: true, amount: 0.3 });
-//   return (
-//     <motion.div ref={ref} className='flex-1' initial={{ opacity: 0, x: -100, scale: 0.8 }} animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: -100, scale: 0.8 }} transition={{ duration: 0.8, ease: "easeOut" }}>
-//       <div className='relative w-full h-96 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl'>
-//         <motion.div className='text-center' initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }} transition={{ duration: 0.6, delay: 0.3 }}>
-//           <motion.div className='text-6xl mb-4' initial={{ scale: 0, rotate: -180 }} animate={isInView ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -180 }} transition={{ duration: 0.7, delay: 0.5, type: "spring", stiffness: 200 }}>
-//             📱
-//           </motion.div>
-//           <motion.div className='flex justify-center gap-2 mb-4' initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.6, delay: 0.7 }}>
-//             <motion.div className='w-12 h-12 bg-[oklch(88.2%_0.059_254.128)] rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: -20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: -20 }} transition={{ duration: 0.4, delay: 0.8, type: "spring" }}>
-//               👨
-//             </motion.div>
-//             <motion.div className='w-8 h-8 bg-pink-400 rounded-full flex items-center justify-center mt-2' initial={{ scale: 0, y: -10 }} animate={isInView ? { scale: 1, y: 0 } : { scale: 0, y: -10 }} transition={{ duration: 0.4, delay: 1, type: "spring" }}>
-//               ❤️
-//             </motion.div>
-//             <motion.div className='w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white text-xl' initial={{ scale: 0, x: 20 }} animate={isInView ? { scale: 1, x: 0 } : { scale: 0, x: 20 }} transition={{ duration: 0.4, delay: 1.2, type: "spring" }}>
-//               👧
-//             </motion.div>
-//           </motion.div>
-//           <motion.div className='text-purple-800 font-bold' initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} transition={{ duration: 0.5, delay: 1.4 }}>
-//             Connected Families
-//           </motion.div>
-//         </motion.div>
-//       </div>
-//     </motion.div>
-//   );
-// }
+
 
 
