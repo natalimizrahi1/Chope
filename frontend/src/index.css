@@ -21,6 +21,48 @@
   .animate-moveX {
     animation: moveX 1.5s steps(10) infinite;
   }
+
+  .animate-heart-fill {
+    animation: heartFill 0.5s ease-out forwards;
+  }
+
+  .stat-icon-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+  }
+
+  .stat-icon {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .stat-icon-fill {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: pulse 0.5s ease-in-out;
+  }
+
+  .stat-icon-added {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: auto;
+    top: 100%;
+    width: clamp(24px, 4vw, 40px);
+    height: clamp(24px, 4vw, 40px);
+    opacity: 1;
+    transition:
+      top 0.7s cubic-bezier(0.4, 2, 0.6, 1),
+      opacity 0.7s;
+    z-index: 3;
+    animation: iconAddUp 0.7s forwards;
+  }
 }
 
 @keyframes wagTail {
@@ -59,6 +101,21 @@
   }
 }
 
+@keyframes heartFill {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes jumpIn {
   0% {
     opacity: 0;
@@ -71,6 +128,56 @@
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fillUp {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes iconAddUp {
+  0% {
+    top: 100%;
+    opacity: 1;
+  }
+  80% {
+    top: 0%;
+    opacity: 1;
+  }
+  100% {
+    top: 0%;
+    opacity: 0;
+  }
+}
+
+@keyframes blink {
+  0%,
+  90%,
+  100% {
+    background-position: -329px 0;
+  }
+  95% {
+    background-position: -658px 0;
   }
 }
 
@@ -92,6 +199,21 @@
   animation: flipDown 0.8s cubic-bezier(0.23, 1, 0.32, 1) both;
   transform-origin: top center;
   will-change: transform, opacity;
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 /* ✅ ברירת מחדל: כל הטקסטים בגופן משחקי */
@@ -222,4 +344,36 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.benny-container {
+  position: relative;
+  width: 329px;
+  height: 447px;
+  min-width: 180px;
+  min-height: 240px;
+}
+.benny-main {
+  width: 100%;
+  height: 100%;
+  background: url("https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png") 0 0;
+  background-size: cover;
+  z-index: 1;
+}
+.benny-eyes {
+  position: absolute;
+  top: 170px; /* adjust as needed */
+  left: 120px; /* adjust as needed */
+  width: 90px;
+  height: 30px;
+  overflow: hidden;
+  z-index: 2;
+}
+.benny-eyes-sprite {
+  width: 329px;
+  height: 447px;
+  background: url("https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png");
+  background-position: -329px 0;
+  background-size: cover;
+  animation: blink 3s infinite;
 }
