@@ -77,15 +77,16 @@ interface VirtualPetProps {
 
 function Benny() {
   return (
-    <div className='benny-container'>
-      {/* דמות ראשית - פריים קבוע */}
-      <div className='benny-main' />
-      {/* עיניים מונפשות */}
-      <div className='benny-eyes'>
-        <div className='benny-eyes-sprite' />
-      </div>
-    </div>
-  );
+  <div
+  style={{
+    width: 329,
+    height: 447,
+    background: 'url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0',
+    zIndex: 2000,
+    animation: 'moveX 1.5s steps(10) infinite',
+  }}
+/> 
+);
 }
 
 export default function VirtualPet({
@@ -295,7 +296,7 @@ export default function VirtualPet({
   const heartLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.energy / 25))) as unknown as keyof typeof IMAGES.heart;
 
   return (
-    <div className='min-h-screen w-full bg-gradient-to-b from-blue-100 to-green-100 overflow-hidden relative'>
+    <div className='min-h-screen w-full bg- overflow-hidden relative'>
       {/* Mobile menu button */}
       <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='fixed top-4 right-4 z-50 lg:hidden bg-white/90 border-2 border-yellow-300 rounded-lg p-2 shadow-lg hover:bg-white transition-colors'>
         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
