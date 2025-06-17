@@ -9,11 +9,6 @@ import ChildDashboard from "./components/kid/KidDashboard";
 import PetShop, { ShopItem } from "./components/pet/PetShop";
 import { Toaster } from "./components/ui/toaster";
 
-const shopItems: ShopItem[] = [
-  { id: "food1", name: "Pet Food", price: 10, image: "/images/shop/food.png", type: "food" },
-  { id: "toy1", name: "Ball", price: 15, image: "/images/shop/ball.png", type: "toy" },
-  { id: "energy1", name: "Energy Drink", price: 20, image: "/images/shop/energy.png", type: "energy" },
-];
 
 function App() {
   return (
@@ -26,7 +21,7 @@ function App() {
         <Route path='/register/kid' element={<KidRegisterPage />} />
         <Route path='/parent/dashboard' element={<ParentDashboard />} />
         <Route path='/kid/dashboard' element={<ChildDashboard />} />
-        <Route path='/kid/shop' element={<PetShop items={shopItems} coins={100} onBuy={item => console.log("Bought:", item)} />} />
+        <Route path='/kid/shop' element={<PetShop />} />
       </Routes>
       <Toaster />
     </BrowserRouter>
