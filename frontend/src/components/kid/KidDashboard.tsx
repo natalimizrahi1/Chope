@@ -14,6 +14,15 @@ import VirtualPet from "../pet/VirtualPet";
 // import PetShop, { ShopItem } from '../pet/PetShop';
 // import Inventory, { InventoryItem } from '../pet/Inventory';
 // import { Stat, Accessory } from '../pet/VirtualPet';
+import { Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Bell, Search, Moon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { Player } from "@lottiefiles/react-lottie-player";
+import leftAnim from "@/assets/animations/left-decor.json";
+import rightAnim from "@/assets/animations/right-decor.json";
+import { useNavigate } from "react-router-dom";
 
 const mockTasks = [
   { id: "1", title: "Do homework", description: "Math and English", completed: true, reward: 10 },
@@ -220,20 +229,12 @@ const mockTasks = [
 //   );
 // }
 
-import { Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Bell, Search, Moon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-import { Player } from "@lottiefiles/react-lottie-player";
-import leftAnim from "@/assets/animations/left-decor.json";
-import rightAnim from "@/assets/animations/right-decor.json";
-
 const KidDashboard = () => {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState(mockTasks);
   const incompleteTasks = tasks.filter((task: any) => !task.completed);
   const completedTasksArr = tasks.filter((task: any) => task.completed);
-  const [activeTab, setActiveTab] = useState<"home" | "pet">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
   const [animal, setAnimal] = useState({
     name: "Buddy",
     type: "dog",
@@ -308,8 +309,8 @@ const KidDashboard = () => {
           <Button variant={activeTab === "pet" ? "secondary" : "ghost"} className={`flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all ${activeTab === "pet" ? "bg-purple-50 text-purple-600 border-purple-600" : "text-gray-600 hover:bg-gray-100 border-transparent"}`} onClick={() => setActiveTab("pet")}>
             <User className='w-5 h-5 mr-3' /> My Pet
           </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <BookOpen className='w-5 h-5 mr-3' /> Courses
+          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start' onClick={() => navigate("/kid/shop")}>
+            <BookOpen className='w-5 h-5 mr-3' /> Shop
           </Button>
           <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
             <Play className='w-5 h-5 mr-3' /> Live Class
@@ -390,7 +391,7 @@ const KidDashboard = () => {
                 <div className='absolute top-1/3 right-1/3 w-2 h-2 bg-blue-300 rounded-full opacity-70'></div>
               </Card>
 
-              <div className="flex gap-4">
+              <div className='flex gap-4'>
                 {/* Left Column */}
                 <div className='flex-1 space-y-8 rounded-2xl bg-white p-5 shadow-none'>
                   {/* Popular Section */}
@@ -427,10 +428,12 @@ const KidDashboard = () => {
                   </div>
 
                   {/* Ongoing Section */}
-                  <div className="mt-0">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-bold text-gray-900">Ongoing</h2>
-                      <Button variant="link" className="text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto">VIEW ALL</Button>
+                  <div className='mt-0'>
+                    <div className='flex items-center justify-between mb-4'>
+                      <h2 className='text-xl font-bold text-gray-900'>Ongoing</h2>
+                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto'>
+                        VIEW ALL
+                      </Button>
                     </div>
                     <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
                       {completedTasksArr.map((task: any, i: number) => (
@@ -459,13 +462,13 @@ const KidDashboard = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="w-80 space-y-4 mb-0">
+                <div className='w-80 space-y-4 mb-0'>
                   {/* Achievement Section */}
-                  <Card className="bg-white rounded-xl p-0 shadow-none border-0 mb-4">
-                    <CardHeader className="flex items-center justify-between mb-0 p-4 pb-0">
-                      <CardTitle className="font-semibold text-gray-900 text-base">Unlock achievement</CardTitle>
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                  <Card className='bg-white rounded-xl p-0 shadow-none border-0 mb-4'>
+                    <CardHeader className='flex items-center justify-between mb-0 p-4 pb-0'>
+                      <CardTitle className='font-semibold text-gray-900 text-base'>Unlock achievement</CardTitle>
+                      <div className='w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center'>
+                        <div className='w-4 h-4 bg-purple-500 rounded-full'></div>
                       </div>
                     </CardHeader>
                     <CardContent className='p-6 pt-2'>
