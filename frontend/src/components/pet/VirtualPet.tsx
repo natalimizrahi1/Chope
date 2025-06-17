@@ -136,6 +136,9 @@ export default function VirtualPet({
     const stored = localStorage.getItem("petScale");
     return stored ? parseFloat(stored) : 0.5;
   });
+  const [displayedProgress, setDisplayedProgress] = useState(0);
+  const [filledCount, setFilledCount] = useState(0);
+
   const maxScale = 1.2;
 
   useEffect(() => {
@@ -221,6 +224,18 @@ export default function VirtualPet({
     });
     setTimeout(() => setFlyingIcon(null), 700);
   };
+
+  const donutLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.hunger / 25))) as unknown as keyof typeof IMAGES.donut;
+  const starLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.happiness / 25))) as unknown as keyof typeof IMAGES.star;
+  const heartLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.energy / 25))) as unknown as keyof typeof IMAGES.heart;
+
+  useEffect(() => {
+    const maxIcons = [donutLevel === 4, starLevel === 4, heartLevel === 4].filter(Boolean).length;
+
+    const progress = maxIcons > 0 ? (maxIcons / 3) * 100 : 0;
+
+    setDisplayedProgress(progress);
+  }, [donutLevel, starLevel, heartLevel]);
 
   const handleFeed = () => {
     setIsFeeding(true);
@@ -310,10 +325,6 @@ export default function VirtualPet({
 
   const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
 
-  const donutLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.hunger / 25))) as unknown as keyof typeof IMAGES.donut;
-  const starLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.happiness / 25))) as unknown as keyof typeof IMAGES.star;
-  const heartLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.energy / 25))) as unknown as keyof typeof IMAGES.heart;
-
   return (
     <div className='min-h-screen w-full bg- overflow-hidden relative'>
       {/* Mobile menu button */}
@@ -375,9 +386,17 @@ export default function VirtualPet({
         </div>
       </div>
 
-      <div className='flex flex-col h-screen'>
-        {/* Main board */}
-        <div className='flex-1 relative mx-auto my-4 max-w-[90vw] max-h-[70vh] lg:max-w-[800px] lg:max-h-[600px]'>
+      {/* Progress bar */}
+      <div className='fixed top-0 left-1/2 transform -translate-x-1/2 mt-2 sm:mt-4 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
+        <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner'>
+          <div className='bg-green-400 h-full transition-all duration-300 ease-in-out' style={{ width: `${displayedProgress}%` }} />
+        </div>
+        <div className='text-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] mt-1 font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
+      </div>
+
+      <div className='flex flex-col min-h-screen'>
+        {/* Main board - with dynamic height */}
+        <div className='flex-1 relative mx-auto my-4 max-w-[90vw] h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
           <img src={IMAGES.background} alt='background board' className='absolute inset-0 w-full h-full object-cover rounded-xl z-0' />
 
           {/* Static stats bar */}

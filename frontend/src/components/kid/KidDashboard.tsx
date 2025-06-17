@@ -257,7 +257,7 @@ const KidDashboard = () => {
       stats: {
         ...prev.stats,
         happiness: Math.min(100, prev.stats.happiness + 10),
-        energy: Math.max(0, prev.stats.energy - 5),
+        energy: Math.min(100, prev.stats.energy + 5),
       },
       xp: prev.xp + 10,
       level: Math.floor((prev.xp + 10) / 100) + 1,
