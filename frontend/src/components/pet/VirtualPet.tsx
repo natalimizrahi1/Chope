@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Menu, X } from "lucide-react";
+import garden from "../../assets/garden.png";
 
 const STATS = {
   MAX: 4,
@@ -9,7 +10,6 @@ const STATS = {
 type StatLevel = 1 | 2 | 3 | 4;
 
 const IMAGES = {
-  background: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561670551/virtual%20pet/little-board.png",
   bar: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857600/virtual%20pet/item-box.png",
   donut: {
     4: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561725898/virtual%20pet/h1.png",
@@ -326,7 +326,15 @@ export default function VirtualPet({
   const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
 
   return (
-    <div className='min-h-screen w-full bg- overflow-hidden relative'>
+    <div
+      className='min-h-screen w-full bg- overflow-hidden relative'
+      style={{
+        backgroundImage: `url(${garden})`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       {/* Mobile menu button */}
       <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='fixed top-4 right-4 z-50 lg:hidden bg-white/90 border-2 border-yellow-300 rounded-lg p-2 shadow-lg hover:bg-white transition-colors'>
         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -387,25 +395,23 @@ export default function VirtualPet({
       </div>
 
       {/* Progress bar */}
-      <div className='fixed top-0 left-1/2 transform -translate-x-1/2 mt-2 sm:mt-4 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
-        <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner'>
+      <div className='absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 sm:mt-4 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
+        <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner relative'>
           <div className='bg-green-400 h-full transition-all duration-300 ease-in-out' style={{ width: `${displayedProgress}%` }} />
+          <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
         </div>
-        <div className='text-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] mt-1 font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
       </div>
 
       <div className='flex flex-col min-h-screen'>
         {/* Main board - with dynamic height */}
         <div className='flex-1 relative mx-auto my-4 max-w-[90vw] h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
-          <img src={IMAGES.background} alt='background board' className='absolute inset-0 w-full h-full object-cover rounded-xl z-0' />
-
           {/* Static stats bar */}
           <div
-            className='absolute left-1/2 top-0 -translate-x-1/2 z-10 
+            className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
                           bg-blue-100 border-4 border-amber-700 rounded-xl 
                           shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
           >
-            <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
+            <div className='stat-icon-container ' ref={donutStatRef} style={{ position: "relative" }}>
               <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
               {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
               {showAddedDonut && <img src={IMAGES.donut[donutLevel]} alt='doughnut added' className='stat-icon-added' />}
@@ -429,7 +435,7 @@ export default function VirtualPet({
         </div>
 
         {/* Buttons row */}
-        <div className='bg-white/80 backdrop-blur-sm border-t-2 border-gray-200 p-0 z-0'>
+        <div className='bg-transparent border-gray-200 p-0 z-0'>
           <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
             <button ref={playBtnRef} onClick={handlePlay} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='משחק'>
               <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />

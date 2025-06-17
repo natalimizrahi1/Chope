@@ -288,6 +288,10 @@ const KidDashboard = () => {
     }));
   };
 
+  // const handlePurchase = (item: PurchasedItem) => {
+  //   setPurchasedItems((prev: PurchasedItem[]) => [...prev, item]);
+  // };
+
   return (
     <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
       {/* Sidebar */}
