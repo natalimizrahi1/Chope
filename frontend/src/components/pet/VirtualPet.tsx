@@ -70,6 +70,7 @@ export interface Pet {
     energy: number;
   };
   accessories: ShopItem[];
+  scale?: number;
 }
 
 interface VirtualPetProps {
@@ -141,15 +142,15 @@ export default function VirtualPet({
   const [showAddedHeart, setShowAddedHeart] = useState(false);
   const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
   const isAllStatsEmpty = animal.stats.hunger <= 0 && animal.stats.happiness <= 0 && animal.stats.energy <= 0;
-  const [petScale, setPetScale] = useState(() => {
-    const stored = localStorage.getItem("petScale");
-    return stored ? parseFloat(stored) : 0.5;
-  });
+  const [petScale, setPetScale] = useState(animal.scale ?? 0.5);
+
   const [displayedProgress, setDisplayedProgress] = useState(0);
   const [filledCount, setFilledCount] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
+  const [showSuccessBadge, setShowSuccessBadge] = useState(false);
+  const [showProgressComplete, setShowProgressComplete] = useState(false);
 
-  const maxScale = 1.2;
+  const maxScale = 5;
 
   useEffect(() => {
     // Initialize audio elements
@@ -203,11 +204,7 @@ export default function VirtualPet({
     setLocalEnergy(animal.stats.energy);
   }, [animal.stats.hunger, animal.stats.happiness, animal.stats.energy]);
 
-  useEffect(() => {
-    if (isAllStatsEmpty) {
-      setPetScale(0.5);
-    }
-  }, [isAllStatsEmpty]);
+ 
   useEffect(() => {
     localStorage.setItem("petScale", petScale.toString());
   }, [petScale]);
@@ -248,11 +245,42 @@ export default function VirtualPet({
 
   useEffect(() => {
     const maxIcons = [donutLevel === 4, starLevel === 4, heartLevel === 4].filter(Boolean).length;
-
     const progress = maxIcons > 0 ? (maxIcons / 3) * 100 : 0;
-
     setDisplayedProgress(progress);
+
+    // When progress reaches 100%, show progress complete first
+    if (progress === 100 && !showProgressComplete) {
+      setShowProgressComplete(true);
+
+      // After 1 second, show success badge
+      setTimeout(() => {
+        setShowSuccessBadge(true);
+      }, 1000);
+    }
   }, [donutLevel, starLevel, heartLevel]);
+
+  const handleNextLevel = () => {
+    const newScale = Math.min(petScale + 0.05, maxScale); 
+    setPetScale(newScale);
+  
+    // Reset all stats to start new level
+    setAnimal({
+      ...animal,
+      scale: newScale,
+      stats: {
+        hunger: 0,
+        happiness: 0,
+        energy: 0,
+      },
+    });
+
+    // Play a success sound
+    audioRefs.current.laugh?.play().catch(() => {});
+
+    // Hide modals
+    setShowSuccessBadge(false);
+    setShowProgressComplete(false);
+  };
 
   const handleFeed = () => {
     setIsFeeding(true);
@@ -263,7 +291,6 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
-    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleDrink = () => {
@@ -275,7 +302,6 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
-    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleHeal = () => {
@@ -291,7 +317,6 @@ export default function VirtualPet({
     flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
     setShowAddedHeart(true);
     setTimeout(() => setShowAddedHeart(false), 700);
-    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handlePlay = () => {
@@ -307,7 +332,6 @@ export default function VirtualPet({
     flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
-    setPetScale(prev => Math.min(prev + 0.1, maxScale));
   };
 
   const handleRestart = () => {
@@ -390,6 +414,25 @@ export default function VirtualPet({
         backgroundPosition: "center",
       }}
     >
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+          }
+          .animate-scale-in {
+            animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+        `}
+      </style>
+
       {/* Mobile menu button */}
       <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='fixed top-4 right-4 z-50 lg:hidden bg-white/90 border-2 border-yellow-300 rounded-lg p-2 shadow-lg hover:bg-white transition-colors'>
         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -456,6 +499,25 @@ export default function VirtualPet({
           <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessBadge && (
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
+          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
+            <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-green-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+              </svg>
+            </div>
+            <h2 className='text-3xl font-bold text-gray-900 mb-2'>Level Up! 🎉</h2>
+            <h1 className='text-3xl font-bold text-green-600 mb-4'>100% Complete! 🎯</h1>
+            <p className='text-gray-600 mb-6'>Your pet has grown stronger!</p>
+            <button onClick={handleNextLevel} className='bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
+              Start Next Level
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className='flex flex-col min-h-screen'>
         {/* Main board - with dynamic height */}
