@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // import {
 //   Book, Dog, LogOut, Trophy, Star, Gift, ShoppingCart, UserCircle
 // } from 'lucide-react';
@@ -235,20 +235,29 @@ const KidDashboard = () => {
   const incompleteTasks = tasks.filter((task: any) => !task.completed);
   const completedTasksArr = tasks.filter((task: any) => task.completed);
   const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
-  const [animal, setAnimal] = useState<Pet>({
-    name: "Buddy",
-    type: "dog",
-    level: 1,
-    xp: 0,
-    stats: { hunger: 70, happiness: 60, energy: 80 },
-    accessories: [],
+  const [animal, setAnimal] = useState<Pet>(() => {
+    const saved = localStorage.getItem("pet");
+    return saved
+      ? JSON.parse(saved)
+      : {
+          name: "Benny",
+          type: "Cute Pet",
+          level: 1,
+          xp: 0,
+          scale: 0.5,
+          stats: { hunger: 3, happiness: 3, energy: 3 },
+          accessories: [],
+        };
   });
+  useEffect(() => {
+    localStorage.setItem("pet", JSON.stringify(animal));
+  }, [animal]);
+
   const handleFeed = () => {
     setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, hunger: Math.min(100, prev.stats.hunger + 10) },
       xp: prev.xp + 10,
-      level: Math.floor((prev.xp + 10) / 100) + 1,
     }));
   };
   const handlePlay = () => {
@@ -260,7 +269,6 @@ const KidDashboard = () => {
         energy: Math.min(100, prev.stats.energy + 5),
       },
       xp: prev.xp + 10,
-      level: Math.floor((prev.xp + 10) / 100) + 1,
     }));
   };
   const handleSleep = () => {

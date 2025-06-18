@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
-
+import { Dispatch, SetStateAction } from "react";
+import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 const STATS = {
   MAX: 4,
   MIN: 0,
@@ -81,7 +82,7 @@ interface VirtualPetProps {
   onResetHunger: () => void;
   onResetHappiness: () => void;
   onResetEnergy: () => void;
-  setAnimal: (pet: Pet) => void;
+  setAnimal: Dispatch<SetStateAction<Pet>>;
 }
 
 function Benny() {
@@ -204,7 +205,6 @@ export default function VirtualPet({
     setLocalEnergy(animal.stats.energy);
   }, [animal.stats.hunger, animal.stats.happiness, animal.stats.energy]);
 
- 
   useEffect(() => {
     localStorage.setItem("petScale", petScale.toString());
   }, [petScale]);
@@ -260,19 +260,20 @@ export default function VirtualPet({
   }, [donutLevel, starLevel, heartLevel]);
 
   const handleNextLevel = () => {
-    const newScale = Math.min(petScale + 0.05, maxScale); 
+    const newScale = Math.min(petScale + 0.05, maxScale);
     setPetScale(newScale);
-  
+
     // Reset all stats to start new level
-    setAnimal({
-      ...animal,
+    setAnimal(prev => ({
+      ...prev,
+      level: prev.level + 1,
       scale: newScale,
       stats: {
         hunger: 0,
         happiness: 0,
         energy: 0,
       },
-    });
+    }));
 
     // Play a success sound
     audioRefs.current.laugh?.play().catch(() => {});
@@ -437,6 +438,10 @@ export default function VirtualPet({
       <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='fixed top-4 right-4 z-50 lg:hidden bg-white/90 border-2 border-yellow-300 rounded-lg p-2 shadow-lg hover:bg-white transition-colors'>
         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
+      {/* level */}
+      <div className='fixed top-4 left-50% z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-2 shadow-lg'>
+        <span className='text-gray-800 font-bold text-lg'>Level {animal.level}</span>
+      </div>
 
       {/* Mobile menu */}
       {isMenuOpen && (
@@ -553,61 +558,6 @@ export default function VirtualPet({
               {animal.accessories && animal.accessories.map(accessory => <img key={accessory.id} src={accessory.image} alt={accessory.name} className='absolute top-0 left-0 w-full h-full object-contain' style={{ zIndex: 1 }} />)}
             </div>
           </div>
-
-          {/* Add Inventory component */}
-          <div
-            className='hidden lg:flex fixed top-8 left-8 bg-white/90 border-2 border-yellow-300 rounded-xl shadow-lg 
-                      flex-col gap-3 p-4 z-50 min-w-[180px] text-base overflow-hidden'
-          >
-            <h3 className='font-bold text-gray-800'>Inventory</h3>
-            <div className='relative'>
-              <button
-                onClick={() => {
-                  const container = document.getElementById("inventory-items");
-                  if (container) {
-                    container.scrollLeft -= 100;
-                  }
-                }}
-                className='absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white/90 rounded-full p-1 shadow-md hover:bg-yellow-100'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
-                  <path d='m15 18-6-6 6-6' />
-                </svg>
-              </button>
-              <div id='inventory-items' className='flex gap-2 overflow-x-auto overflow-y-hidden scrollbar-none max-w-[180px]' style={{ scrollBehavior: "smooth" }}>
-                {purchasedItems && purchasedItems.length > 0 ? (
-                  purchasedItems.map(item => (
-                    <button key={item.id} onClick={() => handleUseItem(item)} className='hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm flex-shrink-0' title={`Use ${item.name}`}>
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className='w-12 h-12 object-contain'
-                        onError={e => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "https://via.placeholder.com/150?text=Item";
-                        }}
-                      />
-                    </button>
-                  ))
-                ) : (
-                  <p className='text-gray-500 text-sm'>No items yet</p>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  const container = document.getElementById("inventory-items");
-                  if (container) {
-                    container.scrollLeft += 100;
-                  }
-                }}
-                className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white/90 rounded-full p-1 shadow-md hover:bg-yellow-100'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
-                  <path d='m9 18 6-6-6-6' />
-                </svg>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Buttons row */}
@@ -632,6 +582,37 @@ export default function VirtualPet({
               <img src={IMAGES.pill} alt='pill' className='w-12 h-12 sm:w-16 sm:h-16' />
               <span className='text-xs sm:text-sm font-medium text-gray-700'>Energy</span>
             </button>
+
+            {/* Inventory Icon with Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className='bg-white border-2 border-yellow-300 rounded-full p-3 shadow-lg hover:bg-yellow-50 transition-all' title='Inventory'>
+                  <img src='https://cdn-icons-png.flaticon.com/512/891/891462.png' alt='Inventory' className='w-6 h-6' />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className='w-64 p-4 bg-white shadow-xl rounded-xl z-50'>
+                <h3 className='font-bold text-lg mb-2 text-center'>Inventory</h3>
+                {purchasedItems.length > 0 ? (
+                  <div className='grid grid-cols-4 gap-2'>
+                    {purchasedItems.map(item => (
+                      <button key={item.id} onClick={() => handleUseItem(item)} className='hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm' title={`Use ${item.name}`}>
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className='w-12 h-12 object-contain'
+                          onError={e => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://via.placeholder.com/150?text=Item";
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-gray-500 text-sm text-center'>No items yet</p>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
