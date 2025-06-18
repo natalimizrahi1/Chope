@@ -14,7 +14,8 @@ export type ShopItem = {
 export default function PetShopInline() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [coins, setCoins] = useState(12); //coins from kid profile        
+  const [coins, setCoins] = useState(12); //coins from kid profile
+  const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
 
   const items: ShopItem[] = [
     {
@@ -54,9 +55,14 @@ export default function PetShopInline() {
     },
   ];
 
-  const handleBuy = (item: ShopItem) => {
+  const handlePurchase = (item: ShopItem) => {
     if (coins >= item.price) {
-      setCoins(prev => prev - item.price);
+      setCoins(coins - item.price);
+      // Save to localStorage and update state
+      const currentItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
+      const newItems = [...currentItems, item];
+      localStorage.setItem("purchasedItems", JSON.stringify(newItems));
+      setPurchasedItems(newItems);
       setSelected(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
@@ -117,7 +123,7 @@ export default function PetShopInline() {
           disabled={!selected}
           onClick={() => {
             const item = items.find(it => it.id === selected);
-            if (item) handleBuy(item);
+            if (item) handlePurchase(item);
           }}
           className={clsx("px-6 py-3 rounded-full font-bold text-white transition-all shadow-lg", {
             "bg-pink-500 hover:bg-pink-600": selected,

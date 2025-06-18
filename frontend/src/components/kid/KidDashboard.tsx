@@ -10,7 +10,7 @@ import { useState } from "react";
 // import { Badge } from '../ui/badge';
 // import { useNavigate } from 'react-router-dom';
 // import { useEffect } from 'react';
-import VirtualPet from "../pet/VirtualPet";
+import VirtualPet, { Pet } from "../pet/VirtualPet";
 // import PetShop, { ShopItem } from '../pet/PetShop';
 // import Inventory, { InventoryItem } from '../pet/Inventory';
 // import { Stat, Accessory } from '../pet/VirtualPet';
@@ -235,7 +235,7 @@ const KidDashboard = () => {
   const incompleteTasks = tasks.filter((task: any) => !task.completed);
   const completedTasksArr = tasks.filter((task: any) => task.completed);
   const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
-  const [animal, setAnimal] = useState({
+  const [animal, setAnimal] = useState<Pet>({
     name: "Buddy",
     type: "dog",
     level: 1,
@@ -244,7 +244,7 @@ const KidDashboard = () => {
     accessories: [],
   });
   const handleFeed = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, hunger: Math.min(100, prev.stats.hunger + 10) },
       xp: prev.xp + 10,
@@ -252,7 +252,7 @@ const KidDashboard = () => {
     }));
   };
   const handlePlay = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: {
         ...prev.stats,
@@ -264,25 +264,25 @@ const KidDashboard = () => {
     }));
   };
   const handleSleep = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, energy: Math.min(100, prev.stats.energy + 10) },
     }));
   };
   const handleResetHunger = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, hunger: 0 },
     }));
   };
   const handleResetHappiness = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, happiness: 0 },
     }));
   };
   const handleResetEnergy = () => {
-    setAnimal(prev => ({
+    setAnimal((prev: Pet) => ({
       ...prev,
       stats: { ...prev.stats, energy: 0 },
     }));
@@ -544,7 +544,7 @@ const KidDashboard = () => {
           </>
         ) : (
           <main className='p-6 space-y-8 overflow-y-auto h-full flex flex-col items-center justify-center'>
-            <VirtualPet animal={animal} onFeed={handleFeed} onPlay={handlePlay} onSleep={handleSleep} onResetHunger={handleResetHunger} onResetHappiness={handleResetHappiness} onResetEnergy={handleResetEnergy} />
+            <VirtualPet animal={animal} onFeed={handleFeed} onPlay={handlePlay} onSleep={handleSleep} onResetHunger={handleResetHunger} onResetHappiness={handleResetHappiness} onResetEnergy={handleResetEnergy} setAnimal={setAnimal} />
           </main>
         )}
       </div>

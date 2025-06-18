@@ -9,7 +9,6 @@ import ChildDashboard from "./components/kid/KidDashboard";
 import PetShop, { ShopItem } from "./components/pet/PetShop";
 import { Toaster } from "./components/ui/toaster";
 
-
 function App() {
   return (
     <BrowserRouter>

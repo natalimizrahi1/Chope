@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import garden from "../../assets/garden.png";
+import { ShopItem } from "./PetShop";
 
 const STATS = {
   MAX: 4,
@@ -58,21 +59,28 @@ export type Accessory = {
   type: "hat" | "shirt";
 };
 
-interface VirtualPetProps {
-  animal: {
-    name: string;
-    type: string;
-    level: number;
-    xp: number;
-    stats: Stat;
-    accessories: Accessory[];
+export interface Pet {
+  name: string;
+  type: string;
+  level: number;
+  xp: number;
+  stats: {
+    hunger: number;
+    happiness: number;
+    energy: number;
   };
+  accessories: ShopItem[];
+}
+
+interface VirtualPetProps {
+  animal: Pet;
   onFeed: () => void;
   onPlay: () => void;
   onSleep: () => void;
-  onResetHunger?: () => void;
-  onResetHappiness?: () => void;
-  onResetEnergy?: () => void;
+  onResetHunger: () => void;
+  onResetHappiness: () => void;
+  onResetEnergy: () => void;
+  setAnimal: (pet: Pet) => void;
 }
 
 function Benny() {
@@ -104,6 +112,7 @@ export default function VirtualPet({
   onResetHunger,
   onResetHappiness,
   onResetEnergy,
+  setAnimal,
 }: VirtualPetProps) {
   const [timeAlive, setTimeAlive] = useState(0);
   const [isDead, setIsDead] = useState(false);
@@ -138,6 +147,7 @@ export default function VirtualPet({
   });
   const [displayedProgress, setDisplayedProgress] = useState(0);
   const [filledCount, setFilledCount] = useState(0);
+  const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
 
   const maxScale = 1.2;
 
@@ -201,6 +211,13 @@ export default function VirtualPet({
   useEffect(() => {
     localStorage.setItem("petScale", petScale.toString());
   }, [petScale]);
+
+  useEffect(() => {
+    // Load purchased items from localStorage
+    const savedItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
+    console.log("Loaded items:", savedItems); // Debug log
+    setPurchasedItems(savedItems);
+  }, []);
 
   const flyToStat = (btnRef: React.RefObject<HTMLButtonElement | null>, statRef: React.RefObject<HTMLDivElement | null>, type: "donut" | "star" | "heart", src: string) => {
     if (!btnRef.current || !statRef.current) return;
@@ -325,6 +342,44 @@ export default function VirtualPet({
 
   const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
 
+  const handleUseItem = (item: ShopItem) => {
+    switch (item.type) {
+      case "food":
+        handleFeed();
+        break;
+      case "toy":
+        handlePlay();
+        break;
+      case "energy":
+        handleHeal();
+        break;
+      case "accessory":
+        // Toggle accessory
+        const currentAccessories = animal.accessories || [];
+        const isWearing = currentAccessories.some(acc => acc.id === item.id);
+
+        let newAccessories;
+        if (isWearing) {
+          // Remove accessory
+          newAccessories = currentAccessories.filter(acc => acc.id !== item.id);
+        } else {
+          // Add accessory
+          newAccessories = [...currentAccessories, item];
+        }
+
+        // Update localStorage
+        const updatedPet = {
+          ...animal,
+          accessories: newAccessories,
+        };
+        localStorage.setItem("pet", JSON.stringify(updatedPet));
+
+        // Update state
+        setAnimal(updatedPet);
+        break;
+    }
+  };
+
   return (
     <div
       className='min-h-screen w-full bg- overflow-hidden relative'
@@ -430,7 +485,66 @@ export default function VirtualPet({
 
           {/* Pet in the center */}
           <div className='absolute left-1/2 top-32 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
-            <Benny />
+            <div className='relative'>
+              <Benny />
+              {/* Display accessories */}
+              {animal.accessories && animal.accessories.map(accessory => <img key={accessory.id} src={accessory.image} alt={accessory.name} className='absolute top-0 left-0 w-full h-full object-contain' style={{ zIndex: 1 }} />)}
+            </div>
+          </div>
+
+          {/* Add Inventory component */}
+          <div
+            className='hidden lg:flex fixed top-8 left-8 bg-white/90 border-2 border-yellow-300 rounded-xl shadow-lg 
+                      flex-col gap-3 p-4 z-50 min-w-[180px] text-base overflow-hidden'
+          >
+            <h3 className='font-bold text-gray-800'>Inventory</h3>
+            <div className='relative'>
+              <button
+                onClick={() => {
+                  const container = document.getElementById("inventory-items");
+                  if (container) {
+                    container.scrollLeft -= 100;
+                  }
+                }}
+                className='absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white/90 rounded-full p-1 shadow-md hover:bg-yellow-100'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                  <path d='m15 18-6-6 6-6' />
+                </svg>
+              </button>
+              <div id='inventory-items' className='flex gap-2 overflow-x-auto overflow-y-hidden scrollbar-none max-w-[180px]' style={{ scrollBehavior: "smooth" }}>
+                {purchasedItems && purchasedItems.length > 0 ? (
+                  purchasedItems.map(item => (
+                    <button key={item.id} onClick={() => handleUseItem(item)} className='hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm flex-shrink-0' title={`Use ${item.name}`}>
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className='w-12 h-12 object-contain'
+                        onError={e => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://via.placeholder.com/150?text=Item";
+                        }}
+                      />
+                    </button>
+                  ))
+                ) : (
+                  <p className='text-gray-500 text-sm'>No items yet</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  const container = document.getElementById("inventory-items");
+                  if (container) {
+                    container.scrollLeft += 100;
+                  }
+                }}
+                className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white/90 rounded-full p-1 shadow-md hover:bg-yellow-100'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                  <path d='m9 18 6-6-6-6' />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
