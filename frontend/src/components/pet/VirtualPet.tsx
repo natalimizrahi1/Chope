@@ -601,7 +601,7 @@ export default function VirtualPet({
                           alt={item.name}
                           className='w-12 h-12 object-contain'
                           onError={e => {
-                            const target = e.target as HTMLImageElement;
+                            const target =  e.target as HTMLImageElement;
                             target.src = "https://via.placeholder.com/150?text=Item";
                           }}
                         />
