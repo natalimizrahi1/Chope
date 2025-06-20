@@ -522,6 +522,14 @@ export default function VirtualPet({
         break;
     }
   };
+  const itemCounts: { [id: string]: number } = {};
+  purchasedItems.forEach(item => {
+    if (!itemCounts[item.id]) {
+      itemCounts[item.id] = 1;
+    } else {
+      itemCounts[item.id]++;
+    }
+  });
 
   return (
     <div
@@ -726,21 +734,29 @@ export default function VirtualPet({
               </PopoverTrigger>
               <PopoverContent className='w-64 p-4 bg-white shadow-xl rounded-xl z-50'>
                 <h3 className='font-bold text-lg mb-2 text-center'>Inventory</h3>
-                {purchasedItems.length > 0 ? (
+                {Object.entries(itemCounts).length > 0 ? (
                   <div className='grid grid-cols-4 gap-2'>
-                    {purchasedItems.map(item => (
-                      <button key={item.id} onClick={() => handleUseItem(item)} className='hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm' title={`Use ${item.name}`}>
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className='w-12 h-12 object-contain'
-                          onError={e => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "https://via.placeholder.com/150?text=Item";
-                          }}
-                        />
-                      </button>
-                    ))}
+                    {Object.entries(itemCounts).map(([id, count]) => {
+                      const item = purchasedItems.find(i => i.id === id);
+                      if (!item) return null;
+                      return (
+                        <button key={item.id} onClick={() => handleUseItem(item)} className='relative hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm' title={`Use ${item.name}`}>
+                          {/* המספר בפינה השמאלית העליונה */}
+                          <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{count}</span>
+
+                          {/* תמונת המוצר */}
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className='w-12 h-12 object-contain'
+                            onError={e => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://via.placeholder.com/150?text=Item";
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className='text-gray-500 text-sm text-center'>No items yet</p>
