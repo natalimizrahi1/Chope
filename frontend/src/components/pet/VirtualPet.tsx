@@ -129,6 +129,7 @@ export default function VirtualPet({
   const [isHealing, setIsHealing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [timeoutMessage, setTimeoutMessage] = useState("");
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
@@ -166,39 +167,41 @@ export default function VirtualPet({
 
   const [lastTaskTime, setLastTaskTime] = useState(initialLastTaskTime());
   const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
-  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
 
   const checkTaskTimeout = async () => {
     try {
       const tasks = await getTasks(token, childId);
-
       const uncompletedTasks = tasks.filter((task: Task) => !task.completed);
       if (uncompletedTasks.length === 0) return;
 
       const latestTask = uncompletedTasks.reduce((latest: Task, task: Task) => (task._id > latest._id ? task : latest));
 
-      // For now, just check if there are uncompleted tasks and decrease stats
-      if (uncompletedTasks.length > 0) {
-        // update stats
-        setAnimal(prev => {
-          const newStats = {
-            hunger: Math.max(0, prev.stats.hunger - 10),
-            happiness: Math.max(0, prev.stats.happiness - 10),
-            energy: Math.max(0, prev.stats.energy - 10),
-          };
-          setLocalHunger(newStats.hunger);
-          setLocalHappiness(newStats.happiness);
-          setLocalEnergy(newStats.energy);
-          return { ...prev, stats: newStats };
-        });
+      // check if the warning has been shown
+      const hasSeenWarning = localStorage.getItem("hasSeenInactivityWarning");
+      if (hasSeenWarning) return;
 
-        // message
-        setTimeoutMessage("Your pet's stats dropped because a task wasn't completed in time!");
-      }
+      // mark that the warning has been shown
+      localStorage.setItem("hasSeenInactivityWarning", "true");
+
+      setAnimal(prev => {
+        const newStats = {
+          hunger: Math.max(0, prev.stats.hunger - 10),
+          happiness: Math.max(0, prev.stats.happiness - 10),
+          energy: Math.max(0, prev.stats.energy - 10),
+        };
+        setLocalHunger(newStats.hunger);
+        setLocalHappiness(newStats.happiness);
+        setLocalEnergy(newStats.energy);
+        return { ...prev, stats: newStats };
+      });
+
+      setTimeoutMessage("Your pet's stats dropped because a task wasn't completed in time!");
+      setShowTimeoutModal(true);
     } catch (error) {
       console.error("❌ Failed to check task time:", error);
     }
   };
+
   useEffect(() => {
     const interval = setInterval(() => {
       checkTaskTimeout();
@@ -294,45 +297,6 @@ export default function VirtualPet({
     setPurchasedItems(savedItems);
   }, []);
 
-  // Handle inactivity - decrease stats if no task completed for 5 minutes
-  useEffect(() => {
-    const checkInactivity = () => {
-      const now = Date.now();
-      const timeSinceLastTask = now - lastTaskTime;
-      const oneMinute = 1 * 60 * 1000; // 1 minute in milliseconds
-
-      if (timeSinceLastTask >= oneMinute) {
-        // Decrease all stats by 1
-        setAnimal(prev => {
-          const newStats = {
-            hunger: Math.max(0, prev.stats.hunger - 1),
-            happiness: Math.max(0, prev.stats.happiness - 1),
-            energy: Math.max(0, prev.stats.energy - 1),
-          };
-          setLocalHunger(newStats.hunger);
-          setLocalHappiness(newStats.happiness);
-          setLocalEnergy(newStats.energy);
-          return { ...prev, stats: newStats };
-        });
-
-        // Show inactivity warning
-        setShowInactivityWarning(true);
-        setTimeout(() => setShowInactivityWarning(false), 3000);
-
-        // Update last task time to prevent continuous decrease
-        setLastTaskTime(now);
-      }
-    };
-
-    // Check every 30 seconds
-    const timer = setInterval(checkInactivity, 30 * 1000);
-    setInactivityTimer(timer);
-
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [lastTaskTime]);
-
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -348,11 +312,8 @@ export default function VirtualPet({
       const now = Date.now();
       setLastTaskTime(now);
       localStorage.setItem("lastTaskTime", now.toString());
+      localStorage.removeItem("hasSeenInactivityWarning");
       console.log("🐾 taskCompleted received at VirtualPet:", now);
-    };
-
-    return () => {
-      window.removeEventListener("taskCompleted", handleTaskCompleted);
     };
   }, []);
 
@@ -480,6 +441,11 @@ export default function VirtualPet({
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
     setLastTaskTime(Date.now());
+  };
+  const handleDismissWarning = () => {
+    console.log("👋 Got it clicked");
+
+    setShowTimeoutModal(false);
   };
 
   const handleRestart = () => {
@@ -656,7 +622,6 @@ export default function VirtualPet({
           <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
         </div>
       </div>
-      {timeoutMessage && <div className='bg-red-100 border border-red-400 text-red-700 p-4 rounded mt-4'>{timeoutMessage}</div>}
 
       {/* Success Modal */}
       {showSuccessBadge && (
@@ -672,6 +637,22 @@ export default function VirtualPet({
             <p className='text-gray-600 mb-6'>Your pet has grown stronger!</p>
             <button onClick={handleNextLevel} className='bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
               Start Next Level
+            </button>
+          </div>
+        </div>
+      )}
+      {showTimeoutModal && (
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
+          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
+            <div className='w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-red-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z' />
+              </svg>
+            </div>
+            <h2 className='text-3xl font-bold text-gray-900 mb-2'>Oops!</h2>
+            <p className='text-gray-600 mb-6'>Your pet's stats dropped because you didn't complete a task in time.</p>
+            <button onClick={handleDismissWarning} className='mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow'>
+              Got it
             </button>
           </div>
         </div>
