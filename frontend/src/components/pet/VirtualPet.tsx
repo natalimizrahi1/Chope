@@ -130,6 +130,7 @@ export default function VirtualPet({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [timeoutMessage, setTimeoutMessage] = useState("");
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [totalCoins, setTotalCoins] = useState(0);
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
@@ -297,6 +298,23 @@ export default function VirtualPet({
     setPurchasedItems(savedItems);
   }, []);
 
+  // Calculate total coins from completed tasks
+  useEffect(() => {
+    const calculateCoins = async () => {
+      try {
+        const tasks = await getTasks(token, childId);
+        const coins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+        setTotalCoins(coins);
+      } catch (error) {
+        console.error("Failed to calculate coins:", error);
+      }
+    };
+
+    if (token && childId) {
+      calculateCoins();
+    }
+  }, [token, childId]);
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -314,8 +332,123 @@ export default function VirtualPet({
       localStorage.setItem("lastTaskTime", now.toString());
       localStorage.removeItem("hasSeenInactivityWarning");
       console.log("🐾 taskCompleted received at VirtualPet:", now);
+
+      // Recalculate coins when task is completed/undone
+      const recalculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const coins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          setTotalCoins(coins);
+        } catch (error) {
+          console.error("Failed to recalculate coins:", error);
+        }
+      };
+
+      if (token && childId) {
+        recalculateCoins();
+      }
     };
-  }, []);
+
+    const handleCoinsSpent = () => {
+      console.log("🪙 coinsSpent event received in VirtualPet");
+      // Recalculate coins when coins are spent
+      const recalculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+          const availableCoins = totalCoins - spentCoins;
+          console.log("🪙 VirtualPet - Total coins:", totalCoins, "Spent:", spentCoins, "Available:", availableCoins);
+          setTotalCoins(availableCoins);
+        } catch (error) {
+          console.error("Failed to recalculate coins:", error);
+        }
+      };
+
+      if (token && childId) {
+        recalculateCoins();
+      }
+    };
+
+    window.addEventListener("taskCompleted", handleTaskCompleted);
+    window.addEventListener("coinsSpent", handleCoinsSpent);
+
+    return () => {
+      window.removeEventListener("taskCompleted", handleTaskCompleted);
+      window.removeEventListener("coinsSpent", handleCoinsSpent);
+    };
+  }, [token, childId]);
+
+  // Listen for localStorage changes as backup
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "spentCoins") {
+        console.log("🪙 VirtualPet - localStorage spentCoins changed");
+        const recalculateCoins = async () => {
+          try {
+            const tasks = await getTasks(token, childId);
+            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+            const availableCoins = totalCoins - spentCoins;
+            console.log("🪙 VirtualPet - Recalculated from localStorage:", availableCoins);
+            setTotalCoins(availableCoins);
+          } catch (error) {
+            console.error("Failed to recalculate coins:", error);
+          }
+        };
+
+        if (token && childId) {
+          recalculateCoins();
+        }
+      }
+    };
+
+    // Also listen for custom storage events (for same-tab updates)
+    const handleCustomStorage = () => {
+      console.log("🪙 VirtualPet - Custom storage event received");
+      const recalculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+          const availableCoins = totalCoins - spentCoins;
+          console.log("🪙 VirtualPet - Recalculated from custom event:", availableCoins);
+          setTotalCoins(availableCoins);
+        } catch (error) {
+          console.error("Failed to recalculate coins:", error);
+        }
+      };
+
+      if (token && childId) {
+        recalculateCoins();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("storageUpdated", handleCustomStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storageUpdated", handleCustomStorage);
+    };
+  }, [token, childId]);
+
+  // Simple interval to update coins every 3 seconds
+  useEffect(() => {
+    const updateCoinsInterval = setInterval(async () => {
+      try {
+        const tasks = await getTasks(token, childId);
+        const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+        const availableCoins = totalCoins - spentCoins;
+        setTotalCoins(availableCoins);
+      } catch (error) {
+        console.error("Failed to update coins:", error);
+      }
+    }, 3000); // Update every 3 seconds
+
+    return () => clearInterval(updateCoinsInterval);
+  }, [token, childId]);
 
   const flyToStat = (btnRef: React.RefObject<HTMLButtonElement | null>, statRef: React.RefObject<HTMLDivElement | null>, type: "donut" | "star" | "heart", src: string) => {
     if (!btnRef.current || !statRef.current) return;
@@ -620,6 +753,13 @@ export default function VirtualPet({
           <span className='ml-auto font-bold text-yellow-600'>
             5 <span className='text-xs'>coins</span>
           </span>
+        </div>
+        <div className='border-t border-yellow-200 pt-2 mt-2'>
+          <div className='flex items-center gap-2'>
+            <span className='text-yellow-600 font-bold text-lg'>🪙</span>
+            <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
+            <span className='text-gray-600 text-sm'>Total</span>
+          </div>
         </div>
       </div>
 

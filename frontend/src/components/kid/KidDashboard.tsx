@@ -280,7 +280,9 @@ const KidDashboard = () => {
 
         // Calculate total coins from completed tasks
         const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        setTotalCoins(coins);
+        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+        const availableCoins = coins - spentCoins;
+        setTotalCoins(availableCoins);
       } catch (error) {
         console.error("Failed to load tasks:", error);
       } finally {
@@ -290,6 +292,23 @@ const KidDashboard = () => {
 
     loadTasks();
   }, [token, navigate]);
+
+  // Simple interval to update coins every 3 seconds
+  useEffect(() => {
+    const updateCoinsInterval = setInterval(async () => {
+      try {
+        const tasksData = await getTasks(token, userId);
+        const totalCoins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+        const availableCoins = totalCoins - spentCoins;
+        setTotalCoins(availableCoins);
+      } catch (error) {
+        console.error("Failed to update coins:", error);
+      }
+    }, 3000); // Update every 3 seconds
+
+    return () => clearInterval(updateCoinsInterval);
+  }, [token, userId]);
 
   const handleCompleteTask = async (taskId: string) => {
     try {
@@ -301,8 +320,12 @@ const KidDashboard = () => {
 
       // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      setTotalCoins(coins);
+      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+      const availableCoins = coins - spentCoins;
+      setTotalCoins(availableCoins);
 
+      // Dispatch event to update VirtualPet coins
+      window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("❌ Failed to complete task:", error);
     }
@@ -316,9 +339,14 @@ const KidDashboard = () => {
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
-        // update coins
+      // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      setTotalCoins(coins);
+      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+      const availableCoins = coins - spentCoins;
+      setTotalCoins(availableCoins);
+
+      // Dispatch event to update VirtualPet coins
+      window.dispatchEvent(new CustomEvent("taskCompleted"));
 
       console.log("🔄 Task undone successfully");
     } catch (error) {

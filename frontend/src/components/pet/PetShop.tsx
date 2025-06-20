@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import { Coins } from "lucide-react";
+import { getTasks } from "../../lib/api";
+import { Task } from "../../lib/types";
 
 export type ShopItem = {
   id: string;
@@ -14,8 +16,65 @@ export type ShopItem = {
 export default function PetShopInline() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [coins, setCoins] = useState(12); //coins from kid profile
+  const [coins, setCoins] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
+
+  // Get user data
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const childId = user?.id;
+  const token = localStorage.getItem("token") || "";
+
+  // Calculate coins from completed tasks
+  useEffect(() => {
+    const calculateCoins = async () => {
+      try {
+        const tasks = await getTasks(token, childId);
+        const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+
+        // Load spent coins from localStorage
+        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+        const availableCoins = totalCoins - spentCoins;
+
+        setCoins(availableCoins);
+      } catch (error) {
+        console.error("Failed to calculate coins:", error);
+      }
+    };
+
+    if (token && childId) {
+      calculateCoins();
+    }
+  }, [token, childId]);
+
+  // Listen for task completion events to update coins
+  useEffect(() => {
+    const handleTaskCompleted = () => {
+      const recalculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+
+          // Load spent coins from localStorage
+          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+          const availableCoins = totalCoins - spentCoins;
+
+          setCoins(availableCoins);
+        } catch (error) {
+          console.error("Failed to recalculate coins:", error);
+        }
+      };
+
+      if (token && childId) {
+        recalculateCoins();
+      }
+    };
+
+    window.addEventListener("taskCompleted", handleTaskCompleted);
+
+    return () => {
+      window.removeEventListener("taskCompleted", handleTaskCompleted);
+    };
+  }, [token, childId]);
 
   const items: ShopItem[] = [
     {
@@ -57,7 +116,17 @@ export default function PetShopInline() {
 
   const handlePurchase = (item: ShopItem) => {
     if (coins >= item.price) {
-      setCoins(coins - item.price);
+      // Deduct coins locally
+      const newCoins = coins - item.price;
+      setCoins(newCoins);
+
+      // Save spent coins to localStorage
+      const currentSpent = parseInt(localStorage.getItem("spentCoins") || "0");
+      localStorage.setItem("spentCoins", (currentSpent + item.price).toString());
+
+      // Dispatch custom storage event for same-tab updates
+      window.dispatchEvent(new CustomEvent("storageUpdated"));
+
       // Save to localStorage and update state
       const currentItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
       const newItems = [...currentItems, item];
@@ -66,6 +135,10 @@ export default function PetShopInline() {
       setSelected(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
+
+      // Dispatch event to update coins in other components
+      window.dispatchEvent(new CustomEvent("coinsSpent", { detail: { amount: item.price } }));
+      console.log("🛒 PetShop - coinsSpent event dispatched, amount:", item.price);
     }
   };
 
@@ -73,8 +146,11 @@ export default function PetShopInline() {
     <div className='mt-8 px-4'>
       {/* coins */}
       <div className='flex justify-end items-center gap-2 mb-4'>
-        <Coins className='w-5 h-5 text-yellow-500' />
-        <span className='font-bold text-yellow-700'>{coins} coins</span>
+        <div className='flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-300'>
+          <span className='text-yellow-600 font-bold text-lg'>🪙</span>
+          <span className='text-yellow-600 font-bold text-lg'>{coins}</span>
+          <span className='text-yellow-600 text-sm'>coins</span>
+        </div>
       </div>
 
       {/* items */}
