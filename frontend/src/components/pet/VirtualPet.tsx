@@ -4,6 +4,9 @@ import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
+import { getTasks } from "../../lib/api";
+import { Task } from "../../lib/types";
+
 const STATS = {
   MAX: 4,
   MIN: 0,
@@ -105,7 +108,7 @@ export default function VirtualPet({
     type: "Cute Pet",
     level: 1,
     xp: 0,
-    stats: { hunger: 3, happiness: 3, energy: 3 },
+    stats: { hunger: 75, happiness: 75, energy: 75 },
     accessories: [],
   },
   onFeed = () => {},
@@ -116,12 +119,17 @@ export default function VirtualPet({
   onResetEnergy,
   setAnimal,
 }: VirtualPetProps) {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const childId = user?.id;
+  const token = localStorage.getItem("token") || "";
   const [timeAlive, setTimeAlive] = useState(0);
   const [isDead, setIsDead] = useState(false);
   const [isFeeding, setIsFeeding] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isHealing, setIsHealing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [timeoutMessage, setTimeoutMessage] = useState("");
+
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
   const [localHunger, setLocalHunger] = useState(animal.stats.hunger);
@@ -151,17 +159,87 @@ export default function VirtualPet({
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
 
+  const initialLastTaskTime = () => {
+    const stored = localStorage.getItem("lastTaskTime");
+    return stored ? parseInt(stored) : Date.now();
+  };
+
+  const [lastTaskTime, setLastTaskTime] = useState(initialLastTaskTime());
+  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+
+  const checkTaskTimeout = async () => {
+    try {
+      const tasks = await getTasks(token, childId);
+
+      const uncompletedTasks = tasks.filter((task: Task) => !task.completed);
+      if (uncompletedTasks.length === 0) return;
+
+      const latestTask = uncompletedTasks.reduce((latest: Task, task: Task) => (task._id > latest._id ? task : latest));
+
+      // For now, just check if there are uncompleted tasks and decrease stats
+      if (uncompletedTasks.length > 0) {
+        // update stats
+        setAnimal(prev => {
+          const newStats = {
+            hunger: Math.max(0, prev.stats.hunger - 10),
+            happiness: Math.max(0, prev.stats.happiness - 10),
+            energy: Math.max(0, prev.stats.energy - 10),
+          };
+          setLocalHunger(newStats.hunger);
+          setLocalHappiness(newStats.happiness);
+          setLocalEnergy(newStats.energy);
+          return { ...prev, stats: newStats };
+        });
+
+        // message
+        setTimeoutMessage("Your pet's stats dropped because a task wasn't completed in time!");
+      }
+    } catch (error) {
+      console.error("❌ Failed to check task time:", error);
+    }
+  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkTaskTimeout();
+    }, 30000); // every 30 seconds
+
+    return () => clearInterval(interval); // cleanup
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const lastTimeStr = localStorage.getItem("lastTaskTime");
+      const last = lastTimeStr ? parseInt(lastTimeStr) : Date.now();
+      const now = Date.now();
+      const diff = now - last;
+
+      if (diff > 60000) {
+        setAnimal(prev => ({
+          ...prev,
+          stats: {
+            hunger: Math.max(0, prev.stats.hunger - 1),
+            happiness: Math.max(0, prev.stats.happiness - 1),
+            energy: Math.max(0, prev.stats.energy - 1),
+          },
+        }));
+      }
+    }, 60000); // every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   const maxScale = 5;
 
   useEffect(() => {
     // Initialize audio elements
     const audioElements: Record<string, HTMLAudioElement> = {};
     Object.entries(SOUNDS).forEach(([key, url]) => {
-      audioElements[key] = new Audio(url);
+      audioElements[key] = new Audio(url); // initialize audio elements
     });
     audioRefs.current = audioElements;
 
-    // Play hello sound after 4 seconds
+    // play hello sound after 4 seconds
     const greeting = setTimeout(() => {
       audioRefs.current.hello?.play().catch(() => {
         // Handle audio play error silently
@@ -214,6 +292,68 @@ export default function VirtualPet({
     const savedItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
     console.log("Loaded items:", savedItems); // Debug log
     setPurchasedItems(savedItems);
+  }, []);
+
+  // Handle inactivity - decrease stats if no task completed for 5 minutes
+  useEffect(() => {
+    const checkInactivity = () => {
+      const now = Date.now();
+      const timeSinceLastTask = now - lastTaskTime;
+      const oneMinute = 1 * 60 * 1000; // 1 minute in milliseconds
+
+      if (timeSinceLastTask >= oneMinute) {
+        // Decrease all stats by 1
+        setAnimal(prev => {
+          const newStats = {
+            hunger: Math.max(0, prev.stats.hunger - 1),
+            happiness: Math.max(0, prev.stats.happiness - 1),
+            energy: Math.max(0, prev.stats.energy - 1),
+          };
+          setLocalHunger(newStats.hunger);
+          setLocalHappiness(newStats.happiness);
+          setLocalEnergy(newStats.energy);
+          return { ...prev, stats: newStats };
+        });
+
+        // Show inactivity warning
+        setShowInactivityWarning(true);
+        setTimeout(() => setShowInactivityWarning(false), 3000);
+
+        // Update last task time to prevent continuous decrease
+        setLastTaskTime(now);
+      }
+    };
+
+    // Check every 30 seconds
+    const timer = setInterval(checkInactivity, 30 * 1000);
+    setInactivityTimer(timer);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [lastTaskTime]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (inactivityTimer) {
+        clearInterval(inactivityTimer);
+      }
+    };
+  }, [inactivityTimer]);
+
+  // Listen for task completion events
+  useEffect(() => {
+    const handleTaskCompleted = () => {
+      const now = Date.now();
+      setLastTaskTime(now);
+      localStorage.setItem("lastTaskTime", now.toString());
+      console.log("🐾 taskCompleted received at VirtualPet:", now);
+    };
+
+    return () => {
+      window.removeEventListener("taskCompleted", handleTaskCompleted);
+    };
   }, []);
 
   const flyToStat = (btnRef: React.RefObject<HTMLButtonElement | null>, statRef: React.RefObject<HTMLDivElement | null>, type: "donut" | "star" | "heart", src: string) => {
@@ -281,6 +421,9 @@ export default function VirtualPet({
     // Hide modals
     setShowSuccessBadge(false);
     setShowProgressComplete(false);
+
+    // Reset inactivity timer
+    setLastTaskTime(Date.now());
   };
 
   const handleFeed = () => {
@@ -292,6 +435,7 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
+    setLastTaskTime(Date.now());
   };
 
   const handleDrink = () => {
@@ -303,6 +447,7 @@ export default function VirtualPet({
     flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
+    setLastTaskTime(Date.now());
   };
 
   const handleHeal = () => {
@@ -318,6 +463,7 @@ export default function VirtualPet({
     flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
     setShowAddedHeart(true);
     setTimeout(() => setShowAddedHeart(false), 700);
+    setLastTaskTime(Date.now());
   };
 
   const handlePlay = () => {
@@ -333,12 +479,14 @@ export default function VirtualPet({
     flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
+    setLastTaskTime(Date.now());
   };
 
   const handleRestart = () => {
     setTimeAlive(0);
     setIsDead(false);
     audioRefs.current.hello?.play().catch(() => {});
+    setLastTaskTime(Date.now()); // Reset inactivity timer
   };
 
   const handleResetHungerLocal = () => {
@@ -347,6 +495,7 @@ export default function VirtualPet({
     } else {
       setLocalHunger(0);
     }
+    setLastTaskTime(Date.now()); // Reset inactivity timer
   };
 
   const handleResetHappinessLocal = () => {
@@ -355,6 +504,7 @@ export default function VirtualPet({
     } else {
       setLocalHappiness(0);
     }
+    setLastTaskTime(Date.now()); // Reset inactivity timer
   };
 
   const handleResetEnergyLocal = () => {
@@ -363,6 +513,7 @@ export default function VirtualPet({
     } else {
       setLocalEnergy(0);
     }
+    setLastTaskTime(Date.now()); // Reset inactivity timer
   };
 
   const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
@@ -401,6 +552,7 @@ export default function VirtualPet({
 
         // Update state
         setAnimal(updatedPet);
+        setLastTaskTime(Date.now()); // Reset inactivity timer
         break;
     }
   };
@@ -504,6 +656,7 @@ export default function VirtualPet({
           <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
         </div>
       </div>
+      {timeoutMessage && <div className='bg-red-100 border border-red-400 text-red-700 p-4 rounded mt-4'>{timeoutMessage}</div>}
 
       {/* Success Modal */}
       {showSuccessBadge && (
@@ -601,7 +754,7 @@ export default function VirtualPet({
                           alt={item.name}
                           className='w-12 h-12 object-contain'
                           onError={e => {
-                            const target =  e.target as HTMLImageElement;
+                            const target = e.target as HTMLImageElement;
                             target.src = "https://via.placeholder.com/150?text=Item";
                           }}
                         />

@@ -101,6 +101,7 @@ export default function ParentDashboard() {
         title: "Task created successfully",
         description: "The task has been added to your child's list.",
       });
+      localStorage.setItem("lastTaskTime", Date.now().toString());
     } catch (error) {
       toast({
         title: "Failed to create task",

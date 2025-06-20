@@ -253,7 +253,7 @@ const KidDashboard = () => {
           level: 1,
           xp: 0,
           scale: 0.5,
-          stats: { hunger: 3, happiness: 3, energy: 3 },
+          stats: { hunger: 75, happiness: 75, energy: 75 },
           accessories: [],
         };
   });
@@ -294,30 +294,35 @@ const KidDashboard = () => {
   const handleCompleteTask = async (taskId: string) => {
     try {
       await completeTask(token, taskId);
-      // Reload tasks after completion
+
+      // update tasks list
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
-      // Recalculate total coins
+      // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       setTotalCoins(coins);
+
     } catch (error) {
-      console.error("Failed to complete task:", error);
+      console.error("❌ Failed to complete task:", error);
     }
   };
 
   const handleUndoTask = async (taskId: string) => {
     try {
       await undoTask(token, taskId);
-      // Reload tasks after undo
+
+      // update tasks list
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
-      // Recalculate total coins
+        // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       setTotalCoins(coins);
+
+      console.log("🔄 Task undone successfully");
     } catch (error) {
-      console.error("Failed to undo task:", error);
+      console.error("❌ Failed to undo task:", error);
     }
   };
 
