@@ -524,6 +524,16 @@ export default function VirtualPet({
   const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
 
   const handleUseItem = (item: ShopItem) => {
+    // Remove one item from inventory first
+    const itemIndex = purchasedItems.findIndex(i => i.id === item.id);
+    if (itemIndex !== -1) {
+      const updatedItems = [...purchasedItems];
+      updatedItems.splice(itemIndex, 1);
+      setPurchasedItems(updatedItems);
+      localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
+    }
+
+    // Handle the item based on its type
     switch (item.type) {
       case "food":
         handleFeed();
@@ -541,8 +551,11 @@ export default function VirtualPet({
 
         let newAccessories;
         if (isWearing) {
-          // Remove accessory
+          // Remove accessory - add back to inventory
           newAccessories = currentAccessories.filter(acc => acc.id !== item.id);
+          const updatedItems = [...purchasedItems, item];
+          setPurchasedItems(updatedItems);
+          localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
         } else {
           // Add accessory
           newAccessories = [...currentAccessories, item];
@@ -561,6 +574,26 @@ export default function VirtualPet({
         break;
     }
   };
+
+  const handleRemoveAccessory = (accessory: ShopItem) => {
+    // Remove accessory from pet
+    const updatedAccessories = animal.accessories.filter(acc => acc.id !== accessory.id);
+    const updatedPet = {
+      ...animal,
+      accessories: updatedAccessories,
+    };
+
+    // Update localStorage
+    localStorage.setItem("pet", JSON.stringify(updatedPet));
+    setAnimal(updatedPet);
+
+    // Add item back to inventory
+    const updatedItems = [...purchasedItems, accessory];
+    setPurchasedItems(updatedItems);
+    localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
+
+  };
+
   const itemCounts: { [id: string]: number } = {};
   purchasedItems.forEach(item => {
     if (!itemCounts[item.id]) {
@@ -743,7 +776,12 @@ export default function VirtualPet({
             <div className='relative'>
               <Benny />
               {/* Display accessories */}
-              {animal.accessories && animal.accessories.map(accessory => <img key={accessory.id} src={accessory.image} alt={accessory.name} className='absolute top-0 left-0 w-full h-full object-contain' style={{ zIndex: 1 }} />)}
+              {animal.accessories &&
+                animal.accessories.map(accessory => (
+                  <div key={accessory.id} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
+                    <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
+                  </div>
+                ))}
             </div>
           </div>
         </div>
