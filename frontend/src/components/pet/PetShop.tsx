@@ -28,14 +28,23 @@ export default function PetShopInline() {
   useEffect(() => {
     const calculateCoins = async () => {
       try {
+        // First try to get from localStorage
+        const savedCoins = localStorage.getItem("currentCoins");
+        if (savedCoins) {
+          console.log("🛒 PetShop - Loading coins from localStorage:", savedCoins);
+          setCoins(parseInt(savedCoins));
+          return;
+        }
+
+        // If not in localStorage, calculate from tasks
         const tasks = await getTasks(token, childId);
         const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-
-        // Load spent coins from localStorage
         const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
         const availableCoins = totalCoins - spentCoins;
 
+        console.log("🛒 PetShop - Calculated coins from tasks:", availableCoins);
         setCoins(availableCoins);
+        localStorage.setItem("currentCoins", availableCoins.toString());
       } catch (error) {
         console.error("Failed to calculate coins:", error);
       }
@@ -53,12 +62,11 @@ export default function PetShopInline() {
         try {
           const tasks = await getTasks(token, childId);
           const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-
-          // Load spent coins from localStorage
           const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
           const availableCoins = totalCoins - spentCoins;
 
           setCoins(availableCoins);
+          localStorage.setItem("currentCoins", availableCoins.toString());
         } catch (error) {
           console.error("Failed to recalculate coins:", error);
         }
@@ -69,10 +77,31 @@ export default function PetShopInline() {
       }
     };
 
+    // Listen for localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "currentCoins" && e.newValue) {
+        console.log("🛒 PetShop - localStorage coins changed:", e.newValue);
+        setCoins(parseInt(e.newValue));
+      }
+    };
+
+    // Listen for custom events
+    const handleCustomEvent = () => {
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        console.log("🛒 PetShop - Custom event coins update:", savedCoins);
+        setCoins(parseInt(savedCoins));
+      }
+    };
+
     window.addEventListener("taskCompleted", handleTaskCompleted);
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("coinsUpdated", handleCustomEvent);
 
     return () => {
       window.removeEventListener("taskCompleted", handleTaskCompleted);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("coinsUpdated", handleCustomEvent);
     };
   }, [token, childId]);
 
@@ -115,31 +144,47 @@ export default function PetShopInline() {
   ];
 
   const handlePurchase = (item: ShopItem) => {
-    if (coins >= item.price) {
-      // Deduct coins locally
-      const newCoins = coins - item.price;
-      setCoins(newCoins);
+    console.log("🛒 PetShop - Starting purchase for item:", item.name, "Price:", item.price);
 
-      // Save spent coins to localStorage
-      const currentSpent = parseInt(localStorage.getItem("spentCoins") || "0");
-      localStorage.setItem("spentCoins", (currentSpent + item.price).toString());
+    // Get current coins from localStorage
+    const currentCoins = parseInt(localStorage.getItem("currentCoins") || "0");
+    console.log("🛒 PetShop - Current coins before purchase:", currentCoins);
 
-      // Dispatch custom storage event for same-tab updates
-      window.dispatchEvent(new CustomEvent("storageUpdated"));
-
-      // Save to localStorage and update state
-      const currentItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
-      const newItems = [...currentItems, item];
-      localStorage.setItem("purchasedItems", JSON.stringify(newItems));
-      setPurchasedItems(newItems);
-      setSelected(null);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-
-      // Dispatch event to update coins in other components
-      window.dispatchEvent(new CustomEvent("coinsSpent", { detail: { amount: item.price } }));
-      console.log("🛒 PetShop - coinsSpent event dispatched, amount:", item.price);
+    if (currentCoins < item.price) {
+      console.log("🛒 PetShop - Not enough coins!");
+      return;
     }
+
+    // Deduct coins locally
+    const newCoins = currentCoins - item.price;
+    setCoins(newCoins);
+    console.log("🛒 PetShop - Updated local coins state:", newCoins);
+
+    // Save spent coins to localStorage
+    const currentSpent = parseInt(localStorage.getItem("spentCoins") || "0");
+    localStorage.setItem("spentCoins", (currentSpent + item.price).toString());
+    console.log("🛒 PetShop - Updated spentCoins:", currentSpent + item.price);
+
+    // Update current coins in localStorage
+    localStorage.setItem("currentCoins", newCoins.toString());
+    console.log("🛒 PetShop - Updated currentCoins in localStorage:", newCoins);
+
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent("coinsUpdated"));
+    console.log("🛒 PetShop - Dispatched coinsUpdated event");
+
+    // Save to localStorage and update state
+    const currentItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
+    const newItems = [...currentItems, item];
+    localStorage.setItem("purchasedItems", JSON.stringify(newItems));
+    setPurchasedItems(newItems);
+    setSelected(null);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+
+    // Dispatch event to update coins in other components
+    window.dispatchEvent(new CustomEvent("coinsSpent", { detail: { amount: item.price } }));
+    console.log("🛒 PetShop - coinsSpent event dispatched, amount:", item.price);
   };
 
   return (

@@ -283,6 +283,7 @@ const KidDashboard = () => {
         const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
         const availableCoins = coins - spentCoins;
         setTotalCoins(availableCoins);
+        localStorage.setItem("currentCoins", availableCoins.toString());
       } catch (error) {
         console.error("Failed to load tasks:", error);
       } finally {
@@ -293,21 +294,53 @@ const KidDashboard = () => {
     loadTasks();
   }, [token, navigate]);
 
-  // Simple interval to update coins every 3 seconds
+  // Simple coin management - load from localStorage and update on events
   useEffect(() => {
-    const updateCoinsInterval = setInterval(async () => {
-      try {
-        const tasksData = await getTasks(token, userId);
-        const totalCoins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const availableCoins = totalCoins - spentCoins;
-        setTotalCoins(availableCoins);
-      } catch (error) {
-        console.error("Failed to update coins:", error);
-      }
-    }, 3000); // Update every 3 seconds
+    const loadCoins = () => {
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        setTotalCoins(parseInt(savedCoins));
+        console.log("🪙 KidDashboard - Loaded coins from localStorage:", savedCoins);
+      } else {
+        // Calculate initial coins if not saved
+        const calculateCoins = async () => {
+          try {
+            const tasks = await getTasks(token, userId);
+            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+            const availableCoins = totalCoins - spentCoins;
+            setTotalCoins(availableCoins);
+            localStorage.setItem("currentCoins", availableCoins.toString());
+            console.log("🪙 KidDashboard - Calculated initial coins:", availableCoins);
+          } catch (error) {
+            console.error("Failed to calculate coins:", error);
+          }
+        };
 
-    return () => clearInterval(updateCoinsInterval);
+        if (token && userId) {
+          calculateCoins();
+        }
+      }
+    };
+
+    // Listen for coin updates
+    const handleCoinUpdate = () => {
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        setTotalCoins(parseInt(savedCoins));
+        console.log("🪙 KidDashboard - Updated coins from event:", savedCoins);
+      }
+    };
+
+    loadCoins();
+
+    window.addEventListener("coinsUpdated", handleCoinUpdate);
+    window.addEventListener("taskCompleted", handleCoinUpdate);
+
+    return () => {
+      window.removeEventListener("coinsUpdated", handleCoinUpdate);
+      window.removeEventListener("taskCompleted", handleCoinUpdate);
+    };
   }, [token, userId]);
 
   const handleCompleteTask = async (taskId: string) => {
@@ -323,6 +356,9 @@ const KidDashboard = () => {
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
       const availableCoins = coins - spentCoins;
       setTotalCoins(availableCoins);
+      localStorage.setItem("currentCoins", availableCoins.toString());
+
+      // Dispatch event to update other components
 
       // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
@@ -344,6 +380,7 @@ const KidDashboard = () => {
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
       const availableCoins = coins - spentCoins;
       setTotalCoins(availableCoins);
+      localStorage.setItem("currentCoins", availableCoins.toString());
 
       // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
