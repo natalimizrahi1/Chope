@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import WelcomePage from "./components/HomePage";
+import WelcomePage from "./components/homepage/HomePage";
 import ParentLoginPage from "./components/login/ParentLoginPage";
 import ParentRegisterPage from "./components/login/ParentRegisterPage";
 import KidLoginPage from "./components/login/KidLoginPage";
 import KidRegisterPage from "./components/login/KidRegisterPage";
 import ParentDashboard from "./components/parent/ParentDashboard";
 import ChildDashboard from "./components/kid/KidDashboard";
+import PetShop, { ShopItem } from "./components/pet/PetShop";
 import { Toaster } from "./components/ui/toaster";
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path='/register/kid' element={<KidRegisterPage />} />
         <Route path='/parent/dashboard' element={<ParentDashboard />} />
         <Route path='/kid/dashboard' element={<ChildDashboard />} />
+        <Route path='/kid/shop' element={<PetShop />} />
       </Routes>
       <Toaster />
     </BrowserRouter>
