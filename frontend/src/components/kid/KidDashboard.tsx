@@ -25,6 +25,7 @@ import rightAnim from "@/assets/animations/right-decor.json";
 import { useNavigate } from "react-router-dom";
 import { getTasks, completeTask, undoTask } from "../../lib/api";
 import { Task } from "../../lib/types";
+import Tasks from "../tasks/Tasks";
 
 const mockTasks = [
   { id: "1", title: "Do homework", description: "Math and English", completed: true, reward: 10 },
@@ -34,7 +35,7 @@ const mockTasks = [
 // export default function KidDashboard() {
 //   const navigate = useNavigate();
 //   const [coins, setCoins] = useState(100);
-//   const [tasks, setTasks] = useState(mockTasks);
+//   const [tasks, se.tTasks] = useState(mockTasks);
 //   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 //   const [animal, setAnimal] = useState({
 //     name: 'Buddy',
@@ -460,6 +461,9 @@ const KidDashboard = () => {
           </Button>
           <Button variant={activeTab === "pet" ? "secondary" : "ghost"} className={`flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all ${activeTab === "pet" ? "bg-purple-50 text-purple-600 border-purple-600" : "text-gray-600 hover:bg-gray-100 border-transparent"}`} onClick={() => setActiveTab("pet")}>
             <User className='w-5 h-5 mr-3' /> My Pet
+          </Button>
+          <Button variant='ghost' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all text-gray-600 hover:bg-gray-100 border-transparent' onClick={() => navigate("/kid/tasks")}>
+            <FileText className='w-5 h-5 mr-3' /> My Tasks
           </Button>
           <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start' onClick={() => navigate("/kid/shop")}>
             <BookOpen className='w-5 h-5 mr-3' /> Shop
