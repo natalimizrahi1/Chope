@@ -238,6 +238,7 @@ const KidDashboard = () => {
   const [token] = useState(localStorage.getItem("token") || "");
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
+  const [userName, setUserName] = useState("");
 
   const incompleteTasks = tasks.filter((task: Task) => !task.completed);
   const completedTasksArr = tasks.filter((task: Task) => task.completed);
@@ -270,6 +271,7 @@ const KidDashboard = () => {
       return;
     }
     setUserId(user.id);
+    setUserName(user.name || user.username || "User");
 
     // Load tasks from server
     const loadTasks = async () => {
@@ -525,7 +527,7 @@ const KidDashboard = () => {
               {/* Hero Section */}
               <Card className='bg-gradient-to-b from-[#8f8ef2] to-[#6a6ae7] rounded-2xl text-white relative overflow-hidden border-0 flex flex-col items-center text-center justify-center h-60 mb-5 shadow-none '>
                 <CardContent className='relative z-10 max-w-lg p-8 '>
-                  <CardTitle className='text-3xl font-bold mb-3'>Hi, Irham Muhammad Shidiq</CardTitle>
+                  <CardTitle className='text-3xl font-bold mb-3'>Hi, {userName}</CardTitle>
                   <CardDescription className='text-[#c6c7f8] mb-5 text-md'>
                     The library serves as a welcoming home for knowledge <br /> seekers and avid readers alike
                   </CardDescription>
