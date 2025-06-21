@@ -241,8 +241,8 @@ const KidDashboard = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
 
-  const incompleteTasks = tasks.filter((task: Task) => !task.completed);
-  const completedTasksArr = tasks.filter((task: Task) => task.completed);
+  const incompleteTasks = tasks.filter((task: Task) => !task.completed).slice(-4);
+  const completedTasksArr = tasks.filter((task: Task) => task.completed).slice(-4);
   const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
 
   const [animal, setAnimal] = useState<Pet>(() => {
@@ -557,8 +557,8 @@ const KidDashboard = () => {
                   {/* Popular Section */}
                   <div>
                     <div className='flex items-center justify-between mb-4'>
-                      <h2 className='text-xl font-bold text-gray-900'>Completed</h2>
-                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto'>
+                      <h2 className='text-xl font-bold text-gray-900'>Recent Incomplete Tasks</h2>
+                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
                         VIEW ALL
                       </Button>
                     </div>
@@ -609,8 +609,8 @@ const KidDashboard = () => {
                   {/* Ongoing Section */}
                   <div className='mt-0'>
                     <div className='flex items-center justify-between mb-4'>
-                      <h2 className='text-xl font-bold text-gray-900'>Ongoing</h2>
-                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto'>
+                      <h2 className='text-xl font-bold text-gray-900'>Recent Completed Tasks</h2>
+                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
                         VIEW ALL
                       </Button>
                     </div>

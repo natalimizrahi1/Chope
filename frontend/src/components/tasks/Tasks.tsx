@@ -256,25 +256,25 @@ const Tasks = () => {
         </header>
 
         {/* Main Content Area */}
-        <main className='space-y-8 overflow-y-auto h-full p-5 pt-0 pb-0'>
+        <main className='space-y-6 lg:space-y-8 overflow-y-auto h-full p-4 lg:p-5 pt-0 pb-0'>
           {/* Task Summary Sidebar */}
-          <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
+          <div className='grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6'>
             {/* Main Content */}
-            <div className='lg:col-span-3 space-y-8'>
+            <div className='lg:col-span-3 space-y-6 lg:space-y-8'>
               {/* Incomplete Tasks Section */}
               <Card className='shadow-none bg-white'>
                 <CardHeader>
                   <div className='flex items-center justify-between'>
-                    <CardTitle>Incomplete Tasks</CardTitle>
-                    <span className='text-sm text-gray-500'>{incompleteTasks.length} tasks remaining</span>
+                    <CardTitle className='text-lg lg:text-xl'>Incomplete Tasks</CardTitle>
+                    <span className='text-xs lg:text-sm text-gray-500'>{incompleteTasks.length} tasks remaining</span>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
                       {[1, 2, 3, 4].map(i => (
                         <Card key={i} className='relative bg-white rounded-xl flex flex-col justify-between p-3 aspect-square hover:shadow-lg transition-all animate-pulse'>
-                          <div className='w-8 h-8 bg-gray-300 rounded-lg mb-2 mx-auto'></div>
+                          <div className='w-6 h-6 lg:w-8 lg:h-8 bg-gray-300 rounded-lg mb-2 mx-auto'></div>
                           <div className='flex-1 flex flex-col justify-end w-full'>
                             <div className='h-3 bg-gray-300 rounded mb-1'></div>
                             <div className='h-2 bg-gray-300 rounded mb-2'></div>
@@ -284,7 +284,7 @@ const Tasks = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
                       {incompleteTasks.map((task: Task) => (
                         <Card key={task._id} className='relative bg-white rounded-xl flex flex-col justify-between p-3 aspect-square hover:shadow-lg transition-all'>
                           <Button variant='ghost' size='icon' className='absolute top-2 right-2 bg-white/80 rounded-full p-1 shadow hover:bg-white'>
@@ -293,18 +293,18 @@ const Tasks = () => {
                             </svg>
                           </Button>
                           <CardContent className='flex flex-col items-center justify-between h-full p-0'>
-                            <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2 mx-auto'>
-                              <div className='w-5 h-5 bg-blue-400 rounded'></div>
+                            <div className='w-6 h-6 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2 mx-auto'>
+                              <div className='w-4 h-4 lg:w-5 lg:h-5 bg-blue-400 rounded'></div>
                             </div>
                             <div className='flex-1 flex flex-col justify-end w-full'>
-                              <CardTitle className='font-semibold text-gray-900 text-sm truncate'>{task.title}</CardTitle>
-                              <CardDescription className='text-gray-600 text-xs truncate'>{task.description}</CardDescription>
+                              <CardTitle className='font-semibold text-gray-900 text-xs lg:text-sm truncate'>{task.title}</CardTitle>
+                              <CardDescription className='text-gray-600 text-[10px] lg:text-xs truncate'>{task.description}</CardDescription>
                               <div className='flex items-center gap-1 mt-1'>
-                                <span className='text-yellow-600 font-bold text-xs'>🪙</span>
-                                <span className='text-yellow-600 font-bold text-xs'>{task.reward}</span>
+                                <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
+                                <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
                             </div>
-                            <Button className='mt-2 w-full text-xs py-1' onClick={() => handleCompleteTask(task._id)}>
+                            <Button className='mt-2 w-full text-[10px] lg:text-xs py-1' onClick={() => handleCompleteTask(task._id)}>
                               Complete
                             </Button>
                           </CardContent>
@@ -319,16 +319,16 @@ const Tasks = () => {
               <Card className='shadow-none bg-white'>
                 <CardHeader>
                   <div className='flex items-center justify-between'>
-                    <CardTitle>Completed Tasks</CardTitle>
-                    <span className='text-sm text-gray-500'>{completedTasksArr.length} tasks completed</span>
+                    <CardTitle className='text-lg lg:text-xl'>Completed Tasks</CardTitle>
+                    <span className='text-xs lg:text-sm text-gray-500'>{completedTasksArr.length} tasks completed</span>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
                       {[1, 2, 3, 4].map(i => (
                         <Card key={i} className='relative bg-white rounded-xl flex flex-col justify-between p-3 aspect-square hover:shadow-lg transition-all animate-pulse'>
-                          <div className='w-8 h-8 bg-gray-300 rounded-lg mb-2 mx-auto'></div>
+                          <div className='w-6 h-6 lg:w-8 lg:h-8 bg-gray-300 rounded-lg mb-2 mx-auto'></div>
                           <div className='flex-1 flex flex-col justify-end w-full'>
                             <div className='h-3 bg-gray-300 rounded mb-1'></div>
                             <div className='h-2 bg-gray-300 rounded mb-2'></div>
@@ -338,7 +338,7 @@ const Tasks = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
                       {completedTasksArr.map((task: Task) => (
                         <Card key={task._id} className='relative bg-white rounded-xl flex flex-col justify-between p-3 aspect-square hover:shadow-lg transition-all'>
                           <Button variant='ghost' size='icon' className='absolute top-2 right-2 bg-white/80 rounded-full p-1 shadow hover:bg-white'>
@@ -347,18 +347,18 @@ const Tasks = () => {
                             </svg>
                           </Button>
                           <CardContent className='flex flex-col items-center justify-between h-full p-0'>
-                            <div className='w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mb-2 mx-auto'>
-                              <div className='w-5 h-5 bg-green-400 rounded'></div>
+                            <div className='w-6 h-6 lg:w-8 lg:h-8 bg-green-100 rounded-lg flex items-center justify-center mb-2 mx-auto'>
+                              <div className='w-4 h-4 lg:w-5 lg:h-5 bg-green-400 rounded'></div>
                             </div>
                             <div className='flex-1 flex flex-col justify-end w-full'>
-                              <CardTitle className='font-semibold text-gray-900 text-sm truncate'>{task.title}</CardTitle>
-                              <CardDescription className='text-gray-600 text-xs truncate'>{task.description}</CardDescription>
+                              <CardTitle className='font-semibold text-gray-900 text-xs lg:text-sm truncate'>{task.title}</CardTitle>
+                              <CardDescription className='text-gray-600 text-[10px] lg:text-xs truncate'>{task.description}</CardDescription>
                               <div className='flex items-center gap-1 mt-1'>
-                                <span className='text-yellow-600 font-bold text-xs'>🪙</span>
-                                <span className='text-yellow-600 font-bold text-xs'>{task.reward}</span>
+                                <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
+                                <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
                             </div>
-                            <Button variant='outline' className='mt-2 w-full text-xs py-1' onClick={() => handleUndoTask(task._id)}>
+                            <Button variant='outline' className='mt-2 w-full text-[10px] lg:text-xs py-1 px-2 lg:px-3' onClick={() => handleUndoTask(task._id)}>
                               Undo
                             </Button>
                           </CardContent>
@@ -372,43 +372,43 @@ const Tasks = () => {
 
             {/* Summary Sidebar */}
             <div className='lg:col-span-1'>
-              <Card className='sticky top-1 shadow-none bg-white'>
+              <Card className='lg:sticky lg:top-1 shadow-none bg-white'>
                 <CardHeader>
-                  <CardTitle>Task Summary</CardTitle>
+                  <CardTitle className='text-lg lg:text-xl'>Task Summary</CardTitle>
                 </CardHeader>
-                <CardContent className='space-y-6'>
+                <CardContent className='space-y-4 lg:space-y-6'>
                   {/* Total Tasks */}
                   <div className='text-center'>
-                    <div className='text-3xl font-bold text-gray-900 mb-1'>{tasks.length}</div>
-                    <div className='text-sm text-gray-600'>Total Tasks</div>
+                    <div className='text-2xl lg:text-3xl font-bold text-gray-900 mb-1'>{tasks.length}</div>
+                    <div className='text-xs lg:text-sm text-gray-600'>Total Tasks</div>
                   </div>
 
                   {/* Progress Bar */}
                   <div className='space-y-2'>
-                    <div className='flex justify-between text-sm'>
+                    <div className='flex justify-between text-xs lg:text-sm'>
                       <span className='text-gray-600'>Progress</span>
-                      <span className='font-semibold text-gray-900'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</span>
+                      <span className='font-semibold text-gray-900'>{tasks.length > 0 ? Math.round((tasks.filter((task: Task) => task.completed).length / tasks.length) * 100) : 0}%</span>
                     </div>
                     <div className='w-full bg-gray-200 rounded-full h-2'>
-                      <div className='bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300' style={{ width: `${tasks.length > 0 ? (completedTasksArr.length / tasks.length) * 100 : 0}%` }}></div>
+                      <div className='bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300' style={{ width: `${tasks.length > 0 ? (tasks.filter((task: Task) => task.completed).length / tasks.length) * 100 : 0}%` }}></div>
                     </div>
                   </div>
 
                   {/* Completed vs Pending */}
-                  <div className='grid grid-cols-2 gap-4'>
+                  <div className='grid grid-cols-2 gap-3 lg:gap-4'>
                     <Card className='bg-green-50 border-green-200 shadow-none'>
-                      <CardContent className='p-3'>
+                      <CardContent className='p-2 lg:p-3'>
                         <div className='text-center'>
-                          <div className='text-xl font-bold text-green-600 mb-1'>{completedTasksArr.length}</div>
-                          <div className='text-[10px] text-green-700 leading-tight'>Completed</div>
+                          <div className='text-lg lg:text-xl font-bold text-green-600 mb-1'>{tasks.filter((task: Task) => task.completed).length}</div>
+                          <div className='text-[8px] lg:text-[10px] text-green-700 leading-tight'>Completed</div>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className='bg-blue-50 border-blue-200 shadow-none'>
-                      <CardContent className='p-3'>
+                      <CardContent className='p-2 lg:p-3'>
                         <div className='text-center'>
-                          <div className='text-xl font-bold text-blue-600 mb-1'>{incompleteTasks.length}</div>
-                          <div className='text-[10px] text-blue-700 leading-tight'>Pending</div>
+                          <div className='text-lg lg:text-xl font-bold text-blue-600 mb-1'>{tasks.filter((task: Task) => !task.completed).length}</div>
+                          <div className='text-[8px] lg:text-[10px] text-blue-700 leading-tight'>Pending</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -416,16 +416,16 @@ const Tasks = () => {
 
                   {/* Coins Earned */}
                   <Card className='bg-yellow-50 border-yellow-200 shadow-none'>
-                    <CardContent className='text-center p-4'>
-                      <div className='text-2xl font-bold text-yellow-600 mb-1'>🪙 {totalCoins}</div>
-                      <div className='text-xs text-yellow-700'>Total Coins</div>
+                    <CardContent className='text-center p-3 lg:p-4'>
+                      <div className='text-xl lg:text-2xl font-bold text-yellow-600 mb-1'>🪙 {totalCoins}</div>
+                      <div className='text-[10px] lg:text-xs text-yellow-700'>Total Coins</div>
                     </CardContent>
                   </Card>
 
                   {/* Completion Rate */}
                   <div className='text-center'>
-                    <div className='text-lg font-semibold text-gray-900 mb-1'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</div>
-                    <div className='text-xs text-gray-600'>Completion Rate</div>
+                    <div className='text-base lg:text-lg font-semibold text-gray-900 mb-1'>{tasks.length > 0 ? Math.round((tasks.filter((task: Task) => task.completed).length / tasks.length) * 100) : 0}%</div>
+                    <div className='text-[10px] lg:text-xs text-gray-600'>Completion Rate</div>
                   </div>
                 </CardContent>
               </Card>
