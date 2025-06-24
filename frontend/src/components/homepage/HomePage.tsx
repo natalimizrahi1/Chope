@@ -267,9 +267,6 @@ export default function WelcomePage() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const testimonialRefs = useRef<(HTMLDivElement | null)[]>([]);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
 
   const scrollToTestimonial = (index: number) => {
     testimonialRefs.current[index]?.scrollIntoView({
@@ -283,30 +280,6 @@ export default function WelcomePage() {
   const handleNav = (direction: "prev" | "next") => {
     const newIndex = direction === "next" ? (currentTestimonial + 1) % testimonials.length : (currentTestimonial - 1 + testimonials.length) % testimonials.length;
     scrollToTestimonial(newIndex);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartX(e.pageX - (carouselRef.current?.offsetLeft || 0));
-    setScrollLeft(carouselRef.current?.scrollLeft || 0);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - (carouselRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 2;
-    if (carouselRef.current) {
-      carouselRef.current.scrollLeft = scrollLeft - walk;
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
   };
 
   function FAQCard({ question, answer, borderColor }: { question: string; answer: string; borderColor: string }) {
@@ -936,7 +909,7 @@ export default function WelcomePage() {
           </p>
 
           <div className='relative'>
-            <div className='flex overflow-x-auto snap-x snap-mandatory py-6 md:py-8 space-x-4 md:space-x-8 px-0 scrollbar-hide' ref={carouselRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
+            <div className='flex overflow-x-auto snap-x snap-mandatory py-6 md:py-8 space-x-4 md:space-x-8 px-0 scrollbar-hide' ref={carouselRef}>
               {testimonials.map((testimonial, i) => (
                 <div
                   key={i}
