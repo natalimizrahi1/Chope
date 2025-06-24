@@ -104,6 +104,13 @@
       will-change: transform, opacity;
     }
   }
+
+  /* Custom breakpoint for 1387px */
+  @media (min-width: 1387px) {
+    .text-blue-to-white {
+      color: white !important;
+    }
+  }
 }
 
 @keyframes wagTail {
