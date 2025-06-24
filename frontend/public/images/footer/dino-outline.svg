@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M64 8C48.536 8 36 20.536 36 36V44H28C21.376 44 16 49.376 16 56V100C16 106.624 21.376 112 28 112H100C106.624 112 112 106.624 112 100V56C112 49.376 106.624 44 100 44H92V36C92 20.536 79.464 8 64 8ZM64 16C75.028 16 84 24.972 84 36V44H44V36C44 24.972 52.972 16 64 16ZM28 52H100C102.208 52 104 53.792 104 56V100C104 102.208 102.208 104 100 104H28C25.792 104 24 102.208 24 100V56C24 53.792 25.792 52 28 52ZM64 64C57.376 64 52 69.376 52 76C52 82.624 57.376 88 64 88C70.624 88 76 82.624 76 76C76 69.376 70.624 64 64 64ZM64 72C66.208 72 68 73.792 68 76C68 78.208 66.208 80 64 80C61.792 80 60 78.208 60 76C60 73.792 61.792 72 64 72Z" fill="white" fill-opacity="0.1"/>
+</svg>  -->
+
+ <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <path 
+        d="M15 60 C15 50, 25 45, 35 45 L65 45 C75 45, 85 50, 85 60 L85 65 L80 70 L75 65 L70 70 L65 65 L60 70 L55 65 L50 70 L45 65 L40 70 L35 65 L30 70 L25 65 L20 70 L15 65 Z" 
+        fill="#ffbacc" 
+        stroke="#ffbacc" 
+        strokeWidth="2"
+        
+      />
+      <circle cx="25" cy="50" r="3" fill="white"/>
+      <circle cx="23" cy="49" r="1" fill="black"/>
+      <path d="M10 55 L15 50 L20 55" fill="none" stroke="#ffbacc" strokeWidth="2"/>
+      <circle cx="35" cy="40" r="2" fill="#ffbacc"/>
+      <circle cx="45" cy="38" r="2" fill="#ffbacc"/>
+      <circle cx="55" cy="40" r="2" fill="#ffbacc"/>
+      <circle cx="65" cy="38" r="2" fill="#ffbacc"/>
+      <circle cx="75" cy="40" r="2" fill="#ffbacc"/>
+    </svg>
