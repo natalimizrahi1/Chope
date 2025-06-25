@@ -428,7 +428,7 @@ export default function WelcomePage() {
               Earn <span className='text-[#4ec3f7]'>&</span> Play!
             </h1>
             <p className='text-[#7d7d7d] text-base md:text-lg mb-6 md:mb-10 text-left leading-relaxed'>Transform household chores into an exciting adventure! Your children will love completing tasks while raising adorable virtual pets.</p>
-            <button className='relative bg-[#ffd986] text-white font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#ffd36a] transition overflow-hidden border-none mr-0 md:mr-50 text-sm md:text-base'>
+            <button onClick={() => scrollToSection("features")} className='relative bg-[#ffd986] text-white font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#ffd36a] transition overflow-hidden border-none mr-0 md:mr-50 text-sm md:text-base'>
               Read More
               <span
                 className='pointer-events-none absolute inset-0 rounded-full'
@@ -454,7 +454,7 @@ export default function WelcomePage() {
       </div>
 
       {/* Features Section */}
-      <div className='bg-[#ffffff] px-4 sm:px-6'>
+      <div id='features' className='bg-[#ffffff] px-4 sm:px-6'>
         <div className='container mx-auto py-8 md:py-12'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 text-center'>
             <div className='flex flex-col items-center'>
@@ -574,7 +574,7 @@ export default function WelcomePage() {
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Tasks completed successfully</div>
             </div>
           </div>
-          <button className='relative bg-white text-[#89d4f2] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#44b4e0] hover:text-white transition overflow-hidden border-none mt-8 md:mt-12 text-sm md:text-base'>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className='relative bg-white text-[#89d4f2] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#44b4e0] hover:text-white transition overflow-hidden border-none mt-8 md:mt-12 text-sm md:text-base'>
             Start Now
             <span
               className='pointer-events-none absolute inset-0 rounded-full'
@@ -960,7 +960,7 @@ export default function WelcomePage() {
             Join thousands of families who have discovered the joy of working together. <br className='hidden sm:block' /> Start your Chope journey today and watch your children become eager helpers!
           </p>
           <div className='flex flex-col sm:flex-row gap-3 md:gap-4 justify-center'>
-            <button className='relative bg-white text-[#ffbacc] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#fc9db7] hover:text-white transition overflow-hidden border-none text-sm md:text-base'>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className='relative bg-white text-[#ffbacc] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#fc9db7] hover:text-white transition overflow-hidden border-none text-sm md:text-base'>
               Start Now
               <span
                 className='pointer-events-none absolute inset-0 rounded-full'
