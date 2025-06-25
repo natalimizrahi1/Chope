@@ -102,6 +102,59 @@ const textVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+// Animated Counter Component
+function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentCount = Math.floor(easeOutQuart * end);
+
+      setCount(currentCount);
+
+      if (progress >= 1) {
+        clearInterval(timer);
+      }
+    }, 16); // ~60fps
+
+    return () => clearInterval(timer);
+  }, [isVisible, end, duration]);
+
+  return (
+    <div ref={ref} className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>
+      {count.toLocaleString()}
+      {suffix}
+    </div>
+  );
+}
+
 type JumpInCardProps = React.HTMLAttributes<HTMLDivElement> & { delay?: number; children?: React.ReactNode };
 function JumpInCard({ delay = 0, children, className = "", ...props }: JumpInCardProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -499,13 +552,6 @@ export default function WelcomePage() {
 
       {/* Perfect App Section */}
       <div className='relative bg-[#fcf8f5] py-5 px-4 sm:px-6 overflow-hidden pb-20 md:pb-40'>
-        {/* קישוטים */}
-        {/* <img src="/decor/dino-yellow.svg" className="absolute left-32 top-8 w-32" alt="" /> */}
-        {/* <img src="/decor/pencil-yellow.svg" className="absolute left-8 top-1/3 w-16" alt="" /> */}
-        {/* <img src="/decor/cloud-yellow.svg" className="absolute right-12 top-10 w-28" alt="" /> */}
-        {/* <img src="/decor/balloons-pink.svg" className="absolute right-16 bottom-32 w-20" alt="" /> */}
-        {/* <img src="/decor/dino-blue.svg" className="absolute left-1/2 bottom-0 w-40" alt="" /> */}
-
         <div className='container mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10 justify-around'>
           {/* תמונה במסגרת מקווקוות */}
           <div className='relative flex items-center justify-center w-full max-w-[540px] h-[300px] md:h-[450px]'>
@@ -562,15 +608,15 @@ export default function WelcomePage() {
         <div className='absolute inset-0 flex flex-col items-center justify-center text-center px-4 sm:px-6 z-50'>
           <div className='flex flex-col md:flex-row justify-center align-center items-center gap-8 md:gap-30 text-center mt-3'>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>10,000+</div>
+              <AnimatedCounter end={10000} suffix='+' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Active families</div>
             </div>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>85%</div>
+              <AnimatedCounter end={85} suffix='%' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Improvement in children's behavior</div>
             </div>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>50,000+</div>
+              <AnimatedCounter end={50000} suffix='+' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Tasks completed successfully</div>
             </div>
           </div>
