@@ -102,6 +102,59 @@ const textVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+// Animated Counter Component
+function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentCount = Math.floor(easeOutQuart * end);
+
+      setCount(currentCount);
+
+      if (progress >= 1) {
+        clearInterval(timer);
+      }
+    }, 16); // ~60fps
+
+    return () => clearInterval(timer);
+  }, [isVisible, end, duration]);
+
+  return (
+    <div ref={ref} className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>
+      {count.toLocaleString()}
+      {suffix}
+    </div>
+  );
+}
+
 type JumpInCardProps = React.HTMLAttributes<HTMLDivElement> & { delay?: number; children?: React.ReactNode };
 function JumpInCard({ delay = 0, children, className = "", ...props }: JumpInCardProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -313,32 +366,13 @@ export default function WelcomePage() {
 
   return (
     <div className='bg-transparent text-white min-h-screen font-sans relative overflow-hidden'>
-      {/* Decorative Elements */}
-      {/* <div className='absolute inset-0 overflow-hidden pointer-events-none'>
-        <Star className='absolute text-pink-300 w-10 h-6 top-100 left-10 animate-pulse' fill='currentColor' />
-        <Star className='absolute text-yellow-300 w-4 h-4 top-24 right-24 animate-pulse' fill='currentColor' />
-        <Star className='absolute text-pink-300 w-5 h-5 bottom-24 left-20 animate-pulse' fill='currentColor' />
-        <Star className='absolute text-yellow-300 w-4 h-4 bottom-16 right-32 animate-pulse' fill='currentColor' />
-
-        <div className='absolute w-16 h-16 bg-gradient-to-br from-[oklch(71.4%_0.203_305.504)] to-[oklch(82.7%_0.119_306.383)] rounded-full top-48 left-20 animate-bounce' style={{ animationDelay: "1s", animationDuration: "3s" }}></div>
-        <div className='absolute w-12 h-12 bg-gradient-to-br from-[oklch(71.4%_0.203_305.504)] to-[oklch(82.7%_0.119_306.383)] rounded-full top-80 left-48 animate-bounce' style={{ animationDelay: "2s", animationDuration: "4s" }}></div>
-        <div className='absolute w-14 h-14 bg-gradient-to-br from-[oklch(71.4%_0.203_305.504)] to-[oklch(82.7%_0.119_306.383)] rounded-full top-140 right-[15%] animate-bounce' style={{ animationDelay: "0.5s", animationDuration: "3.5s" }}></div>
-        <div className='absolute w-20 h-20 bg-gradient-to-br from-[oklch(71.4%_0.203_305.504)] to-[oklch(82.7%_0.119_306.383)] rounded-full bottom-32 right-16 animate-bounce' style={{ animationDelay: "1.5s", animationDuration: "2.5s" }}></div>
-
-        <div className='absolute bottom-16 left-0 w-32 h-16 bg-gradient-to-r from-[oklch(62.7%_0.265_303.9)/30] to-[oklch(62.7%_0.265_303.9)/30] rounded-full blur-sm'></div>
-        <div className='absolute bottom-12 right-0 w-40 h-20 bg-gradient-to-l from-[oklch(62.7%_0.265_303.9)/30] to-[oklch(62.7%_0.265_303.9)/30] rounded-full blur-sm'></div>
-      </div> */}
-
       {/* Header Bar */}
       <nav className='bg-white shadow-md relative z-50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex justify-between items-center h-20'>
             {/* Logo */}
             <div className='flex-shrink-0 flex items-center'>
-              {/* <img className='h-10 w-auto' src='/logo-dino.svg' alt='Little Dino Logo' /> */}
-              <span className='ml-2 text-lg font-extrabold text-[#102358]'>
-                Little <span className='text-[#60a5fa]'>Dino</span>
-              </span>
+              <img className='h-28 w-auto' src='/CHOPE.svg' alt='Chope Logo' />
             </div>
 
             {/* Desktop Menu */}
@@ -375,8 +409,7 @@ export default function WelcomePage() {
                   setMobileMenuOpen(!mobileMenuOpen);
                 }}
                 className='mobile-menu-button p-2 rounded-md text-[#102358] hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#ffd986] transition-all duration-200'
-                aria-label='Toggle mobile menu'
-              >
+                aria-label='Toggle mobile menu'>
                 {mobileMenuOpen ? (
                   <>
                     <X className='h-6 w-6' strokeWidth={2} />
@@ -426,13 +459,6 @@ export default function WelcomePage() {
 
       {/* Hero Section */}
       <div className='relative bg-[#faf8f2] overflow-hidden min-h-[500px] md:min-h-[650px] flex items-center'>
-        {/* קישוטים */}
-        {/* <img src="/decor/cloud-blue.svg" className="absolute left-0 top-0 w-48 z-0" alt="" />
-  <img src="/decor/star-pink.svg" className="absolute right-10 top-20 w-12 z-0" alt="" />
-  <img src="/decor/rocket.svg" className="absolute left-10 bottom-10 w-32 z-0" alt="" />
-  <img src="/decor/bike.svg" className="absolute left-1/3 top-32 w-24 z-0" alt="" />
-  <img src="/decor/stars.svg" className="absolute right-10 top-1/2 w-16 z-0" alt="" /> */}
-
         {/* Hero Image - Responsive */}
         <div className='hero-image-container absolute right-0 w-full md:w-7/10 h-full z-0 overflow-hidden'>
           <img
@@ -450,12 +476,12 @@ export default function WelcomePage() {
         {/* תוכן מרכזי */}
         <div className='container mx-auto flex items-center justify-between relative z-10 px-4 sm:px-6 lg:px-8'>
           <div className='max-w-xl z-20 w-full md:w-auto'>
-            <div className='bg-[#87d4ee] text-white px-4 py-1 rounded-md text-sm font-bold mb-4 md:mb-8 w-fit'>WELCOME TO LITTLEDINO!</div>
+            <div className='bg-[#87d4ee] text-white px-4 py-1 rounded-md text-sm font-bold mb-4 md:mb-8 w-fit'>WELCOME TO CHOPE!</div>
             <h1 className='text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#23326a] mb-4 md:mb-8 justify-self-start leading-tight'>
               Earn <span className='text-[#4ec3f7]'>&</span> Play!
             </h1>
             <p className='text-[#7d7d7d] text-base md:text-lg mb-6 md:mb-10 text-left leading-relaxed'>Transform household chores into an exciting adventure! Your children will love completing tasks while raising adorable virtual pets.</p>
-            <button className='relative bg-[#ffd986] text-white font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#ffd36a] transition overflow-hidden border-none mr-0 md:mr-50 text-sm md:text-base'>
+            <button onClick={() => scrollToSection("features")} className='relative bg-[#ffd986] text-white font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#ffd36a] transition overflow-hidden border-none mr-0 md:mr-50 text-sm md:text-base'>
               Read More
               <span
                 className='pointer-events-none absolute inset-0 rounded-full'
@@ -481,7 +507,7 @@ export default function WelcomePage() {
       </div>
 
       {/* Features Section */}
-      <div className='bg-[#ffffff] px-4 sm:px-6'>
+      <div id='features' className='bg-[#ffffff] px-4 sm:px-6'>
         <div className='container mx-auto py-8 md:py-12'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 text-center'>
             <div className='flex flex-col items-center'>
@@ -526,13 +552,6 @@ export default function WelcomePage() {
 
       {/* Perfect App Section */}
       <div className='relative bg-[#fcf8f5] py-5 px-4 sm:px-6 overflow-hidden pb-20 md:pb-40'>
-        {/* קישוטים */}
-        {/* <img src="/decor/dino-yellow.svg" className="absolute left-32 top-8 w-32" alt="" /> */}
-        {/* <img src="/decor/pencil-yellow.svg" className="absolute left-8 top-1/3 w-16" alt="" /> */}
-        {/* <img src="/decor/cloud-yellow.svg" className="absolute right-12 top-10 w-28" alt="" /> */}
-        {/* <img src="/decor/balloons-pink.svg" className="absolute right-16 bottom-32 w-20" alt="" /> */}
-        {/* <img src="/decor/dino-blue.svg" className="absolute left-1/2 bottom-0 w-40" alt="" /> */}
-
         <div className='container mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10 justify-around'>
           {/* תמונה במסגרת מקווקוות */}
           <div className='relative flex items-center justify-center w-full max-w-[540px] h-[300px] md:h-[450px]'>
@@ -589,19 +608,19 @@ export default function WelcomePage() {
         <div className='absolute inset-0 flex flex-col items-center justify-center text-center px-4 sm:px-6 z-50'>
           <div className='flex flex-col md:flex-row justify-center align-center items-center gap-8 md:gap-30 text-center mt-3'>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>10,000+</div>
+              <AnimatedCounter end={10000} suffix='+' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Active families</div>
             </div>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>85%</div>
+              <AnimatedCounter end={85} suffix='%' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Improvement in children's behavior</div>
             </div>
             <div>
-              <div className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#23326a] text-blue-to-white mb-2 md:mb-4'>50,000+</div>
+              <AnimatedCounter end={50000} suffix='+' duration={5000} />
               <div className='text-sm sm:text-base md:text-lg lg:text-xl text-[#23326a]/90 text-blue-to-white'>Tasks completed successfully</div>
             </div>
           </div>
-          <button className='relative bg-white text-[#89d4f2] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#44b4e0] hover:text-white transition overflow-hidden border-none mt-8 md:mt-12 text-sm md:text-base'>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className='relative bg-white text-[#89d4f2] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#44b4e0] hover:text-white transition overflow-hidden border-none mt-8 md:mt-12 text-sm md:text-base'>
             Start Now
             <span
               className='pointer-events-none absolute inset-0 rounded-full'
@@ -916,8 +935,7 @@ export default function WelcomePage() {
                   ref={el => {
                     testimonialRefs.current[i] = el;
                   }}
-                  className='snap-center flex-shrink-0 w-full sm:w-2/3 md:w-1/3 px-2'
-                >
+                  className='snap-center flex-shrink-0 w-full sm:w-2/3 md:w-1/3 px-2'>
                   <div className='flex flex-col items-center text-center h-full'>
                     <div className={`relative ${testimonial.color} rounded-3xl p-6 md:p-8 pt-10 md:pt-12 text-white h-[200px] md:h-[250px] flex items-center`}>
                       <Quote className='absolute top-3 md:top-4 left-3 md:left-4 w-8 h-8 md:w-12 md:h-12 text-white/20' />
@@ -988,7 +1006,7 @@ export default function WelcomePage() {
             Join thousands of families who have discovered the joy of working together. <br className='hidden sm:block' /> Start your Chope journey today and watch your children become eager helpers!
           </p>
           <div className='flex flex-col sm:flex-row gap-3 md:gap-4 justify-center'>
-            <button className='relative bg-white text-[#ffbacc] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#fc9db7] hover:text-white transition overflow-hidden border-none text-sm md:text-base'>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className='relative bg-white text-[#ffbacc] font-bold px-6 md:px-8 py-2 rounded-full shadow hover:bg-[#fc9db7] hover:text-white transition overflow-hidden border-none text-sm md:text-base'>
               Start Now
               <span
                 className='pointer-events-none absolute inset-0 rounded-full'
@@ -1063,7 +1081,6 @@ export default function WelcomePage() {
           {/* Logo and Contact Section */}
           <div className='space-y-3 md:space-y-4'>
             <div className='flex items-center gap-2'>
-              <img src='/logo-dino.svg' alt='Chope Logo' className='h-8 md:h-10' />
               <span className='text-base md:text-lg font-bold'>Chope</span>
             </div>
             <p className='text-white/80 text-xs md:text-sm max-w-xs text-start'>
