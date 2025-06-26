@@ -230,21 +230,12 @@ const Tasks = () => {
         {/* Header */}
         <header className='px-6 py-4'>
           <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-4'>
-              <div className='relative'>
-                <Search className='w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' />
-                <Input type='text' placeholder='Search...' className='pl-10 pr-4 py-2 w-70 border-0 rounded-lg focus:outline-none focus:ring-0 focus:ring-purple-500 bg-white' />
-              </div>
-            </div>
+            <div className='flex items-center space-x-4'></div>
             <div className='flex items-center space-x-4'>
               <div className='flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-300'>
                 <span className='text-yellow-600 font-bold text-lg'>🪙</span>
                 <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
               </div>
-              <Button className='bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium'>Live</Button>
-              <Button variant='ghost' size='icon' className='p-2 text-gray-600 hover:bg-gray-100 rounded-lg'>
-                <Moon className='w-5 h-5' />
-              </Button>
               <Button variant='ghost' size='icon' className='p-2 text-gray-600 hover:bg-gray-100 rounded-lg'>
                 <Bell className='w-5 h-5' />
               </Button>
