@@ -190,7 +190,7 @@ const Tasks = () => {
           <Button variant='ghost' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all text-gray-600 hover:bg-gray-100 border-transparent' onClick={() => navigate("/kid/dashboard")}>
             <Home className='w-5 h-5 mr-3' /> Home
           </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all text-gray-600 hover:bg-gray-100 border-transparent' onClick={() => navigate("/kid/dashboard")}>
+          <Button variant='ghost' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all text-gray-600 hover:bg-gray-100 border-transparent' onClick={() => navigate("/kid/virtualpet")}>
             <User className='w-5 h-5 mr-3' /> My Pet
           </Button>
           <Button variant='secondary' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all bg-purple-50 text-purple-600 border-purple-600'>
