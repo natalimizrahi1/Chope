@@ -7,6 +7,7 @@ import KidRegisterPage from "./components/login/KidRegisterPage";
 import ParentDashboard from "./components/parent/ParentDashboard";
 import ChildDashboard from "./components/kid/KidDashboard";
 import PetShop from "./components/pet/PetShop";
+import VirtualPet from "./components/pet/VirtualPet";
 import { Toaster } from "./components/ui/toaster";
 import Tasks from "./components/tasks/Tasks";
 
@@ -23,6 +24,7 @@ function App() {
         <Route path='/kid/dashboard' element={<ChildDashboard />} />
         <Route path='/kid/shop' element={<PetShop />} />
         <Route path='/kid/tasks' element={<Tasks />} />
+        <Route path='/kid/virtualpet' element={<VirtualPet />} />
       </Routes>
       <Toaster />
     </BrowserRouter>
