@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Star, Circle, Globe, Cloud, CheckCircle, Users, Shield, Award, HelpCircle, Mail, MapPin, ChevronDown, ChevronUp, Phone, Heart, Target, Zap, Quote, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
-// import { motion, useInView } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
-// import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-// import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
+import { Mail, MapPin, ChevronUp, Phone, Heart, Target, Zap, Quote, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import AnimalMotionCircle from "./AnimalMotionCircle";
 import PerfectAppContent from "./PerfectAppContent";
 import { motion } from "framer-motion";
 
-// Add responsive CSS for mobile
 const mobileStyles = `
   @media (max-width: 768px) {
     .mobile-text-sm { font-size: 0.875rem; }
@@ -473,7 +468,7 @@ export default function WelcomePage() {
           />
         </div>
 
-        {/* תוכן מרכזי */}
+        {/* Main content */}
         <div className='container mx-auto flex items-center justify-between relative z-10 px-4 sm:px-6 lg:px-8'>
           <div className='max-w-xl z-20 w-full md:w-auto'>
             <div className='bg-[#87d4ee] text-white px-4 py-1 rounded-md text-sm font-bold mb-4 md:mb-8 w-fit'>WELCOME TO CHOPE!</div>
@@ -500,7 +495,7 @@ export default function WelcomePage() {
             </button>
           </div>
         </div>
-        {/* גל חותך למטה */}
+        {/* Bottom wave */}
         <svg className='absolute left-0 bottom-0 w-full h-20' viewBox='0 0 1200 120' preserveAspectRatio='none' style={{ pointerEvents: "none" }}>
           <path d='M0,60 C200,120 400,0 600,60 C800,120 1000,0 1200,60 L1200,120 L0,120 Z' fill='#ffffff' />
         </svg>
@@ -553,7 +548,7 @@ export default function WelcomePage() {
       {/* Perfect App Section */}
       <div className='relative bg-[#fcf8f5] py-5 px-4 sm:px-6 overflow-hidden pb-20 md:pb-40'>
         <div className='container mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10 justify-around'>
-          {/* תמונה במסגרת מקווקוות */}
+          {/* Image in dashed frame */}
           <div className='relative flex items-center justify-center w-full max-w-[540px] h-[300px] md:h-[450px]'>
             <div className='absolute left-0 top-0 w-full max-w-[500px] h-[250px] md:h-[400px] rounded-3xl border-2 border-dashed border-pink-200 bg-white' style={{ zIndex: 0 }} />
             <img
@@ -568,7 +563,7 @@ export default function WelcomePage() {
             />
           </div>
 
-          {/* תוכן טקסטואלי */}
+          {/* Text content */}
           <div className='flex-1 flex flex-col justify-center items-start max-w-lg whitespace-normal w-full'>
             <PerfectAppContent scrollToSection={scrollToSection} />
           </div>
