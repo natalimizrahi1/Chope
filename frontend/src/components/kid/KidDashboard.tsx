@@ -570,6 +570,97 @@ const KidDashboard = () => {
                     </CardContent>
                   </Card>
 
+                  {/* Pet Status Section */}
+                  <Card className='bg-white rounded-xl p-0 shadow-none border-0 mb-4'>
+                    <CardHeader className='flex items-center justify-between mb-0 p-4 pb-0'>
+                      <CardTitle className='font-semibold text-gray-900 text-base'>My Pet Status</CardTitle>
+                      <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
+                        <div className='w-4 h-4 bg-blue-500 rounded-full'></div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className='p-6 pt-2'>
+                      <div className='flex items-center space-x-4 mb-4'>
+                        {/* Pet Image */}
+                        <div className='relative overflow-hidden' style={{ width: "100px", height: "120px" }}>
+                          <div
+                            style={{
+                              width: 329,
+                              height: 447,
+                              background: "url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0",
+                              transform: "scale(0.25)",
+                              transformOrigin: "top left",
+                            }}
+                          />
+                          {/* Display accessories */}
+                          {animal.accessories &&
+                            animal.accessories.map(accessory => (
+                              <div key={accessory.id} className='absolute top-0 left-0 w-full h-full' style={{ transform: "scale(0.25)", transformOrigin: "top left" }}>
+                                <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Pet Info */}
+                        <div className='flex-1'>
+                          <h4 className='font-semibold text-gray-900 text-sm mb-1'>{animal.name}</h4>
+                          <p className='text-xs text-gray-600 mb-2'>Level {animal.level}</p>
+                          <div className='flex items-center gap-1'>
+                            <span className='text-yellow-600 text-xs'>🪙</span>
+                            <span className='text-yellow-600 text-xs font-medium'>{animal.xp} XP</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className='space-y-3'>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2'>
+                            <div className='w-4 h-4 bg-orange-100 rounded flex items-center justify-center'>
+                              <span className='text-orange-600 text-xs'>🍩</span>
+                            </div>
+                            <span className='text-xs text-gray-700'>Hunger</span>
+                          </div>
+                          <div className='flex-1 mx-3'>
+                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
+                              <div className='bg-orange-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.hunger / 100) * 100}%` }}></div>
+                            </div>
+                          </div>
+                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.hunger}%</span>
+                        </div>
+
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2'>
+                            <div className='w-4 h-4 bg-yellow-100 rounded flex items-center justify-center'>
+                              <span className='text-yellow-600 text-xs'>⭐</span>
+                            </div>
+                            <span className='text-xs text-gray-700'>Happiness</span>
+                          </div>
+                          <div className='flex-1 mx-3'>
+                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
+                              <div className='bg-yellow-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.happiness / 100) * 100}%` }}></div>
+                            </div>
+                          </div>
+                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.happiness}%</span>
+                        </div>
+
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2'>
+                            <div className='w-4 h-4 bg-red-100 rounded flex items-center justify-center'>
+                              <span className='text-red-600 text-xs'>❤️</span>
+                            </div>
+                            <span className='text-xs text-gray-700'>Energy</span>
+                          </div>
+                          <div className='flex-1 mx-3'>
+                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
+                              <div className='bg-red-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.energy / 100) * 100}%` }}></div>
+                            </div>
+                          </div>
+                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.energy}%</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Best Sales Section */}
                   <Card className='bg-white rounded-xl p-0 shadow-none border-0'>
                     <CardHeader className='flex items-center justify-between mb-0 p-6 pb-0'>
