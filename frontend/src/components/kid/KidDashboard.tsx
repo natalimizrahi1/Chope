@@ -23,7 +23,7 @@ const mockTasks = [
 const KidDashboard = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [token] = useState(localStorage.getItem("token") || "");
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
@@ -63,6 +63,10 @@ const KidDashboard = () => {
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
+      // Save tasks to localStorage for faster loading
+      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
       // Calculate total coins from completed tasks
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
@@ -81,20 +85,64 @@ const KidDashboard = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     if (!token || user.role !== "child") {
+      // Clear cache when user is not authenticated
+      localStorage.removeItem("cachedTasks");
+      localStorage.removeItem("cachedTasksTimestamp");
       navigate("/login/kid");
       return;
     }
 
     setUserId(user.id);
     setUserName(user.name || user.username || "User");
-  }, [token, navigate]);
 
-  // Load tasks when userId is set
+    // Load cached tasks immediately if available
+    const cachedTasks = localStorage.getItem("cachedTasks");
+    const cacheTimestamp = localStorage.getItem("cachedTasksTimestamp");
+    const now = Date.now();
+    const cacheAge = cacheTimestamp ? now - parseInt(cacheTimestamp) : Infinity;
+    const maxCacheAge = 5 * 60 * 1000; // 5 minutes
+
+    if (cachedTasks && cacheAge < maxCacheAge) {
+      try {
+        const tasksData = JSON.parse(cachedTasks);
+        setTasks(tasksData);
+
+        // Calculate coins from cached tasks
+        const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+        const availableCoins = coins - spentCoins;
+        setTotalCoins(availableCoins);
+
+        // Load fresh data in background if cache is older than 1 minute
+        if (cacheAge > 60 * 1000) {
+          setTimeout(() => {
+            if (user.id && token) {
+              loadTasks();
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("Failed to parse cached tasks:", error);
+        // If cache is corrupted, load fresh data
+        if (user.id && token) {
+          loadTasks();
+        }
+      }
+    } else {
+      // Clear old cache
+      if (cacheAge >= maxCacheAge) {
+        localStorage.removeItem("cachedTasks");
+        localStorage.removeItem("cachedTasksTimestamp");
+      }
+    }
+  }, [token, navigate, loadTasks]);
+
+  // Load tasks when userId is set (only if no cached data)
   useEffect(() => {
-    if (userId && token) {
+    if (userId && token && tasks.length === 0) {
       loadTasks();
     }
-  }, [userId, token, loadTasks]);
+  }, [userId, token, loadTasks, tasks.length]);
 
   // Listen for visibility changes to reload tasks when returning to page
   useEffect(() => {
@@ -109,7 +157,7 @@ const KidDashboard = () => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [userId, token, loadTasks]);
+  }, [userId, token, loadTasks, tasks.length]);
 
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
@@ -177,6 +225,10 @@ const KidDashboard = () => {
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
+      // Update cached tasks
+      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
       // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
@@ -200,6 +252,10 @@ const KidDashboard = () => {
       // update tasks list
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
+
+      // Update cached tasks
+      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
       // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
@@ -372,10 +428,10 @@ const KidDashboard = () => {
                         VIEW ALL
                       </Button>
                     </div>
-                    {loading ? (
+                    {loading && tasks.length === 0 ? (
                       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
                         {[1, 2, 3, 4].map(i => (
-                          <Card key={i} className='relative bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all animate-pulse'>
+                          <Card key={i} className='relative bg-gradient-to-br from-purple-200 to-blue-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all animate-pulse'>
                             <div className='w-12 h-12 bg-gray-300 rounded-xl mb-4 mx-auto'></div>
                             <div className='flex-1 flex flex-col justify-end w-full'>
                               <div className='h-4 bg-gray-300 rounded mb-2'></div>
