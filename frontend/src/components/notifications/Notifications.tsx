@@ -26,6 +26,7 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [showBadge, setShowBadge] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -100,6 +101,7 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
         }));
 
         setNotifications(prev => [...newNotifications, ...prev]);
+        setShowBadge(true); // Show badge when new notifications arrive
 
         // Add task IDs to notified tasks list
         const newNotifiedTasks = [...notifiedTasks, ...newTasks.map((task: Task) => task._id)];
@@ -163,11 +165,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
     setNotifications(prev => prev.map(n => (n.id === notificationId ? { ...n, read: true } : n)));
   };
 
-  // Mark all as read
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
   // Format time
   const formatTime = (date: Date) => {
     try {
@@ -192,9 +189,22 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
   return (
     <div className='relative'>
       {/* Notification Bell Button */}
-      <Button variant='ghost' size='icon' className='relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg' onClick={() => setIsOpen(!isOpen)}>
+      <Button
+        variant='ghost'
+        size='icon'
+        className='relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg'
+        onClick={() => {
+          // If panel is open, close it and mark notifications as read
+          if (isOpen) {
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          }
+
+          setIsOpen(!isOpen);
+          setShowBadge(false);
+        }}
+      >
         <Bell className='w-5 h-5' />
-        {unreadCount > 0 && <Badge className='absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white border-0'>{unreadCount > 9 ? "9+" : unreadCount}</Badge>}
+        {showBadge && unreadCount > 0 && <Badge className='absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white border-0'>{unreadCount > 9 ? "9+" : unreadCount}</Badge>}
       </Button>
 
       {/* Notification Panel */}
@@ -203,13 +213,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
           <div className='p-4 bg-gradient-to-r from-purple-50 to-blue-50'>
             <div className='flex items-center justify-between mb-3'>
               <h3 className='text-lg font-semibold text-gray-900'>Notifications</h3>
-            </div>
-
-            {/* Action Buttons */}
-            <div className='flex gap-2 mb-3'>
-              <Button variant='outline' size='sm' onClick={markAllAsRead} className='text-xs bg-white/80 hover:bg-white'>
-                Mark All Read
-              </Button>
             </div>
 
             {notifications.length === 0 ? (
