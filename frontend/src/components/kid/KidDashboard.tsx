@@ -1,19 +1,5 @@
-import { useEffect, useState } from "react";
-// import {
-//   Book, Dog, LogOut, Trophy, Star, Gift, ShoppingCart, UserCircle
-// } from 'lucide-react';
-// import {
-//   Card, CardContent, CardDescription, CardHeader, CardTitle
-// } from '../ui/card';
-// import { Progress } from '../ui/progress';
-// import { Button } from '../ui/button';
-// import { Badge } from '../ui/badge';
-// import { useNavigate } from 'react-router-dom';
-// import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import VirtualPet, { Pet } from "../pet/VirtualPet";
-// import PetShop, { ShopItem } from '../pet/PetShop';
-// import Inventory, { InventoryItem } from '../pet/Inventory';
-// import { Stat, Accessory } from '../pet/VirtualPet';
 import { Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
@@ -26,211 +12,13 @@ import { useNavigate } from "react-router-dom";
 import { getTasks, completeTask, undoTask } from "../../lib/api";
 import { Task } from "../../lib/types";
 import Tasks from "../tasks/Tasks";
+import Notifications from "../notifications/Notifications";
+import { Toaster } from "../ui/toaster";
 
 const mockTasks = [
   { id: "1", title: "Do homework", description: "Math and English", completed: true, reward: 10 },
   { id: "2", title: "Clean room", description: "Tidy your bed and floor", completed: false, reward: 15 },
 ];
-
-// export default function KidDashboard() {
-//   const navigate = useNavigate();
-//   const [coins, setCoins] = useState(100);
-//   const [tasks, se.tTasks] = useState(mockTasks);
-//   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-//   const [animal, setAnimal] = useState({
-//     name: 'Buddy',
-//     type: 'dog',
-//     level: 1,
-//     xp: 0,
-//     stats: { hunger: 70, happiness: 60, energy: 80 } as Stat,
-//     accessories: [] as Accessory[],
-//   });
-
-//   useEffect(() => {
-//     const interval = setInterval(() => {
-//       setAnimal(prev => ({
-//         ...prev,
-//         stats: {
-//           hunger: Math.max(0, prev.stats.hunger - 1),
-//           happiness: Math.max(0, prev.stats.happiness - 0.5),
-//           energy: Math.max(0, prev.stats.energy - 0.2),
-//         },
-//       }));
-//     }, 60000);
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   const completedTasks = tasks.filter(t => t.completed).length;
-//   const totalTasks = tasks.length;
-//   const taskProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-//   const taskCoins = tasks.reduce((sum, t) => sum + (t.completed ? t.reward : 0), 0);
-
-//   const shopItems: ShopItem[] = [
-//     { id: 'banana', name: 'Banana', price: 10, type: 'food', effect: { hunger: +20 }, image: '/images/shop/banana.png' },
-//     { id: 'ball', name: 'Ball', price: 15, type: 'toy', effect: { happiness: +20 }, image: '/images/shop/ball.png' },
-//     { id: 'hat1', name: 'Red Hat', price: 25, type: 'hat', image: '/images/shop/hats/hat1.png' },
-//     { id: 'shirt1', name: 'Blue Shirt', price: 30, type: 'shirt', image: '/images/shop/shirts/shirt1.png' },
-//   ];
-
-//   const handleCompleteTask = (id: string) => {
-//     setTasks(prev =>
-//       prev.map(task => task.id === id ? { ...task, completed: true } : task)
-//     );
-//     const reward = tasks.find(t => t.id === id)?.reward || 0;
-//     setCoins(prev => prev + reward);
-//   };
-
-//   const handleFeed = () => {
-//     setAnimal(prev => ({
-//       ...prev,
-//       stats: { ...prev.stats, hunger: Math.min(100, prev.stats.hunger + 10) },
-//       xp: prev.xp + 10,
-//       level: Math.floor((prev.xp + 10) / 100) + 1,
-//     }));
-//   };
-
-//   const handlePlay = () => {
-//     setAnimal(prev => ({
-//       ...prev,
-//       stats: {
-//         ...prev.stats,
-//         happiness: Math.min(100, prev.stats.happiness + 10),
-//         energy: Math.max(0, prev.stats.energy - 5),
-//       },
-//       xp: prev.xp + 10,
-//       level: Math.floor((prev.xp + 10) / 100) + 1,
-//     }));
-//   };
-
-//   const handleSleep = () => {
-//     setAnimal(prev => ({
-//       ...prev,
-//       stats: { ...prev.stats, energy: 100 },
-//     }));
-//   };
-
-//   const handleBuy = (item: ShopItem) => {
-//     if (coins < item.price) return;
-//     setCoins(coins - item.price);
-//     if (item.effect) {
-//       setAnimal(prev => ({
-//         ...prev,
-//         stats: {
-//           hunger: Math.min(100, prev.stats.hunger + (item.effect?.hunger || 0)),
-//           happiness: Math.min(100, prev.stats.happiness + (item.effect?.happiness || 0)),
-//           energy: Math.min(100, prev.stats.energy + (item.effect?.energy || 0)),
-//         },
-//         xp: prev.xp + 5,
-//         level: Math.floor((prev.xp + 5) / 100) + 1,
-//       }));
-//     } else {
-//       setInventory(prev => [...prev, { id: item.id, name: item.name, image: item.image, type: item.type as 'hat' | 'shirt' }]);
-//     }
-//   };
-
-//   const handleEquip = (item: InventoryItem) => {
-//     setAnimal(prev => ({
-//       ...prev,
-//       accessories: [...prev.accessories.filter(a => a.type !== item.type), item],
-//     }));
-//   };
-
-//   return (
-//     <div className="grid grid-cols-12 min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
-
-//       {/* Sidebar */}
-//       <aside className="col-span-2 p-4 bg-white shadow-lg rounded-r-3xl flex flex-col gap-6">
-//         <h1 className="text-xl font-bold text-purple-700">🐾 MyPet</h1>
-//         <nav className="flex flex-col gap-3 text-sm">
-//           <Button variant="ghost" className="justify-start gap-2"><Book className="w-4 h-4" /> My Tasks</Button>
-//           <Button variant="ghost" className="justify-start gap-2"><Dog className="w-4 h-4" /> Pet</Button>
-//           <Button variant="ghost" className="justify-start gap-2"><ShoppingCart className="w-4 h-4" /> Shop</Button>
-//           <Button variant="ghost" className="justify-start gap-2"><UserCircle className="w-4 h-4" /> Profile</Button>
-//         </nav>
-//         <Button variant="outline" className="mt-auto" onClick={() => navigate('/login')}>
-//           <LogOut className="mr-2 h-4 w-4" /> Logout
-//         </Button>
-//       </aside>
-
-//       {/* Main content */}
-//       <main className="col-span-7 p-6">
-//         {/* Hero */}
-//         <div className="bg-purple-100 rounded-xl p-6 flex justify-between items-center">
-//           <div>
-//             <h2 className="text-xl font-semibold text-purple-800">Hi, Kiddo!</h2>
-//             <p className="text-sm text-purple-600">Take care of your virtual pet and complete fun tasks!</p>
-//             <Button className="mt-3">Learn more</Button>
-//           </div>
-//           <img src="/images/ui/hero-pet.png" alt="pet" className="w-28 h-28 object-contain" />
-//         </div>
-
-//         {/* My Tasks */}
-//         <section className="mt-8">
-//           <h3 className="text-lg font-bold mb-2">My Tasks</h3>
-//           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-//             {tasks.map((task) => (
-//               <Card key={task.id} className="bg-white/90 hover:bg-white transition-all">
-//                 <CardHeader>
-//                   <CardTitle>{task.title}</CardTitle>
-//                   <CardDescription>{task.description}</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="flex justify-between items-center">
-//                     <Badge variant="outline">{task.reward} coins</Badge>
-//                     <Button
-//                       variant={task.completed ? 'secondary' : 'default'}
-//                       disabled={task.completed}
-//                       onClick={() => handleCompleteTask(task.id)}
-//                     >
-//                       {task.completed ? 'Completed' : 'Complete Task'}
-//                     </Button>
-//                   </div>
-//                 </CardContent>
-//               </Card>
-//             ))}
-//           </div>
-//         </section>
-
-//         {/* Pet Stats + Inventory */}
-//         <section className="mt-8">
-//           <div className="grid md:grid-cols-2 gap-6">
-//             <Card><CardHeader><CardTitle>My Pet</CardTitle></CardHeader><CardContent><VirtualPet animal={animal} onFeed={handleFeed} onPlay={handlePlay} onSleep={handleSleep} /></CardContent></Card>
-//             <div className="grid gap-4">
-//               <Card><CardHeader className="flex justify-between"><CardTitle>Total Tasks</CardTitle><Trophy className="h-4 w-4"/></CardHeader><CardContent><div className="text-xl font-bold">{totalTasks}</div><p className="text-xs">{completedTasks} completed</p></CardContent></Card>
-//               <Card><CardHeader className="flex justify-between"><CardTitle>Progress</CardTitle><Star className="h-4 w-4"/></CardHeader><CardContent><div className="text-xl font-bold">{Math.round(taskProgress)}%</div><Progress value={taskProgress} /></CardContent></Card>
-//               <Card><CardHeader className="flex justify-between"><CardTitle>Coins Earned</CardTitle><Gift className="h-4 w-4"/></CardHeader><CardContent><div className="text-xl font-bold">{taskCoins}</div></CardContent></Card>
-//               <Card><CardHeader><CardTitle>Inventory</CardTitle></CardHeader><CardContent><Inventory items={inventory} onEquip={handleEquip} /></CardContent></Card>
-//             </div>
-//           </div>
-//         </section>
-//       </main>
-
-//       {/* Right side: Pet Shop */}
-//       <aside className="col-span-3 p-4 space-y-6">
-//         <Card>
-//           <CardHeader>
-//             <CardTitle>Pet Shop</CardTitle>
-//             <CardDescription>You have {coins} coins</CardDescription>
-//           </CardHeader>
-//           <CardContent className="space-y-3">
-//             {shopItems.map(item => (
-//               <div key={item.id} className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm hover:bg-gray-100">
-//                 <div className="flex items-center gap-2">
-//                   <img src={item.image} alt={item.name} className="w-10 h-10" />
-//                   <div>
-//                     <p className="font-semibold text-sm">{item.name}</p>
-//                     <p className="text-xs text-gray-500">{item.price} coins</p>
-//                   </div>
-//                 </div>
-//                 <Button size="sm" onClick={() => handleBuy(item)}>Buy</Button>
-//               </div>
-//             ))}
-//           </CardContent>
-//         </Card>
-//       </aside>
-//     </div>
-//   );
-// }
 
 const KidDashboard = () => {
   const navigate = useNavigate();
@@ -264,38 +52,64 @@ const KidDashboard = () => {
     localStorage.setItem("pet", JSON.stringify(animal));
   }, [animal]);
 
+  // Load tasks from server
+  const loadTasks = useCallback(async () => {
+    if (!userId || !token) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const tasksData = await getTasks(token, userId);
+      setTasks(tasksData);
+
+      // Calculate total coins from completed tasks
+      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+      const availableCoins = coins - spentCoins;
+      setTotalCoins(availableCoins);
+      localStorage.setItem("currentCoins", availableCoins.toString());
+    } catch (error) {
+      console.error("❌ Failed to load tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, token]);
+
   // Load user data and tasks
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+
     if (!token || user.role !== "child") {
       navigate("/login/kid");
       return;
     }
+
     setUserId(user.id);
     setUserName(user.name || user.username || "User");
+  }, [token, navigate]);
 
-    // Load tasks from server
-    const loadTasks = async () => {
-      try {
-        setLoading(true);
-        const tasksData = await getTasks(token, user.id);
-        setTasks(tasksData);
+  // Load tasks when userId is set
+  useEffect(() => {
+    if (userId && token) {
+      loadTasks();
+    }
+  }, [userId, token, loadTasks]);
 
-        // Calculate total coins from completed tasks
-        const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const availableCoins = coins - spentCoins;
-        setTotalCoins(availableCoins);
-        localStorage.setItem("currentCoins", availableCoins.toString());
-      } catch (error) {
-        console.error("Failed to load tasks:", error);
-      } finally {
-        setLoading(false);
+  // Listen for visibility changes to reload tasks when returning to page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userId && token && tasks.length === 0) {
+        loadTasks();
       }
     };
 
-    loadTasks();
-  }, [token, navigate]);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [userId, token, loadTasks]);
 
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
@@ -303,7 +117,6 @@ const KidDashboard = () => {
       const savedCoins = localStorage.getItem("currentCoins");
       if (savedCoins) {
         setTotalCoins(parseInt(savedCoins));
-        console.log("🪙 KidDashboard - Loaded coins from localStorage:", savedCoins);
       } else {
         // Calculate initial coins if not saved
         const calculateCoins = async () => {
@@ -314,7 +127,6 @@ const KidDashboard = () => {
             const availableCoins = totalCoins - spentCoins;
             setTotalCoins(availableCoins);
             localStorage.setItem("currentCoins", availableCoins.toString());
-            console.log("🪙 KidDashboard - Calculated initial coins:", availableCoins);
           } catch (error) {
             console.error("Failed to calculate coins:", error);
           }
@@ -331,7 +143,16 @@ const KidDashboard = () => {
       const savedCoins = localStorage.getItem("currentCoins");
       if (savedCoins) {
         setTotalCoins(parseInt(savedCoins));
-        console.log("🪙 KidDashboard - Updated coins from event:", savedCoins);
+      }
+    };
+
+    // Listen for new tasks received
+    const handleNewTasksReceived = (event: CustomEvent) => {
+      const { tasks: newTasks, childId: eventChildId } = event.detail;
+
+      // Only update if the event is for this child
+      if (eventChildId === userId) {
+        loadTasks(); // Reload all tasks to get the updated list
       }
     };
 
@@ -339,12 +160,14 @@ const KidDashboard = () => {
 
     window.addEventListener("coinsUpdated", handleCoinUpdate);
     window.addEventListener("taskCompleted", handleCoinUpdate);
+    window.addEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
 
     return () => {
       window.removeEventListener("coinsUpdated", handleCoinUpdate);
       window.removeEventListener("taskCompleted", handleCoinUpdate);
+      window.removeEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
     };
-  }, [token, userId]);
+  }, [token, userId, loadTasks]);
 
   const handleCompleteTask = async (taskId: string) => {
     try {
@@ -366,7 +189,7 @@ const KidDashboard = () => {
       // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
-      console.error("❌ Failed to complete task:", error);
+      console.error("Failed to complete task:", error);
     }
   };
 
@@ -387,10 +210,8 @@ const KidDashboard = () => {
 
       // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
-
-      console.log("🔄 Task undone successfully");
     } catch (error) {
-      console.error("❌ Failed to undo task:", error);
+      console.error("Failed to undo task:", error);
     }
   };
 
@@ -507,9 +328,7 @@ const KidDashboard = () => {
                     <span className='text-yellow-600 font-bold text-lg'>🪙</span>
                     <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
                   </div>
-                  <Button variant='ghost' size='icon' className='p-2 text-gray-600 hover:bg-gray-100 rounded-lg'>
-                    <Bell className='w-5 h-5' />
-                  </Button>
+                  <Notifications childId={userId} token={token} />
                   <Avatar className='w-8 h-8 bg-purple-500'>
                     <AvatarFallback className='text-white text-sm font-medium'>I</AvatarFallback>
                   </Avatar>
@@ -733,6 +552,7 @@ const KidDashboard = () => {
           </main>
         )}
       </div>
+      <Toaster />
     </div>
   );
 };
