@@ -29,12 +29,6 @@ export default function PetShopInline() {
   useEffect(() => {
     const calculateCoins = async () => {
       try {
-        const savedCoins = localStorage.getItem("currentCoins");
-        if (savedCoins) {
-          setCoins(parseInt(savedCoins));
-          return;
-        }
-
         const tasks = await getTasks(token, childId);
         const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
         const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");

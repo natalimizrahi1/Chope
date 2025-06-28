@@ -140,9 +140,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
     // Initial check
     checkForNewTasks();
 
-    // Set up interval
-    const interval = setInterval(checkForNewTasks, 3000);
-
     // Listen for task creation events from parent dashboard
     const handleTaskCreated = (event: CustomEvent) => {
       const { task, childId: eventChildId } = event.detail;
@@ -155,7 +152,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
     window.addEventListener("taskCreated", handleTaskCreated as EventListener);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener("taskCreated", handleTaskCreated as EventListener);
     };
   }, [childId, token, lastCheckTime]);
