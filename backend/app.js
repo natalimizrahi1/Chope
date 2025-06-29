@@ -15,11 +15,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Debug middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`, req.body);
-  next();
-});
+// Debug middleware - commented out to reduce console output
+// app.use((req, res, next) => {
+//   console.log(`${req.method} ${req.path}`, req.body);
+//   next();
+// });
 
 const PORT = process.env.PORT || 5001;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chope";
