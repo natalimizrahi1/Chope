@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Copy, Plus, PawPrint, ArrowLeft } from "lucide-react";
+import { Plus, PawPrint } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 
@@ -27,7 +27,6 @@ export default function ChildDetailPage() {
   const [token] = useState(localStorage.getItem("token") || "");
   const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
   const { toast } = useToast();
-  const [parentId, setParentId] = useState("");
 
   useEffect(() => {
     // Check if user is logged in and is a parent
@@ -41,7 +40,6 @@ export default function ChildDetailPage() {
       navigate("/login/parent");
       return;
     }
-    setParentId(user.id);
 
     // Load child data
     if (childId) {
@@ -113,18 +111,6 @@ export default function ChildDetailPage() {
     }
   };
 
-  const copyParentId = () => {
-    navigator.clipboard.writeText(parentId);
-    toast({
-      title: "Copied!",
-      description: "Parent ID has been copied to clipboard.",
-    });
-  };
-
-  const handleBackToDashboard = () => {
-    navigate("/parent/dashboard");
-  };
-
   if (!child) {
     return (
       <div className='flex min-h-screen items-center justify-center'>
@@ -141,22 +127,6 @@ export default function ChildDetailPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      {/* Header */}
-      <div className='flex h-14 items-center justify-between border-b px-4'>
-        <div className='flex items-center gap-4'>
-          <Button variant='ghost' size='icon' onClick={handleBackToDashboard}>
-            <ArrowLeft className='h-4 w-4' />
-          </Button>
-          <h1 className='text-lg font-semibold'>{child.name}'s Dashboard</h1>
-        </div>
-        <div className='flex items-center gap-4'>
-          <div className='text-sm text-muted-foreground'>Parent ID: {parentId}</div>
-          <Button variant='ghost' size='icon' onClick={copyParentId}>
-            <Copy className='h-4 w-4' />
-          </Button>
-        </div>
-      </div>
-
       {/* Main content */}
       <div className='p-6'>
         <div className='grid gap-6'>

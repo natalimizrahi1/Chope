@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
-import { getChildren, getTasks, createTask } from "../../lib/api";
-import type { Task, Animal } from "../../lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { getChildren } from "../../lib/api";
+import type { Animal } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Copy, Plus, PawPrint, Star, Trophy, Gift, LogOut } from "lucide-react";
-import { Progress } from "../ui/progress";
-import { Badge } from "../ui/badge";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { AppSidebar } from "../ui/app-sidebar";
 import { ChartAreaInteractive } from "../ui/chart-area-interactive";
 import { DataTable } from "../ui/data-table";
@@ -34,7 +26,6 @@ export default function ParentDashboard() {
   const [children, setChildren] = useState<Child[]>([]);
   const [token] = useState(localStorage.getItem("token") || "");
   const { toast } = useToast();
-  const [parentId, setParentId] = useState("");
 
   useEffect(() => {
     // Check if user is logged in and is a parent
@@ -48,7 +39,6 @@ export default function ParentDashboard() {
       navigate("/login/parent");
       return;
     }
-    setParentId(user.id);
 
     // Load children data
     getChildren(token)
@@ -62,24 +52,6 @@ export default function ParentDashboard() {
         });
       });
   }, [token, navigate, toast]);
-
-  const copyParentId = () => {
-    navigator.clipboard.writeText(parentId);
-    toast({
-      title: "Copied!",
-      description: "Parent ID has been copied to clipboard.",
-    });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/login/parent");
-  };
 
   // Map children to the format required by AppSidebar/NavDocuments
   const childrenList = children.map(child => ({
@@ -140,18 +112,6 @@ export default function ParentDashboard() {
 
         {/* Main content */}
         <div className='flex-1 overflow-auto'>
-          <div className='flex h-14 items-center justify-between border-b px-4'>
-            <h1 className='text-lg font-semibold'>Dashboard</h1>
-            <div className='flex items-center gap-4'>
-              <div className='text-sm text-muted-foreground'>Parent ID: {parentId}</div>
-              <Button variant='ghost' size='icon' onClick={copyParentId}>
-                <Copy className='h-4 w-4' />
-              </Button>
-              <Button variant='ghost' size='icon' onClick={handleLogout} title='Logout'>
-                <LogOut className='h-4 w-4' />
-              </Button>
-            </div>
-          </div>
           <div className='p-6'>
             <div className='flex h-[calc(100vh-3.5rem)] items-center justify-center'>
               <div className='text-center'>
