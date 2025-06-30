@@ -1,11 +1,15 @@
 import { useEffect, useState, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Home, User, FileText, BookOpen, Play, CreditCard, Library, TrendingUp, ArrowLeft, Coins, Store, Target, ShoppingBag } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 import { getTasks } from "../../lib/api";
 import { Task } from "../../lib/types";
+import { Card, CardContent, CardHeader } from "../ui/card";
+import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const STATS = {
   MAX: 4,
@@ -78,14 +82,14 @@ export interface Pet {
 }
 
 interface VirtualPetProps {
-  animal: Pet;
-  onFeed: () => void;
-  onPlay: () => void;
-  onSleep: () => void;
-  onResetHunger: () => void;
-  onResetHappiness: () => void;
-  onResetEnergy: () => void;
-  setAnimal: Dispatch<SetStateAction<Pet>>;
+  animal?: Pet;
+  onFeed?: () => void;
+  onPlay?: () => void;
+  onSleep?: () => void;
+  onResetHunger?: () => void;
+  onResetHappiness?: () => void;
+  onResetEnergy?: () => void;
+  setAnimal?: Dispatch<SetStateAction<Pet>>;
 }
 
 function Benny() {
@@ -119,6 +123,7 @@ export default function VirtualPet({
   onResetEnergy,
   setAnimal,
 }: VirtualPetProps) {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
   const token = localStorage.getItem("token") || "";
@@ -184,7 +189,7 @@ export default function VirtualPet({
       // mark that the warning has been shown
       localStorage.setItem("hasSeenInactivityWarning", "true");
 
-      setAnimal(prev => {
+      setAnimal?.(prev => {
         const newStats = {
           hunger: Math.max(0, prev.stats.hunger - 10),
           happiness: Math.max(0, prev.stats.happiness - 10),
@@ -219,7 +224,7 @@ export default function VirtualPet({
       const diff = now - last;
 
       if (diff > 60000) {
-        setAnimal(prev => ({
+        setAnimal?.(prev => ({
           ...prev,
           stats: {
             hunger: Math.max(0, prev.stats.hunger - 1),
@@ -301,38 +306,45 @@ export default function VirtualPet({
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
     const loadCoins = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
-        console.log("🪙 VirtualPet - Loaded coins from localStorage:", savedCoins);
-      } else {
-        // Calculate initial coins if not saved
-        const calculateCoins = async () => {
-          try {
-            const tasks = await getTasks(token, childId);
-            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-            const availableCoins = totalCoins - spentCoins;
-            setTotalCoins(availableCoins);
-            localStorage.setItem("currentCoins", availableCoins.toString());
-            console.log("🪙 VirtualPet - Calculated initial coins:", availableCoins);
-          } catch (error) {
-            console.error("Failed to calculate coins:", error);
-          }
-        };
-
-        if (token && childId) {
-          calculateCoins();
+      // Calculate initial coins by making API call
+      const calculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+          const availableCoins = totalCoins - spentCoins;
+          setTotalCoins(availableCoins);
+          localStorage.setItem("currentCoins", availableCoins.toString());
+          console.log("🪙 VirtualPet - Calculated initial coins:", availableCoins);
+        } catch (error) {
+          console.error("Failed to calculate coins:", error);
         }
+      };
+
+      if (token && childId) {
+        calculateCoins();
       }
     };
 
     // Listen for coin updates
     const handleCoinUpdate = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
-        console.log("🪙 VirtualPet - Updated coins from event:", savedCoins);
+      // Recalculate coins by making API call
+      const recalculateCoins = async () => {
+        try {
+          const tasks = await getTasks(token, childId);
+          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+          const availableCoins = totalCoins - spentCoins;
+          setTotalCoins(availableCoins);
+          localStorage.setItem("currentCoins", availableCoins.toString());
+          console.log("🪙 VirtualPet - Updated coins from event:", availableCoins);
+        } catch (error) {
+          console.error("Failed to recalculate coins:", error);
+        }
+      };
+
+      if (token && childId) {
+        recalculateCoins();
       }
     };
 
@@ -404,7 +416,7 @@ export default function VirtualPet({
     setPetScale(newScale);
 
     // Reset all stats to start new level
-    setAnimal(prev => ({
+    setAnimal?.(prev => ({
       ...prev,
       level: prev.level + 1,
       scale: newScale,
@@ -569,7 +581,7 @@ export default function VirtualPet({
         localStorage.setItem("pet", JSON.stringify(updatedPet));
 
         // Update state
-        setAnimal(updatedPet);
+        setAnimal?.(updatedPet);
         setLastTaskTime(Date.now()); // Reset inactivity timer
         break;
     }
@@ -585,13 +597,12 @@ export default function VirtualPet({
 
     // Update localStorage
     localStorage.setItem("pet", JSON.stringify(updatedPet));
-    setAnimal(updatedPet);
+    setAnimal?.(updatedPet);
 
     // Add item back to inventory
     const updatedItems = [...purchasedItems, accessory];
     setPurchasedItems(updatedItems);
     localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
-
   };
 
   const itemCounts: { [id: string]: number } = {};
@@ -604,111 +615,199 @@ export default function VirtualPet({
   });
 
   return (
-    <div
-      className='min-h-screen w-full bg- overflow-hidden relative'
-      style={{
-        backgroundImage: `url(${garden})`,
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes scaleIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-          }
-          .animate-fade-in {
-            animation: fadeIn 0.5s ease-out;
-          }
-          .animate-scale-in {
-            animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-        `}
-      </style>
-
-      {/* Mobile menu button */}
-      <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='fixed top-4 right-4 z-50 lg:hidden bg-white/90 border-2 border-yellow-300 rounded-lg p-2 shadow-lg hover:bg-white transition-colors'>
-        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-      {/* level */}
-      <div className='fixed top-4 left-50% z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-2 shadow-lg'>
-        <span className='text-gray-800 font-bold text-lg'>Level {animal.level}</span>
+    <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] flex flex-col items-center justify-start relative overflow-hidden'>
+      {/* Background decorations */}
+      <div className='absolute inset-0 overflow-hidden pointer-events-none'>
+        <motion.div className='absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full' animate={{ y: [0, -20, 0], rotate: [0, 180, 360] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+        <motion.div className='absolute top-40 right-20 w-16 h-16 bg-white/20 rounded-full' animate={{ y: [0, 15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }} />
+        <motion.div className='absolute bottom-20 left-1/4 w-24 h-24 bg-white/20 rounded-full' animate={{ y: [0, -10, 0], rotate: [0, -180, -360] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }} />
       </div>
 
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className='fixed inset-0 bg-black/50 z-40 lg:hidden' onClick={() => setIsMenuOpen(false)}>
-          <div className='fixed top-0 right-0 h-full w-64 bg-white shadow-xl p-4 transform transition-transform'>
-            <div className='mt-12 space-y-4'>
-              <h3 className='text-lg font-bold text-gray-800 mb-4'>Prices</h3>
-              <div className='flex items-center gap-2 p-2 bg-gray-50 rounded'>
-                <img src={IMAGES.food} alt='food' className='w-8 h-8' />
-                <span className='font-semibold text-gray-800'>Food</span>
-                <span className='ml-auto font-bold text-yellow-600'>4 coins</span>
+      {/* Header */}
+      <div className='w-full flex items-center justify-between px-6 pt-8 z-10'>
+        <div className='flex items-center gap-4'>
+          <div>
+            <h1 className='text-2xl font-bold text-white drop-shadow-lg'>My Pet - {animal.name} 🐾</h1>
+            <p className='text-white/90 text-sm'>Take care of your virtual friend!</p>
+          </div>
+        </div>
+        <div className='flex items-center gap-4'>
+          {/* Navigation tabs */}
+          <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
+            <div className='flex gap-2'>
+              <motion.button onClick={() => navigate("/kid/dashboard")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Target className='w-4 h-4' />
+                Tasks
+              </motion.button>
+              <motion.button className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Play className='w-4 h-4' />
+                My Pet
+              </motion.button>
+              <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <ShoppingBag className='w-4 h-4' />
+                Shop
+              </motion.button>
+            </div>
+          </div>
+
+          <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2' whileHover={{ scale: 1.05 }}>
+            <Coins className='w-5 h-5 text-yellow-500' />
+            <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
+          </motion.div>
+
+          {/* Inventory */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:bg-white transition-colors relative' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Store className='w-5 h-5 text-gray-600' />
+                {Object.keys(itemCounts).length > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>{Object.values(itemCounts).reduce((sum, count) => sum + count, 0)}</span>}
+              </motion.button>
+            </PopoverTrigger>
+            <PopoverContent className='w-80 bg-white border border-gray-200 shadow-lg'>
+              <div className='p-4'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h3 className='text-lg font-bold text-gray-800 flex items-center gap-2'>
+                    <Store className='h-5 w-5' />
+                    My Inventory
+                  </h3>
+                  <span className='text-sm text-gray-500'>{Object.values(itemCounts).reduce((sum, count) => sum + count, 0)} items</span>
+                </div>
+
+                {Object.keys(itemCounts).length === 0 ? (
+                  <div className='text-center py-8 text-gray-500'>
+                    <div className='text-4xl mb-2'>📦</div>
+                    <p>Your inventory is empty</p>
+                    <p className='text-sm'>Buy some items to see them here!</p>
+                  </div>
+                ) : (
+                  <div className='space-y-3 max-h-60 overflow-y-auto'>
+                    {Object.entries(itemCounts).map(([id, count]) => {
+                      const item = purchasedItems.find(i => i.id === id);
+                      if (!item) return null;
+                      return (
+                        <div key={item.id} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                          <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
+                            <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{count}</span>
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className='w-8 h-8 object-contain'
+                              onError={e => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "https://via.placeholder.com/32?text=Item";
+                              }}
+                            />
+                          </div>
+                          <div className='flex-1'>
+                            <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
+                            <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <div className='flex items-center gap-2 p-2 bg-gray-50 rounded'>
-                <img src={IMAGES.games} alt='משחק' className='w-8 h-8' />
-                <span className='font-semibold text-gray-800'>משחק</span>
-                <span className='ml-auto font-bold text-yellow-600'>2 coins</span>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Main pet board - full width */}
+      <div className='w-full flex flex-col items-center justify-center mt-6 z-10'>
+        <div className='bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg w-full flex flex-col items-center' style={{ minHeight: "calc(100vh - 100px)" }}>
+          {/* Garden background */}
+          <div
+            className='w-full h-full absolute inset-0 rounded-2xl overflow-hidden'
+            style={{
+              backgroundImage: `url(${garden})`,
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+
+          {/* Progress bar */}
+          <div className='absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
+            <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner relative'>
+              <div className='bg-green-400 h-full transition-all duration-300 ease-in-out' style={{ width: `${displayedProgress}%` }} />
+              <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
+            </div>
+          </div>
+
+          {/* Level indicator */}
+          <div className='absolute top-4 left-4 z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-2 shadow-lg'>
+            <span className='text-gray-800 font-bold text-lg'>Level {animal.level}</span>
+          </div>
+
+          {/* Main board - with dynamic height */}
+          <div className='flex-1 relative mx-auto my-4 max-w-[90vw] h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
+            {/* Static stats bar */}
+            <div
+              className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
+                            bg-blue-100 border-4 border-amber-700 rounded-xl 
+                            shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'>
+              <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
+                <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
+                {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
+                {showAddedDonut && <img src={IMAGES.donut[donutLevel]} alt='doughnut added' className='stat-icon-added' />}
               </div>
-              <div className='flex items-center gap-2 p-2 bg-gray-50 rounded'>
-                <img src={IMAGES.pill} alt='תרופה' className='w-8 h-8' />
-                <span className='font-semibold text-gray-800'>Energy</span>
-                <span className='ml-auto font-bold text-yellow-600'>5 coins</span>
+              <div className='stat-icon-container' ref={starStatRef} style={{ position: "relative" }}>
+                <img src={IMAGES.star[starLevel]} alt='star' className='stat-icon' />
+                {isPlaying && <img src={IMAGES.star[starLevel]} alt='star fill' className='stat-icon-fill' />}
+                {showAddedStar && <img src={IMAGES.star[starLevel]} alt='star added' className='stat-icon-added' />}
+              </div>
+              <div className='stat-icon-container' ref={heartStatRef} style={{ position: "relative" }}>
+                <img src={IMAGES.heart[heartLevel]} alt='heart' className='stat-icon' />
+                {isHealing && <img src={IMAGES.heart[heartLevel]} alt='heart fill' className='stat-icon-fill' />}
+                {showAddedHeart && <img src={IMAGES.heart[heartLevel]} alt='heart added' className='stat-icon-added' />}
+              </div>
+            </div>
+
+            {/* Pet in the center */}
+            <div className='absolute left-1/2 top-32 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
+              <div className='relative'>
+                <Benny />
+                {/* Display accessories */}
+                {animal.accessories &&
+                  animal.accessories.map(accessory => (
+                    <div key={accessory.id} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
+                      <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Coins box */}
-      <div
-        className='hidden lg:flex fixed top-8 right-8 bg-white/90 border-2 border-yellow-300 rounded-xl shadow-lg 
-                      flex-col gap-3 p-4 z-50 min-w-[180px] text-base'
-      >
-        <div className='flex items-center gap-2'>
-          <img src={IMAGES.food} alt='food' className='w-8 h-8' />
-          <span className='font-semibold text-gray-800'>Food</span>
-          <span className='ml-auto font-bold text-yellow-600'>
-            4 <span className='text-xs'>coins</span>
-          </span>
-        </div>
-        <div className='flex items-center gap-2'>
-          <img src={IMAGES.games} alt='game' className='w-8 h-8' />
-          <span className='font-semibold text-gray-800'>Game</span>
-          <span className='ml-auto font-bold text-yellow-600'>
-            2 <span className='text-xs'>coins</span>
-          </span>
-        </div>
-        <div className='flex items-center gap-2'>
-          <img src={IMAGES.pill} alt='pill' className='w-8 h-8' />
-          <span className='font-semibold text-gray-800'>Energy</span>
-          <span className='ml-auto font-bold text-yellow-600'>
-            5 <span className='text-xs'>coins</span>
-          </span>
-        </div>
-        <div className='border-t border-yellow-200 pt-2 mt-2'>
-          <div className='flex items-center gap-2'>
-            <span className='text-yellow-600 font-bold text-lg'>🪙</span>
-            <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
-            <span className='text-gray-600 text-sm'>Total</span>
+          {/* Buttons row */}
+          <div className='bg-transparent border-gray-200 p-0 z-0'>
+            <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
+              <button ref={playBtnRef} onClick={handlePlay} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='משחק'>
+                <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
+                <span className='text-xs sm:text-sm font-medium text-gray-700'>Game</span>
+              </button>
+
+              <button ref={feedBtnRef} onClick={handleFeed} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='אוכל'>
+                <img src={IMAGES.food} alt='sandwich' className='w-12 h-12 sm:w-16 sm:h-16' />
+                <span className='text-xs sm:text-sm font-medium text-gray-700'>Food</span>
+              </button>
+
+              <button onClick={handleDrink} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='שתייה'>
+                <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
+                <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
+              </button>
+
+              <button ref={healBtnRef} onClick={handleHeal} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='תרופה'>
+                <img src={IMAGES.pill} alt='pill' className='w-12 h-12 sm:w-16 sm:h-16' />
+                <span className='text-xs sm:text-sm font-medium text-gray-700'>Energy</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className='absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 sm:mt-4 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
-        <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner relative'>
-          <div className='bg-green-400 h-full transition-all duration-300 ease-in-out' style={{ width: `${displayedProgress}%` }} />
-          <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
-        </div>
-      </div>
+      {/* Flying icon */}
+      {flyingIcon && <img src={flyingIcon.src} style={flyingIcon.style} alt='flying icon' />}
 
       {/* Success Modal */}
       {showSuccessBadge && (
@@ -745,144 +844,22 @@ export default function VirtualPet({
         </div>
       )}
 
-      <div className='flex flex-col min-h-screen'>
-        {/* Main board - with dynamic height */}
-        <div className='flex-1 relative mx-auto my-4 max-w-[90vw] h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
-          {/* Static stats bar */}
-          <div
-            className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
-                          bg-blue-100 border-4 border-amber-700 rounded-xl 
-                          shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
-          >
-            <div className='stat-icon-container ' ref={donutStatRef} style={{ position: "relative" }}>
-              <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
-              {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
-              {showAddedDonut && <img src={IMAGES.donut[donutLevel]} alt='doughnut added' className='stat-icon-added' />}
-            </div>
-            <div className='stat-icon-container' ref={starStatRef} style={{ position: "relative" }}>
-              <img src={IMAGES.star[starLevel]} alt='star' className='stat-icon' />
-              {isPlaying && <img src={IMAGES.star[starLevel]} alt='star fill' className='stat-icon-fill' />}
-              {showAddedStar && <img src={IMAGES.star[starLevel]} alt='star added' className='stat-icon-added' />}
-            </div>
-            <div className='stat-icon-container' ref={heartStatRef} style={{ position: "relative" }}>
-              <img src={IMAGES.heart[heartLevel]} alt='heart' className='stat-icon' />
-              {isHealing && <img src={IMAGES.heart[heartLevel]} alt='heart fill' className='stat-icon-fill' />}
-              {showAddedHeart && <img src={IMAGES.heart[heartLevel]} alt='heart added' className='stat-icon-added' />}
-            </div>
-          </div>
-
-          {/* Pet in the center */}
-          <div className='absolute left-1/2 top-32 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
-            <div className='relative'>
-              <Benny />
-              {/* Display accessories */}
-              {animal.accessories &&
-                animal.accessories.map(accessory => (
-                  <div key={accessory.id} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
-                    <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Buttons row */}
-        <div className='bg-transparent border-gray-200 p-0 z-0'>
-          <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
-            <button ref={playBtnRef} onClick={handlePlay} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='משחק'>
-              <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
-              <span className='text-xs sm:text-sm font-medium text-gray-700'>Game</span>
-            </button>
-
-            <button ref={feedBtnRef} onClick={handleFeed} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='אוכל'>
-              <img src={IMAGES.food} alt='sandwich' className='w-12 h-12 sm:w-16 sm:h-16' />
-              <span className='text-xs sm:text-sm font-medium text-gray-700'>Food</span>
-            </button>
-
-            <button onClick={handleDrink} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='שתייה'>
-              <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
-              <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
-            </button>
-
-            <button ref={healBtnRef} onClick={handleHeal} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='תרופה'>
-              <img src={IMAGES.pill} alt='pill' className='w-12 h-12 sm:w-16 sm:h-16' />
-              <span className='text-xs sm:text-sm font-medium text-gray-700'>Energy</span>
-            </button>
-
-            {/* Inventory Icon with Popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className='bg-white border-2 border-yellow-300 rounded-full p-3 shadow-lg hover:bg-yellow-50 transition-all' title='Inventory'>
-                  <img src='https://cdn-icons-png.flaticon.com/512/891/891462.png' alt='Inventory' className='w-6 h-6' />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className='w-64 p-4 bg-white shadow-xl rounded-xl z-50'>
-                <h3 className='font-bold text-lg mb-2 text-center'>Inventory</h3>
-                {Object.entries(itemCounts).length > 0 ? (
-                  <div className='grid grid-cols-4 gap-2'>
-                    {Object.entries(itemCounts).map(([id, count]) => {
-                      const item = purchasedItems.find(i => i.id === id);
-                      if (!item) return null;
-                      return (
-                        <button key={item.id} onClick={() => handleUseItem(item)} className='relative hover:scale-110 transition-transform bg-white p-2 rounded-lg shadow-sm' title={`Use ${item.name}`}>
-                          {/* המספר בפינה השמאלית העליונה */}
-                          <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{count}</span>
-
-                          {/* תמונת המוצר */}
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className='w-12 h-12 object-contain'
-                            onError={e => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "https://via.placeholder.com/150?text=Item";
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className='text-gray-500 text-sm text-center'>No items yet</p>
-                )}
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        {/* Reset buttons */}
-        <div className='bg-gray-100 p-3 z-30'>
-          <div className='flex flex-wrap justify-center gap-2 max-w-md mx-auto'>
-            <button
-              className='px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm shadow hover:bg-gray-300 
-                         transition-colors touch-manipulation'
-              onClick={handleResetHungerLocal}
-              title='Reset Donut'
-            >
-              Reset Donut
-            </button>
-            <button
-              className='px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm shadow hover:bg-gray-300 
-                         transition-colors touch-manipulation'
-              onClick={handleResetHappinessLocal}
-              title='Reset Star'
-            >
-              Reset Star
-            </button>
-            <button
-              className='px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm shadow hover:bg-gray-300 
-                         transition-colors touch-manipulation'
-              onClick={handleResetEnergyLocal}
-              title='Reset Heart'
-            >
-              Reset Heart
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Flying icon */}
-      {flyingIcon && <img src={flyingIcon.src} style={flyingIcon.style} alt='flying icon' />}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+        .animate-scale-in {
+          animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
     </div>
   );
 }
