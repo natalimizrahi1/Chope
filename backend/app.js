@@ -33,6 +33,15 @@ app.get("/", (req, res) => {
   res.send("Chope backend running");
 });
 
+// Test endpoint to check JWT functionality
+app.get("/test", (req, res) => {
+  res.json({
+    message: "Server is running",
+    jwtSecret: process.env.JWT_SECRET ? "JWT_SECRET is set" : "JWT_SECRET is missing",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/task", taskRoutes);

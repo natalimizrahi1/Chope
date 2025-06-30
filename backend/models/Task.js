@@ -1,36 +1,48 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const taskSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   description: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   reward: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
   },
   child: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Child',
-    required: true
+    ref: "Child",
+    required: true,
   },
   completed: {
     type: Boolean,
-    default: false
+    default: false,
+  },
+  approved: {
+    type: Boolean,
+    default: false,
+  },
+  completedAt: {
+    type: Date,
+    default: null,
+  },
+  approvedAt: {
+    type: Date,
+    default: null,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const Task = mongoose.model('Task', taskSchema);
+const Task = mongoose.model("Task", taskSchema);
 
-export default Task; 
+export default Task;

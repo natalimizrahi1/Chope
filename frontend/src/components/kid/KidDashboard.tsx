@@ -9,11 +9,12 @@ import { Player } from "@lottiefiles/react-lottie-player";
 import leftAnim from "@/assets/animations/left-decor.json";
 import rightAnim from "@/assets/animations/right-decor.json";
 import { useNavigate } from "react-router-dom";
-import { getTasks, completeTask, undoTask } from "../../lib/api";
+import { getTasks, completeTask, undoTask, getChildCoins, unapproveTask, testServerConnection } from "../../lib/api";
 import { Task } from "../../lib/types";
 import Tasks from "../tasks/Tasks";
 import Notifications from "../notifications/Notifications";
 import { Toaster } from "../ui/toaster";
+import { useToast } from "../ui/use-toast";
 
 const mockTasks = [
   { id: "1", title: "Do homework", description: "Math and English", completed: true, reward: 10 },
@@ -22,63 +23,33 @@ const mockTasks = [
 
 const KidDashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [token] = useState(localStorage.getItem("token") || "");
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoadingCoins, setIsLoadingCoins] = useState(false);
 
   const incompleteTasks = tasks.filter((task: Task) => !task.completed).slice(-4);
-  const completedTasksArr = tasks.filter((task: Task) => task.completed).slice(-4);
+  const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved).slice(-4);
+  const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved).slice(-4);
   const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
 
-  const [animal, setAnimal] = useState<Pet>(() => {
-    const saved = localStorage.getItem("pet");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          name: "Benny",
-          type: "Cute Pet",
-          level: 1,
-          xp: 0,
-          scale: 0.5,
-          stats: { hunger: 75, happiness: 75, energy: 75 },
-          accessories: [],
-        };
+  const [animal, setAnimal] = useState<Pet>({
+    name: "Buddy",
+    type: "dog",
+    level: 1,
+    xp: 50,
+    stats: { hunger: 30, happiness: 80, energy: 60 },
+    accessories: [],
   });
 
   useEffect(() => {
     localStorage.setItem("pet", JSON.stringify(animal));
   }, [animal]);
-
-  // Load tasks from server
-  const loadTasks = useCallback(async () => {
-    if (!userId || !token) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const tasksData = await getTasks(token, userId);
-      setTasks(tasksData);
-
-      // Save tasks to localStorage for faster loading
-      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
-      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
-
-      // Calculate total coins from completed tasks
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
-    } catch (error) {
-      console.error("❌ Failed to load tasks:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, token]);
 
   // Load user data and tasks
   useEffect(() => {
@@ -94,6 +65,7 @@ const KidDashboard = () => {
 
     setUserId(user.id);
     setUserName(user.name || user.username || "User");
+    setIsInitialized(true);
 
     // Load cached tasks immediately if available
     const cachedTasks = localStorage.getItem("cachedTasks");
@@ -106,142 +78,266 @@ const KidDashboard = () => {
       try {
         const tasksData = JSON.parse(cachedTasks);
         setTasks(tasksData);
-
-        // Calculate coins from cached tasks
-        const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const availableCoins = coins - spentCoins;
-        setTotalCoins(availableCoins);
-
-        // Load fresh data in background if cache is older than 1 minute
-        if (cacheAge > 60 * 1000) {
-          setTimeout(() => {
-            if (user.id && token) {
-              loadTasks();
-            }
-          }, 1000);
-        }
       } catch (error) {
         console.error("Failed to parse cached tasks:", error);
-        // If cache is corrupted, load fresh data
-        if (user.id && token) {
-          loadTasks();
-        }
-      }
-    } else {
-      // Clear old cache
-      if (cacheAge >= maxCacheAge) {
-        localStorage.removeItem("cachedTasks");
-        localStorage.removeItem("cachedTasksTimestamp");
       }
     }
-  }, [token, navigate, loadTasks]);
 
-  // Load tasks when userId is set (only if no cached data)
-  useEffect(() => {
-    if (userId && token && tasks.length === 0) {
-      loadTasks();
-    }
-  }, [userId, token, loadTasks, tasks.length]);
+    // Load fresh data
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        const tasksData = await getTasks(token, user.id);
+        setTasks(tasksData);
 
-  // Listen for visibility changes to reload tasks when returning to page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && userId && token && tasks.length === 0) {
-        loadTasks();
+        // Save tasks to localStorage
+        localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+        localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+        // Get coins from server
+        const coinsData = await getChildCoins(token, user.id);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      } catch (error) {
+        console.error("Failed to load initial data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Load initial data
+    if (user.id && token) {
+      loadInitialData();
 
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [userId, token, loadTasks, tasks.length]);
+      // Check for new tasks in localStorage on mount
+      const newTaskInfo = localStorage.getItem("newTaskCreated");
+      if (newTaskInfo) {
+        try {
+          const taskInfo = JSON.parse(newTaskInfo);
+          if (taskInfo.childId === user.id) {
+            // Refresh tasks immediately
+            getTasks(token, user.id).then(tasksData => {
+              setTasks(tasksData);
+              localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+              localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+            });
 
-  // Simple coin management - load from localStorage and update on events
-  useEffect(() => {
-    const loadCoins = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
-      } else {
-        // Calculate initial coins if not saved
-        const calculateCoins = async () => {
-          try {
-            const tasks = await getTasks(token, userId);
-            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-            const availableCoins = totalCoins - spentCoins;
-            setTotalCoins(availableCoins);
-            localStorage.setItem("currentCoins", availableCoins.toString());
-          } catch (error) {
-            console.error("Failed to calculate coins:", error);
+            // Clear the localStorage item
+            localStorage.removeItem("newTaskCreated");
           }
-        };
+        } catch (error) {
+          console.error("Failed to parse new task info on mount:", error);
+        }
+      }
+    }
+  }, [token, navigate]); // Only depend on token and navigate
 
-        if (token && userId) {
-          calculateCoins();
+  // Listen for task completion events
+  useEffect(() => {
+    const handleTaskCompleted = async () => {
+      if (userId && token) {
+        try {
+          const tasksData = await getTasks(token, userId);
+          setTasks(tasksData);
+          localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+          localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+          const coinsData = await getChildCoins(token, userId);
+          setTotalCoins(coinsData.coins);
+          localStorage.setItem("currentCoins", coinsData.coins.toString());
+        } catch (error) {
+          console.error("Failed to refresh data after task completion:", error);
         }
       }
     };
 
-    // Listen for coin updates
-    const handleCoinUpdate = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
+    // Listen for new task creation events
+    const handleNewTaskCreated = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { task, childId: eventChildId } = customEvent.detail;
+
+      if (eventChildId === userId && token) {
+        try {
+          // Immediately refresh tasks to show the new task
+          const tasksData = await getTasks(token, userId);
+          setTasks(tasksData);
+          localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+          localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+        } catch (error) {
+          console.error("Failed to refresh tasks after new task creation:", error);
+        }
       }
     };
 
-    // Listen for new tasks received
-    const handleNewTasksReceived = (event: CustomEvent) => {
-      const { tasks: newTasks, childId: eventChildId } = event.detail;
+    // Listen for localStorage changes (immediate detection)
+    const handleStorageChange = async (event: StorageEvent) => {
+      if (event.key === "newTaskCreated" && event.newValue) {
+        try {
+          const taskInfo = JSON.parse(event.newValue);
+          if (taskInfo.childId === userId) {
+            // Immediately refresh tasks
+            const tasksData = await getTasks(token, userId);
+            setTasks(tasksData);
+            localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+            localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
-      // Only update if the event is for this child
-      if (eventChildId === userId) {
-        loadTasks(); // Reload all tasks to get the updated list
+            // Clear the localStorage item
+            localStorage.removeItem("newTaskCreated");
+          }
+        } catch (error) {
+          console.error("Failed to parse new task info:", error);
+        }
       }
     };
 
-    loadCoins();
-
-    window.addEventListener("coinsUpdated", handleCoinUpdate);
-    window.addEventListener("taskCompleted", handleCoinUpdate);
-    window.addEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
+    window.addEventListener("taskCompleted", handleTaskCompleted);
+    window.addEventListener("taskCreated", handleNewTaskCreated);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener("coinsUpdated", handleCoinUpdate);
-      window.removeEventListener("taskCompleted", handleCoinUpdate);
-      window.removeEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
+      window.removeEventListener("taskCompleted", handleTaskCompleted);
+      window.removeEventListener("taskCreated", handleNewTaskCreated);
+      window.removeEventListener("storage", handleStorageChange);
     };
-  }, [token, userId, loadTasks]);
+  }, [userId, token]);
+
+  // Refresh coins every 5 seconds
+  useEffect(() => {
+    if (!userId || !token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const coinsData = await getChildCoins(token, userId);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      } catch (error) {
+        console.error("Failed to refresh coins:", error);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [userId, token]);
+
+  // Listen for task approval events to update immediately
+  useEffect(() => {
+    const handleTaskApproved = async (event: StorageEvent) => {
+      if (event.key === "taskApproved" && event.newValue) {
+        try {
+          const info = JSON.parse(event.newValue);
+          if (info.childId === userId) {
+            // Immediately refresh tasks and coins
+            const tasksData = await getTasks(token, userId);
+            setTasks(tasksData);
+            localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+            localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+            const coinsData = await getChildCoins(token, userId);
+            setTotalCoins(coinsData.coins);
+            localStorage.setItem("currentCoins", coinsData.coins.toString());
+
+            // Show success notification
+            toast({
+              title: "Task Approved! 🎉",
+              description: "Your task has been approved and you received coins!",
+            });
+
+            // Clear the localStorage item
+            localStorage.removeItem("taskApproved");
+          }
+        } catch (error) {
+          console.error("Failed to handle task approval event:", error);
+        }
+      }
+    };
+
+    // Listen for custom task approval events (same tab)
+    const handleTaskApprovedCustom = async (event: CustomEvent) => {
+      const { childId: eventChildId } = event.detail;
+      if (eventChildId === userId) {
+        // Immediately refresh tasks and coins
+        const tasksData = await getTasks(token, userId);
+        setTasks(tasksData);
+        localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+        localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+        const coinsData = await getChildCoins(token, userId);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+
+        // Show success notification
+        toast({
+          title: "Task Approved! 🎉",
+          description: "Your task has been approved and you received coins!",
+        });
+      }
+    };
+
+    // Set up interval to check for task approval events in localStorage
+    const approvalCheckInterval = setInterval(async () => {
+      const taskApprovedInfo = localStorage.getItem("taskApproved");
+      if (taskApprovedInfo) {
+        try {
+          const info = JSON.parse(taskApprovedInfo);
+            if (info.childId === userId) {
+            // Immediately refresh tasks and coins
+            const tasksData = await getTasks(token, userId);
+            setTasks(tasksData);
+            localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+            localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+            const coinsData = await getChildCoins(token, userId);
+            setTotalCoins(coinsData.coins);
+            localStorage.setItem("currentCoins", coinsData.coins.toString());
+
+            // Show success notification
+            toast({
+              title: "Task Approved! 🎉",
+              description: "Your task has been approved and you received coins!",
+            });
+
+            // Clear the localStorage item
+            localStorage.removeItem("taskApproved");
+          }
+        } catch (error) {
+          console.error("Failed to parse task approval info:", error);
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
+    window.addEventListener("storage", handleTaskApproved);
+    window.addEventListener("taskApproved", handleTaskApprovedCustom as unknown as EventListener);
+    return () => {
+      window.removeEventListener("storage", handleTaskApproved);
+      window.removeEventListener("taskApproved", handleTaskApprovedCustom as unknown as EventListener);
+      clearInterval(approvalCheckInterval);
+    };
+  }, [userId, token, toast]);
 
   const handleCompleteTask = async (taskId: string) => {
     try {
       await completeTask(token, taskId);
 
-      // update tasks list
+      // Show notification to child
+      toast({
+        title: "Task Sent for Approval",
+        description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
+      });
+
+      // Refresh data
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
-
-      // Update cached tasks
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
-      // update coins
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
-
       // Dispatch event to update other components
-
-      // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("Failed to complete task:", error);
+      toast({
+        title: "Error completing task",
+        description: "There was an error completing the task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -249,25 +345,63 @@ const KidDashboard = () => {
     try {
       await undoTask(token, taskId);
 
-      // update tasks list
+      // Refresh data
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
-
-      // Update cached tasks
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
-      // update coins
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
+      // Refresh coins
+      const coinsData = await getChildCoins(token, userId);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
 
-      // Dispatch event to update VirtualPet coins
+      // Dispatch event to update other components
       window.dispatchEvent(new CustomEvent("taskCompleted"));
+
+      toast({
+        title: "Task Undone",
+        description: "The task has been undone. If it was approved, coins have been deducted.",
+      });
     } catch (error) {
       console.error("Failed to undo task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to undo task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnapproveTask = async (taskId: string) => {
+    try {
+      await unapproveTask(token, taskId);
+
+      // Refresh data
+      const tasksData = await getTasks(token, userId);
+      setTasks(tasksData);
+      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
+      // Refresh coins
+      const coinsData = await getChildCoins(token, userId);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+
+      // Dispatch event to update other components
+      window.dispatchEvent(new CustomEvent("taskCompleted"));
+
+      toast({
+        title: "Task Unapproved",
+        description: "The task has been unapproved and coins have been deducted. You can complete it again to earn coins.",
+      });
+    } catch (error) {
+      console.error("Failed to unapprove task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to unapprove task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -314,9 +448,25 @@ const KidDashboard = () => {
     }));
   };
 
+  const handleRefreshCoins = async () => {
+    if (!userId || !token) return;
+
+    try {
+      const coinsData = await getChildCoins(token, userId);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+    } catch (error) {
+      console.error("Failed to refresh coins:", error);
+    }
+  };
+
   // const handlePurchase = (item: PurchasedItem) => {
   //   setPurchasedItems((prev: PurchasedItem[]) => [...prev, item]);
   // };
+
+  // Debug: Log task categories
+  useEffect(() => {
+  }, [tasks, incompleteTasks, pendingApprovalTasks, approvedTasks]);
 
   return (
     <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
@@ -384,7 +534,10 @@ const KidDashboard = () => {
                     <span className='text-yellow-600 font-bold text-lg'>🪙</span>
                     <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
                   </div>
-                  <Notifications childId={userId} token={token} />
+                  {userId &&
+                    (() => {
+                      return <Notifications childId={userId} token={token} />;
+                    })()}
                   <Avatar className='w-8 h-8 bg-purple-500'>
                     <AvatarFallback className='text-white text-sm font-medium'>I</AvatarFallback>
                   </Avatar>
@@ -472,10 +625,64 @@ const KidDashboard = () => {
                     )}
                   </div>
 
+                  {/* Pending Approval Section */}
+                  {pendingApprovalTasks.length > 0 && (
+                    <div className='mt-0'>
+                      <div className='flex items-center justify-between mb-4'>
+                        <h2 className='text-xl font-bold text-gray-900'>Pending Approval</h2>
+                        <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
+                          VIEW ALL
+                        </Button>
+                      </div>
+                      {loading ? (
+                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
+                          {[1, 2, 3, 4].map(i => (
+                            <Card key={i} className='relative bg-gradient-to-br from-yellow-200 to-orange-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all animate-pulse'>
+                              <div className='w-12 h-12 bg-gray-300 rounded-xl mb-4 mx-auto'></div>
+                              <div className='flex-1 flex flex-col justify-end w-full'>
+                                <div className='h-4 bg-gray-300 rounded mb-2'></div>
+                                <div className='h-3 bg-gray-300 rounded mb-4'></div>
+                              </div>
+                              <div className='h-8 bg-gray-300 rounded'></div>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
+                          {pendingApprovalTasks.map((task: Task, i: number) => (
+                            <Card key={task._id} className='relative bg-gradient-to-br from-yellow-200 to-orange-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all'>
+                              <Button variant='ghost' size='icon' className='absolute top-3 right-3 bg-white/80 rounded-full p-1.5 shadow hover:bg-white'>
+                                <svg width='20' height='20' fill='none' viewBox='0 0 24 24'>
+                                  <path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='#a78bfa' />
+                                </svg>
+                              </Button>
+                              <CardContent className='flex flex-col items-center justify-between h-full p-0'>
+                                <div className='w-12 h-12 bg-white/70 rounded-xl flex items-center justify-center mb-4 mx-auto'>
+                                  <div className='w-7 h-7 bg-yellow-400 rounded'></div>
+                                </div>
+                                <div className='flex-1 flex flex-col justify-end w-full'>
+                                  <CardTitle className='font-semibold text-gray-900 text-base truncate'>{task.title}</CardTitle>
+                                  <CardDescription className='text-gray-600 text-xs truncate'>{task.description}</CardDescription>
+                                  <div className='flex items-center gap-1 mt-2'>
+                                    <span className='text-yellow-600 font-bold text-sm'>🪙</span>
+                                    <span className='text-yellow-600 font-bold text-sm'>{task.reward}</span>
+                                  </div>
+                                </div>
+                                <Button className='mt-4 w-full' variant='outline' onClick={() => handleUnapproveTask(task._id)}>
+                                  Undo
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Ongoing Section */}
                   <div className='mt-0'>
                     <div className='flex items-center justify-between mb-4'>
-                      <h2 className='text-xl font-bold text-gray-900'>Recent Completed Tasks</h2>
+                      <h2 className='text-xl font-bold text-gray-900'>Recent Approved Tasks</h2>
                       <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
                         VIEW ALL
                       </Button>
@@ -495,7 +702,7 @@ const KidDashboard = () => {
                       </div>
                     ) : (
                       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-                        {completedTasksArr.map((task: Task, i: number) => (
+                        {approvedTasks.map((task: Task, i: number) => (
                           <Card key={task._id} className='relative bg-gradient-to-br from-purple-200 to-blue-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all'>
                             <Button variant='ghost' size='icon' className='absolute top-3 right-3 bg-white/80 rounded-full p-1.5 shadow hover:bg-white'>
                               <svg width='20' height='20' fill='none' viewBox='0 0 24 24'>
@@ -514,9 +721,7 @@ const KidDashboard = () => {
                                   <span className='text-yellow-600 font-bold text-sm'>{task.reward}</span>
                                 </div>
                               </div>
-                              <Button className='mt-4 w-full' variant='secondary' onClick={() => handleUndoTask(task._id)}>
-                                Undo
-                              </Button>
+                              <div className='mt-4 w-full text-center text-green-600 font-semibold text-sm'>Coins Earned!</div>
                             </CardContent>
                           </Card>
                         ))}

@@ -4,7 +4,7 @@ import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks } from "../../lib/api";
+import { getTasks, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
@@ -304,46 +304,42 @@ export default function VirtualPet({
 
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
-    const loadCoins = () => {
-      // Calculate initial coins by making API call
-      const calculateCoins = async () => {
+    const loadCoins = async () => {
+      // Get coins directly from server
+      try {
+        if (token && childId) {
+          const coinsData = await getChildCoins(token, childId);
+          console.log("🪙 VirtualPet - coins from server:", coinsData.coins);
+          setTotalCoins(coinsData.coins);
+          localStorage.setItem("currentCoins", coinsData.coins.toString());
+        }
+      } catch (serverError) {
+        console.error("Failed to get coins from server, falling back to calculation:", serverError);
+        // Fallback to old calculation method
         try {
           const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const totalCoins = tasks.filter((task: Task) => task.approved).reduce((sum: number, task: Task) => sum + task.reward, 0);
           const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
           const availableCoins = totalCoins - spentCoins;
           setTotalCoins(availableCoins);
           localStorage.setItem("currentCoins", availableCoins.toString());
-          console.log("🪙 VirtualPet - Calculated initial coins:", availableCoins);
+          console.log("🪙 VirtualPet - Calculated coins (fallback):", availableCoins);
         } catch (error) {
           console.error("Failed to calculate coins:", error);
         }
-      };
-
-      if (token && childId) {
-        calculateCoins();
       }
     };
 
     // Listen for coin updates
-    const handleCoinUpdate = () => {
-      // Recalculate coins by making API call
-      const recalculateCoins = async () => {
-        try {
-          const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-          const availableCoins = totalCoins - spentCoins;
-          setTotalCoins(availableCoins);
-          localStorage.setItem("currentCoins", availableCoins.toString());
-          console.log("🪙 VirtualPet - Updated coins from event:", availableCoins);
-        } catch (error) {
-          console.error("Failed to recalculate coins:", error);
-        }
-      };
+    const handleCoinUpdate = async () => {
+      await loadCoins();
+    };
 
-      if (token && childId) {
-        recalculateCoins();
+    // Listen for visibility changes to refresh coins when returning to page
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("VirtualPet page became visible, refreshing coins...");
+        loadCoins();
       }
     };
 
@@ -351,10 +347,18 @@ export default function VirtualPet({
 
     window.addEventListener("coinsUpdated", handleCoinUpdate);
     window.addEventListener("taskCompleted", handleCoinUpdate);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Set up interval to update coins every 5 seconds
+    const interval = setInterval(() => {
+      loadCoins();
+    }, 5000);
 
     return () => {
       window.removeEventListener("coinsUpdated", handleCoinUpdate);
       window.removeEventListener("taskCompleted", handleCoinUpdate);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
     };
   }, [token, childId]);
 
@@ -613,6 +617,19 @@ export default function VirtualPet({
     }
   });
 
+  const handleRefreshCoins = async () => {
+    try {
+      if (token && childId) {
+        const coinsData = await getChildCoins(token, childId);
+        console.log("🪙 VirtualPet - manually refreshed coins:", coinsData.coins);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      }
+    } catch (error) {
+      console.error("Failed to manually refresh coins:", error);
+    }
+  };
+
   return (
     <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
       {/* Sidebar */}
@@ -727,6 +744,16 @@ export default function VirtualPet({
                     <span className='font-semibold text-gray-800'>Energy</span>
                     <span className='ml-auto font-bold text-yellow-600'>5 coins</span>
                   </div>
+                  <div className='border-t border-yellow-200 pt-2 mt-2'>
+                    <div className='flex items-center gap-2 p-2 bg-yellow-50 rounded'>
+                      <span className='text-yellow-600 font-bold text-lg'>🪙</span>
+                      <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
+                      <span className='text-gray-600 text-sm'>Total</span>
+                      <button onClick={handleRefreshCoins} className='ml-auto p-1 h-6 w-6 hover:bg-yellow-200 rounded transition-colors' title='Refresh coins'>
+                        🔄
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -763,6 +790,9 @@ export default function VirtualPet({
                 <span className='text-yellow-600 font-bold text-lg'>🪙</span>
                 <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
                 <span className='text-gray-600 text-sm'>Total</span>
+                <button onClick={handleRefreshCoins} className='ml-2 p-1 h-6 w-6 hover:bg-yellow-200 rounded transition-colors' title='Refresh coins'>
+                  🔄
+                </button>
               </div>
             </div>
           </div>
