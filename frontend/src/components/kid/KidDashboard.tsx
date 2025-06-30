@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import VirtualPet, { Pet } from "../pet/VirtualPet";
-import { Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Bell } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Player } from "@lottiefiles/react-lottie-player";
 import leftAnim from "@/assets/animations/left-decor.json";
@@ -11,14 +10,8 @@ import rightAnim from "@/assets/animations/right-decor.json";
 import { useNavigate } from "react-router-dom";
 import { getTasks, completeTask, undoTask } from "../../lib/api";
 import { Task } from "../../lib/types";
-import Tasks from "../tasks/Tasks";
-import Notifications from "../notifications/Notifications";
 import { Toaster } from "../ui/toaster";
-
-const mockTasks = [
-  { id: "1", title: "Do homework", description: "Math and English", completed: true, reward: 10 },
-  { id: "2", title: "Clean room", description: "Tidy your bed and floor", completed: false, reward: 15 },
-];
+import { Star, Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut } from "lucide-react";
 
 const KidDashboard = () => {
   const navigate = useNavigate();
@@ -28,10 +21,11 @@ const KidDashboard = () => {
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
+  const [activeSection, setActiveSection] = useState<"tasks" | "pet" | "shop">("tasks");
+  const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "completed">("incomplete");
 
-  const incompleteTasks = tasks.filter((task: Task) => !task.completed).slice(-4);
-  const completedTasksArr = tasks.filter((task: Task) => task.completed).slice(-4);
-  const [activeTab, setActiveTab] = useState<"home" | "pet" | "PetShop">("home");
+  const incompleteTasks = tasks.filter((task: Task) => !task.completed);
+  const completedTasksArr = tasks.filter((task: Task) => task.completed);
 
   const [animal, setAnimal] = useState<Pet>(() => {
     const saved = localStorage.getItem("pet");
@@ -85,7 +79,6 @@ const KidDashboard = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     if (!token || user.role !== "child") {
-      // Clear cache when user is not authenticated
       localStorage.removeItem("cachedTasks");
       localStorage.removeItem("cachedTasksTimestamp");
       navigate("/login/kid");
@@ -107,13 +100,11 @@ const KidDashboard = () => {
         const tasksData = JSON.parse(cachedTasks);
         setTasks(tasksData);
 
-        // Calculate coins from cached tasks
         const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
         const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
         const availableCoins = coins - spentCoins;
         setTotalCoins(availableCoins);
 
-        // Load fresh data in background if cache is older than 1 minute
         if (cacheAge > 60 * 1000) {
           setTimeout(() => {
             if (user.id && token) {
@@ -123,13 +114,11 @@ const KidDashboard = () => {
         }
       } catch (error) {
         console.error("Failed to parse cached tasks:", error);
-        // If cache is corrupted, load fresh data
         if (user.id && token) {
           loadTasks();
         }
       }
     } else {
-      // Clear old cache
       if (cacheAge >= maxCacheAge) {
         localStorage.removeItem("cachedTasks");
         localStorage.removeItem("cachedTasksTimestamp");
@@ -137,14 +126,12 @@ const KidDashboard = () => {
     }
   }, [token, navigate, loadTasks]);
 
-  // Load tasks when userId is set (only if no cached data)
   useEffect(() => {
     if (userId && token && tasks.length === 0) {
       loadTasks();
     }
   }, [userId, token, loadTasks, tasks.length]);
 
-  // Listen for visibility changes to reload tasks when returning to page
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && userId && token && tasks.length === 0) {
@@ -153,20 +140,17 @@ const KidDashboard = () => {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [userId, token, loadTasks, tasks.length]);
 
-  // Simple coin management - load from localStorage and update on events
   useEffect(() => {
     const loadCoins = () => {
       const savedCoins = localStorage.getItem("currentCoins");
       if (savedCoins) {
         setTotalCoins(parseInt(savedCoins));
       } else {
-        // Calculate initial coins if not saved
         const calculateCoins = async () => {
           try {
             const tasks = await getTasks(token, userId);
@@ -186,7 +170,6 @@ const KidDashboard = () => {
       }
     };
 
-    // Listen for coin updates
     const handleCoinUpdate = () => {
       const savedCoins = localStorage.getItem("currentCoins");
       if (savedCoins) {
@@ -194,13 +177,10 @@ const KidDashboard = () => {
       }
     };
 
-    // Listen for new tasks received
     const handleNewTasksReceived = (event: CustomEvent) => {
       const { tasks: newTasks, childId: eventChildId } = event.detail;
-
-      // Only update if the event is for this child
       if (eventChildId === userId) {
-        loadTasks(); // Reload all tasks to get the updated list
+        loadTasks();
       }
     };
 
@@ -220,25 +200,18 @@ const KidDashboard = () => {
   const handleCompleteTask = async (taskId: string) => {
     try {
       await completeTask(token, taskId);
-
-      // update tasks list
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
-      // Update cached tasks
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
-      // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
       const availableCoins = coins - spentCoins;
       setTotalCoins(availableCoins);
       localStorage.setItem("currentCoins", availableCoins.toString());
 
-      // Dispatch event to update other components
-
-      // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("Failed to complete task:", error);
@@ -248,457 +221,330 @@ const KidDashboard = () => {
   const handleUndoTask = async (taskId: string) => {
     try {
       await undoTask(token, taskId);
-
-      // update tasks list
       const tasksData = await getTasks(token, userId);
       setTasks(tasksData);
 
-      // Update cached tasks
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
 
-      // update coins
       const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
       const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
       const availableCoins = coins - spentCoins;
       setTotalCoins(availableCoins);
       localStorage.setItem("currentCoins", availableCoins.toString());
 
-      // Dispatch event to update VirtualPet coins
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("Failed to undo task:", error);
     }
   };
 
-  const handleFeed = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: { ...prev.stats, hunger: Math.min(100, prev.stats.hunger + 10) },
-      xp: prev.xp + 10,
-    }));
-  };
-  const handlePlay = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        happiness: Math.min(100, prev.stats.happiness + 10),
-        energy: Math.min(100, prev.stats.energy + 5),
-      },
-      xp: prev.xp + 10,
-    }));
-  };
-  const handleSleep = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: { ...prev.stats, energy: Math.min(100, prev.stats.energy + 10) },
-    }));
-  };
-  const handleResetHunger = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: { ...prev.stats, hunger: 0 },
-    }));
-  };
-  const handleResetHappiness = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: { ...prev.stats, happiness: 0 },
-    }));
-  };
-  const handleResetEnergy = () => {
-    setAnimal((prev: Pet) => ({
-      ...prev,
-      stats: { ...prev.stats, energy: 0 },
-    }));
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
   };
 
-  // const handlePurchase = (item: PurchasedItem) => {
-  //   setPurchasedItems((prev: PurchasedItem[]) => [...prev, item]);
-  // };
+  const handleShopClick = () => {
+    navigate("/kid/shop");
+  };
 
   return (
-    <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
-      {/* Sidebar */}
-      <Card className='w-64 bg-white shadow-none border-0 flex flex-col min-h-screen p-0 m-4 mr-0'>
-        {/* Logo */}
-        <CardHeader className='p-6 border-b border-gray-200'>
-          <div className='flex items-center space-x-2'>
-            <div className='w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center'>
-              <div className='w-4 h-4 bg-white rounded opacity-80'></div>
-            </div>
-            <span className='text-xl font-bold text-gray-900'>SkillSet</span>
-          </div>
-        </CardHeader>
-        {/* Navigation */}
-        <CardContent className='flex-1 flex flex-col mt-6 space-y-1 px-3 p-0'>
-          <Button variant={activeTab === "home" ? "secondary" : "ghost"} className={`flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all ${activeTab === "home" ? "bg-purple-50 text-purple-600 border-purple-600" : "text-gray-600 hover:bg-gray-100 border-transparent"}`} onClick={() => setActiveTab("home")}>
-            <Home className='w-5 h-5 mr-3' /> Home
-          </Button>
-          <Button variant={activeTab === "pet" ? "secondary" : "ghost"} className={`flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all ${activeTab === "pet" ? "bg-purple-50 text-purple-600 border-purple-600" : "text-gray-600 hover:bg-gray-100 border-transparent"}`} onClick={() => navigate("/kid/virtualpet")}>
-            <User className='w-5 h-5 mr-3' /> My Pet
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 rounded-lg justify-start border-r-2 transition-all text-gray-600 hover:bg-gray-100 border-transparent' onClick={() => navigate("/kid/tasks")}>
-            <FileText className='w-5 h-5 mr-3' /> My Tasks
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start' onClick={() => navigate("/kid/shop")}>
-            <BookOpen className='w-5 h-5 mr-3' /> Shop
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <Play className='w-5 h-5 mr-3' /> Live Class
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <FileText className='w-5 h-5 mr-3' /> Attendance
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <CreditCard className='w-5 h-5 mr-3' /> Payments
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <Library className='w-5 h-5 mr-3' /> Library
-          </Button>
-          <Button variant='ghost' className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg justify-start'>
-            <TrendingUp className='w-5 h-5 mr-3' /> Reports
-          </Button>
-        </CardContent>
-        {/* Upgrade Section */}
-        <Card className='mt-auto w-48 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl px-4 py-3 text-white text-center flex flex-col items-center shadow-lg border-0'>
-          <CardContent className='p-0 flex flex-col items-center'>
-            <span className='text-sm font-semibold mb-1'>Upgrade to Pro</span>
-            <span className='text-xs opacity-90 mb-2'>for more facilities</span>
-            <Button className='bg-white text-purple-700 font-bold px-5 py-1.5 rounded-lg shadow hover:bg-purple-50 transition text-sm mt-1'>Upgrade</Button>
-          </CardContent>
-        </Card>
-      </Card>
-
-      {/* Main Content */}
-      <div className='flex-1 overflow-hidden'>
-        {activeTab === "home" ? (
-          <>
-            {/* Header */}
-            <header className='px-6 py-4'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'></div>
-                <div className='flex items-center space-x-4'>
-                  <div className='flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-300'>
-                    <span className='text-yellow-600 font-bold text-lg'>🪙</span>
-                    <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
-                  </div>
-                  <Notifications childId={userId} token={token} />
-                  <Avatar className='w-8 h-8 bg-purple-500'>
-                    <AvatarFallback className='text-white text-sm font-medium'>I</AvatarFallback>
-                  </Avatar>
-                </div>
-              </div>
-            </header>
-
-            {/* Main Content Area */}
-            <main className='space-y-8 overflow-y-auto h-full p-5 pt-0 pb-0'>
-              {/* Hero Section */}
-              <Card className='bg-gradient-to-b from-[#8f8ef2] to-[#6a6ae7] rounded-2xl text-white relative overflow-hidden border-0 flex flex-col items-center text-center justify-center h-60 mb-5 shadow-none '>
-                <CardContent className='relative z-10 max-w-lg p-8 '>
-                  <CardTitle className='text-3xl font-bold mb-3'>Hi, {userName}</CardTitle>
-                  <CardDescription className='text-[#c6c7f8] mb-5 text-md'>
-                    The library serves as a welcoming home for knowledge <br /> seekers and avid readers alike
-                  </CardDescription>
-                  <Button className='bg-transparent border-2 border-white/20 backdrop-blur-sm text-[#bcbcf1] px-7 py-2 rounded-lg hover:bg-white/30 hover:text-white transition-colors'>Learn more</Button>
-                </CardContent>
-                {/* Decorative Elements */}
-                <div className='absolute left-0 top-1/2 transform -translate-y-1/2 z-0 ml-20'>
-                  <Player autoplay loop src={leftAnim} style={{ width: 170, height: 170 }} />
-                </div>
-
-                <div className='absolute right-0 top-1/2 transform -translate-y-1/2 z-0 mr-10'>
-                  <Player autoplay loop src={rightAnim} style={{ width: 220, height: 220 }} />
-                </div>
-                {/* Floating circles */}
-                <div className='absolute top-4 right-1/4 w-4 h-4 bg-yellow-300 rounded-full opacity-60'></div>
-                <div className='absolute bottom-6 left-1/3 w-3 h-3 bg-pink-300 rounded-full opacity-50'></div>
-                <div className='absolute top-1/3 right-1/3 w-2 h-2 bg-blue-300 rounded-full opacity-70'></div>
-              </Card>
-
-              <div className='flex gap-4'>
-                {/* Left Column */}
-                <div className='flex-1 space-y-8 rounded-2xl bg-white p-5 shadow-none'>
-                  {/* Popular Section */}
-                  <div>
-                    <div className='flex items-center justify-between mb-4'>
-                      <h2 className='text-xl font-bold text-gray-900'>Recent Incomplete Tasks</h2>
-                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
-                        VIEW ALL
-                      </Button>
-                    </div>
-                    {loading && tasks.length === 0 ? (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-                        {[1, 2, 3, 4].map(i => (
-                          <Card key={i} className='relative bg-gradient-to-br from-purple-200 to-blue-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all animate-pulse'>
-                            <div className='w-12 h-12 bg-gray-300 rounded-xl mb-4 mx-auto'></div>
-                            <div className='flex-1 flex flex-col justify-end w-full'>
-                              <div className='h-4 bg-gray-300 rounded mb-2'></div>
-                              <div className='h-3 bg-gray-300 rounded mb-4'></div>
-                            </div>
-                            <div className='h-8 bg-gray-300 rounded'></div>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-                        {incompleteTasks.map((task: Task, i: number) => (
-                          <Card key={task._id} className='relative bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all'>
-                            <Button variant='ghost' size='icon' className='absolute top-3 right-3 bg-white/80 rounded-full p-1.5 shadow hover:bg-white'>
-                              <svg width='20' height='20' fill='none' viewBox='0 0 24 24'>
-                                <path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='#a78bfa' />
-                              </svg>
-                            </Button>
-                            <CardContent className='flex flex-col items-center justify-between h-full p-0'>
-                              <div className='w-12 h-12 bg-white/70 rounded-xl flex items-center justify-center mb-4 mx-auto'>
-                                <div className='w-7 h-7 bg-blue-400 rounded'></div>
-                              </div>
-                              <div className='flex-1 flex flex-col justify-end w-full'>
-                                <CardTitle className='font-semibold text-gray-900 text-base truncate'>{task.title}</CardTitle>
-                                <CardDescription className='text-gray-600 text-xs truncate'>{task.description}</CardDescription>
-                                <div className='flex items-center gap-1 mt-2'>
-                                  <span className='text-yellow-600 font-bold text-sm'>🪙</span>
-                                  <span className='text-yellow-600 font-bold text-sm'>{task.reward}</span>
-                                </div>
-                              </div>
-                              <Button className='mt-4 w-full' onClick={() => handleCompleteTask(task._id)}>
-                                Complete
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ongoing Section */}
-                  <div className='mt-0'>
-                    <div className='flex items-center justify-between mb-4'>
-                      <h2 className='text-xl font-bold text-gray-900'>Recent Completed Tasks</h2>
-                      <Button variant='link' className='text-[#b8bac1] text-xs font-semibold hover:text-violet-300 p-0 h-auto' onClick={() => navigate("/kid/tasks")}>
-                        VIEW ALL
-                      </Button>
-                    </div>
-                    {loading ? (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-                        {[1, 2, 3, 4].map(i => (
-                          <Card key={i} className='relative bg-gradient-to-br from-purple-200 to-blue-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all animate-pulse'>
-                            <div className='w-12 h-12 bg-gray-300 rounded-xl mb-4 mx-auto'></div>
-                            <div className='flex-1 flex flex-col justify-end w-full'>
-                              <div className='h-4 bg-gray-300 rounded mb-2'></div>
-                              <div className='h-3 bg-gray-300 rounded mb-4'></div>
-                            </div>
-                            <div className='h-8 bg-gray-300 rounded'></div>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5'>
-                        {completedTasksArr.map((task: Task, i: number) => (
-                          <Card key={task._id} className='relative bg-gradient-to-br from-purple-200 to-blue-200 rounded-2xl flex flex-col justify-between p-4 aspect-square shadow hover:shadow-lg transition-all'>
-                            <Button variant='ghost' size='icon' className='absolute top-3 right-3 bg-white/80 rounded-full p-1.5 shadow hover:bg-white'>
-                              <svg width='20' height='20' fill='none' viewBox='0 0 24 24'>
-                                <path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='#a78bfa' />
-                              </svg>
-                            </Button>
-                            <CardContent className='flex flex-col items-center justify-between h-full p-0'>
-                              <div className='w-12 h-12 bg-white/70 rounded-xl flex items-center justify-center mb-4 mx-auto'>
-                                <div className='w-7 h-7 bg-purple-400 rounded'></div>
-                              </div>
-                              <div className='flex-1 flex flex-col justify-end w-full'>
-                                <CardTitle className='font-semibold text-gray-900 text-base truncate'>{task.title}</CardTitle>
-                                <CardDescription className='text-gray-600 text-xs truncate'>{task.description}</CardDescription>
-                                <div className='flex items-center gap-1 mt-2'>
-                                  <span className='text-yellow-600 font-bold text-sm'>🪙</span>
-                                  <span className='text-yellow-600 font-bold text-sm'>{task.reward}</span>
-                                </div>
-                              </div>
-                              <Button className='mt-4 w-full' variant='secondary' onClick={() => handleUndoTask(task._id)}>
-                                Undo
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className='w-80 space-y-4 mb-0'>
-                  {/* Achievement Section */}
-                  <Card className='bg-white rounded-xl p-0 shadow-none border-0 mb-4'>
-                    <CardHeader className='flex items-center justify-between mb-0 p-4 pb-0'>
-                      <CardTitle className='font-semibold text-gray-900 text-base'>Unlock achievement</CardTitle>
-                      <div className='w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center'>
-                        <div className='w-4 h-4 bg-purple-500 rounded-full'></div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className='p-6 pt-2'>
-                      <CardDescription className='text-gray-600 text-sm mb-4'>Goal achieved success unlocked</CardDescription>
-                      <div className='space-y-3'>
-                        <div className='flex items-center space-x-3'>
-                          <Avatar className='w-10 h-10 bg-purple-100'>
-                            <AvatarFallback className='text-purple-600 text-sm font-medium'>K</AvatarFallback>
-                          </Avatar>
-                          <div className='flex-1'>
-                            <div className='flex items-center justify-between'>
-                              <span className='text-sm font-medium'>60% Achieved</span>
-                              <span className='text-xs text-gray-500'>7 Days left</span>
-                            </div>
-                            <div className='w-full bg-gray-200 rounded-full h-1.5 mt-1'>
-                              <div className='bg-purple-500 h-1.5 rounded-full' style={{ width: "60%" }}></div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className='flex items-center space-x-3'>
-                          <Avatar className='w-10 h-10 bg-orange-100'>
-                            <AvatarFallback className='text-orange-600 text-sm font-medium'>A</AvatarFallback>
-                          </Avatar>
-                          <div className='flex-1'>
-                            <div className='flex items-center justify-between'>
-                              <span className='text-sm font-medium'>35% Achieved</span>
-                              <span className='text-xs text-gray-500'>12 Days left</span>
-                            </div>
-                            <div className='w-full bg-gray-200 rounded-full h-1.5 mt-1'>
-                              <div className='bg-orange-500 h-1.5 rounded-full' style={{ width: "35%" }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Pet Status Section */}
-                  <Card className='bg-white rounded-xl p-0 shadow-none border-0 mb-4'>
-                    <CardHeader className='flex items-center justify-between mb-0 p-4 pb-0'>
-                      <CardTitle className='font-semibold text-gray-900 text-base'>My Pet Status</CardTitle>
-                      <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
-                        <div className='w-4 h-4 bg-blue-500 rounded-full'></div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className='p-6 pt-2'>
-                      <div className='flex items-center space-x-4 mb-4'>
-                        {/* Pet Image */}
-                        <div className='relative overflow-hidden' style={{ width: "100px", height: "120px" }}>
-                          <div
-                            style={{
-                              width: 329,
-                              height: 447,
-                              background: "url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0",
-                              transform: "scale(0.25)",
-                              transformOrigin: "top left",
-                            }}
-                          />
-                          {/* Display accessories */}
-                          {animal.accessories &&
-                            animal.accessories.map(accessory => (
-                              <div key={accessory.id} className='absolute top-0 left-0 w-full h-full' style={{ transform: "scale(0.25)", transformOrigin: "top left" }}>
-                                <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
-                              </div>
-                            ))}
-                        </div>
-
-                        {/* Pet Info */}
-                        <div className='flex-1'>
-                          <h4 className='font-semibold text-gray-900 text-sm mb-1'>{animal.name}</h4>
-                          <p className='text-xs text-gray-600 mb-2'>Level {animal.level}</p>
-                          <div className='flex items-center gap-1'>
-                            <span className='text-yellow-600 text-xs'>🪙</span>
-                            <span className='text-yellow-600 text-xs font-medium'>{animal.xp} XP</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className='space-y-3'>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <div className='w-4 h-4 bg-orange-100 rounded flex items-center justify-center'>
-                              <span className='text-orange-600 text-xs'>🍩</span>
-                            </div>
-                            <span className='text-xs text-gray-700'>Hunger</span>
-                          </div>
-                          <div className='flex-1 mx-3'>
-                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
-                              <div className='bg-orange-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.hunger / 100) * 100}%` }}></div>
-                            </div>
-                          </div>
-                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.hunger}%</span>
-                        </div>
-
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <div className='w-4 h-4 bg-yellow-100 rounded flex items-center justify-center'>
-                              <span className='text-yellow-600 text-xs'>⭐</span>
-                            </div>
-                            <span className='text-xs text-gray-700'>Happiness</span>
-                          </div>
-                          <div className='flex-1 mx-3'>
-                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
-                              <div className='bg-yellow-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.happiness / 100) * 100}%` }}></div>
-                            </div>
-                          </div>
-                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.happiness}%</span>
-                        </div>
-
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <div className='w-4 h-4 bg-red-100 rounded flex items-center justify-center'>
-                              <span className='text-red-600 text-xs'>❤️</span>
-                            </div>
-                            <span className='text-xs text-gray-700'>Energy</span>
-                          </div>
-                          <div className='flex-1 mx-3'>
-                            <div className='w-full bg-gray-200 rounded-full h-1.5'>
-                              <div className='bg-red-500 h-1.5 rounded-full' style={{ width: `${(animal.stats.energy / 100) * 100}%` }}></div>
-                            </div>
-                          </div>
-                          <span className='text-xs text-gray-600 w-8 text-right'>{animal.stats.energy}%</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Best Sales Section */}
-                  <Card className='bg-white rounded-xl p-0 shadow-none border-0'>
-                    <CardHeader className='flex items-center justify-between mb-0 p-6 pb-0'>
-                      <CardTitle className='font-semibold text-gray-900 text-base'>Best sales</CardTitle>
-                      <Button variant='link' className='text-purple-600 text-sm font-medium hover:text-purple-700 p-0 h-auto'>
-                        VIEW ALL
-                      </Button>
-                    </CardHeader>
-                    <CardContent className='space-y-4 p-6 pt-2'>
-                      {[1, 2, 3, 4].map((_, i) => (
-                        <div key={i} className='flex items-center justify-between'>
-                          <div className='flex items-center space-x-3'>
-                            <div className='w-12 h-12 bg-gradient-to-br from-pink-100 to-red-100 rounded-lg flex items-center justify-center'>
-                              <div className='w-6 h-4 bg-pink-400 rounded'></div>
-                            </div>
-                            <div>
-                              <span className='font-medium text-gray-900 block'>Grow green</span>
-                              <div className='flex items-center space-x-1'>
-                                <span className='text-yellow-400'>★</span>
-                                <span className='text-sm text-gray-600'>4.5</span>
-                              </div>
-                            </div>
-                          </div>
-                          <Button className='bg-purple-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium'>Order</Button>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </main>
-          </>
-        ) : (
-          <main className='p-6 space-y-8 overflow-y-auto h-full flex flex-col items-center justify-center'>
-            <VirtualPet animal={animal} onFeed={handleFeed} onPlay={handlePlay} onSleep={handleSleep} onResetHunger={handleResetHunger} onResetHappiness={handleResetHappiness} onResetEnergy={handleResetEnergy} setAnimal={setAnimal} />
-          </main>
-        )}
+    <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] relative overflow-hidden'>
+      {/* Background decorations */}
+      <div className='absolute inset-0 overflow-hidden'>
+        <motion.div
+          className='absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full'
+          animate={{
+            y: [0, -20, 0],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className='absolute top-40 right-20 w-16 h-16 bg-white/20 rounded-full'
+          animate={{
+            y: [0, 15, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        />
+        <motion.div
+          className='absolute bottom-20 left-1/4 w-24 h-24 bg-white/20 rounded-full'
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, -180, -360],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        />
       </div>
+
+      {/* Header */}
+      <motion.div className='relative z-10 p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <div className='flex items-center justify-between'>
+          {/* User info */}
+          <div className='flex items-center gap-4'>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg' whileHover={{ scale: 1.05 }}>
+              <Avatar className='w-12 h-12'>
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} />
+                <AvatarFallback className='bg-gradient-to-br from-[#ffbacc] to-[#f9a8d4] text-white font-bold'>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </motion.div>
+            <div>
+              <h1 className='text-2xl font-bold text-white drop-shadow-lg'>Hello {userName}! 👋</h1>
+              <p className='text-white/90 text-sm'>Let's play and progress! 🎮</p>
+            </div>
+          </div>
+
+          {/* Coins, navigation and logout */}
+          <div className='flex items-center gap-4'>
+            {/* Navigation tabs */}
+            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
+              <div className='flex gap-2'>
+                <motion.button onClick={() => setActiveSection("tasks")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "tasks" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Target className='w-4 h-4' />
+                  Tasks
+                </motion.button>
+                <motion.button onClick={() => navigate("/kid/virtualpet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "pet" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Play className='w-4 h-4' />
+                  My Pet
+                </motion.button>
+                <motion.button onClick={handleShopClick} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "shop" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <ShoppingBag className='w-4 h-4' />
+                  Shop
+                </motion.button>
+              </div>
+            </div>
+
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2' whileHover={{ scale: 1.05 }}>
+              <Coins className='w-5 h-5 text-yellow-500' />
+              <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
+            </motion.div>
+            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <LogOut className='w-5 h-5 text-gray-600' />
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main content */}
+      <div className='relative z-10 px-6 pb-6'>
+        <AnimatePresence mode='wait'>
+          {activeSection === "tasks" && (
+            <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
+              {/* Stats cards */}
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                  <div className='flex items-center gap-3'>
+                    <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                      <Target className='w-6 h-6 text-white' />
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-600'>Remaining Tasks</p>
+                      <p className='text-2xl font-bold text-gray-800'>{incompleteTasks.length}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                  <div className='flex items-center gap-3'>
+                    <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
+                      <CheckCircle className='w-6 h-6 text-white' />
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-600'>Completed Today</p>
+                      <p className='text-2xl font-bold text-gray-800'>{completedTasksArr.length}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                  <div className='flex items-center gap-3'>
+                    <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
+                      <Trophy className='w-6 h-6 text-white' />
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-600'>Progress Level</p>
+                      <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Tasks */}
+              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+                <div className='flex items-center gap-3 mb-6'>
+                  <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                    <Target className='w-6 h-6 text-white' />
+                  </div>
+                  <h2 className='text-2xl font-bold text-gray-800'>Your Tasks Today</h2>
+                </div>
+
+                {/* Task tabs */}
+                <div className='flex gap-2 mb-6'>
+                  <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    Remaining ({incompleteTasks.length})
+                  </motion.button>
+                  <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    Completed ({completedTasksArr.length})
+                  </motion.button>
+                </div>
+
+                {loading ? (
+                  <div className='text-center py-8'>
+                    <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[#87d4ee] mx-auto'></div>
+                    <p className='text-gray-600 mt-4'>Loading tasks...</p>
+                  </div>
+                ) : activeTaskTab === "incomplete" && incompleteTasks.length === 0 ? (
+                  <div className='text-center py-8'>
+                    <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                      <Trophy className='w-8 h-8 text-white' />
+                    </div>
+                    <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
+                    <p className='text-gray-600'>You've completed all your tasks today!</p>
+                  </div>
+                ) : activeTaskTab === "completed" && completedTasksArr.length === 0 ? (
+                  <div className='text-center py-8'>
+                    <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                      <Target className='w-8 h-8 text-white' />
+                    </div>
+                    <h3 className='text-xl font-bold text-gray-800 mb-2'>No completed tasks yet</h3>
+                    <p className='text-gray-600'>Complete some tasks to see them here!</p>
+                  </div>
+                ) : (
+                  <div className='space-y-4'>
+                    {(activeTaskTab === "incomplete" ? incompleteTasks : completedTasksArr).map((task, index) => (
+                      <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex-1'>
+                            <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
+                            {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
+                            <div className='flex items-center gap-2 mt-2'>
+                              <Coins className='w-4 h-4 text-yellow-500' />
+                              <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
+                            </div>
+                          </div>
+                          {activeTaskTab === "incomplete" ? (
+                            <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              Complete! ✨
+                            </motion.button>
+                          ) : (
+                            <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              Undo
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeSection === "pet" && (
+            <motion.div key='pet' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
+              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+                <div className='flex items-center gap-3 mb-6'>
+                  <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
+                    <Play className='w-6 h-6 text-white' />
+                  </div>
+                  <h2 className='text-2xl font-bold text-gray-800'>My Pet - {animal.name}</h2>
+                </div>
+
+                <div className='flex flex-col lg:flex-row gap-6'>
+                  <div className='flex-1'>
+                    <VirtualPet animal={animal} setAnimal={setAnimal} />
+                  </div>
+
+                  <div className='flex-1 space-y-4'>
+                    <div className='bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4'>
+                      <h3 className='font-semibold text-gray-800 mb-3'>Statistics</h3>
+                      <div className='space-y-3'>
+                        <div>
+                          <div className='flex justify-between text-sm mb-1'>
+                            <span>Level</span>
+                            <span className='font-semibold'>{animal.level}</span>
+                          </div>
+                          <div className='w-full bg-gray-200 rounded-full h-2'>
+                            <div className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] h-2 rounded-full transition-all' style={{ width: `${(animal.xp / (animal.level * 100)) * 100}%` }}></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className='flex justify-between text-sm mb-1'>
+                            <span>Hunger</span>
+                            <span className='font-semibold'>{animal.stats.hunger}%</span>
+                          </div>
+                          <div className='w-full bg-gray-200 rounded-full h-2'>
+                            <div className='bg-gradient-to-r from-[#ffd986] to-[#ffbacc] h-2 rounded-full transition-all' style={{ width: `${animal.stats.hunger}%` }}></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className='flex justify-between text-sm mb-1'>
+                            <span>Happiness</span>
+                            <span className='font-semibold'>{animal.stats.happiness}%</span>
+                          </div>
+                          <div className='w-full bg-gray-200 rounded-full h-2'>
+                            <div className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] h-2 rounded-full transition-all' style={{ width: `${animal.stats.happiness}%` }}></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className='flex justify-between text-sm mb-1'>
+                            <span>Energy</span>
+                            <span className='font-semibold'>{animal.stats.energy}%</span>
+                          </div>
+                          <div className='w-full bg-gray-200 rounded-full h-2'>
+                            <div className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] h-2 rounded-full transition-all' style={{ width: `${animal.stats.energy}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeSection === "shop" && (
+            <motion.div key='shop' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
+              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+                <div className='flex items-center gap-3 mb-6'>
+                  <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
+                    <ShoppingBag className='w-6 h-6 text-white' />
+                  </div>
+                  <h2 className='text-2xl font-bold text-gray-800'>Pet Shop</h2>
+                </div>
+
+                <div className='text-center py-8'>
+                  <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                    <ShoppingBag className='w-8 h-8 text-white' />
+                  </div>
+                  <h3 className='text-xl font-bold text-gray-800 mb-2'>Coming Soon! 🛍️</h3>
+                  <p className='text-gray-600'>The shop will open soon with lots of surprises!</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <Toaster />
     </div>
   );
