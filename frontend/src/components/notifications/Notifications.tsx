@@ -26,7 +26,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [showBadge, setShowBadge] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,11 +45,6 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
       } catch (error) {
         console.error("Failed to parse notifications from localStorage:", error);
       }
-    }
-
-    const savedLastCheck = localStorage.getItem(`lastCheckTime_${childId}`);
-    if (savedLastCheck) {
-      setLastCheckTime(new Date(savedLastCheck));
     }
 
     // Load already notified tasks to avoid duplicates
@@ -75,18 +69,15 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
       setLoading(true);
 
       const currentTasks = await getTasks(token, childId);
-      const lastCheck = lastCheckTime || new Date(0);
 
       // Get already notified tasks
       const savedNotifiedTasks = localStorage.getItem(`notifiedTasks_${childId}`);
       const notifiedTasks = savedNotifiedTasks ? JSON.parse(savedNotifiedTasks) : [];
 
-      // Find tasks created after last check
+      // Find tasks that haven't been notified yet
       const newTasks = currentTasks.filter((task: Task) => {
-        const taskDate = new Date(); // Use current time since Task doesn't have createdAt/updatedAt
-        const isNewTask = !task.completed; // Simplified logic - show all incomplete tasks as new
+        const isNewTask = !task.completed;
         const alreadyNotified = notifiedTasks.includes(task._id);
-
         return isNewTask && !alreadyNotified;
       });
 
@@ -102,7 +93,7 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
         }));
 
         setNotifications(prev => [...newNotifications, ...prev]);
-        setShowBadge(true); // Show badge when new notifications arrive
+        setShowBadge(true);
 
         // Add task IDs to notified tasks list
         const newNotifiedTasks = [...notifiedTasks, ...newTasks.map((task: Task) => task._id)];
@@ -116,19 +107,7 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
             duration: 5000,
           });
         });
-
-        // Dispatch event to update other components (like Recent Incomplete Tasks)
-        window.dispatchEvent(
-          new CustomEvent("newTasksReceived", {
-            detail: { tasks: newTasks, childId },
-          })
-        );
       }
-
-      // Update last check time
-      const now = new Date();
-      setLastCheckTime(now);
-      localStorage.setItem(`lastCheckTime_${childId}`, now.toISOString());
     } catch (error) {
       console.error("❌ Error checking for new tasks:", error);
     } finally {
@@ -151,11 +130,10 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
     };
 
     window.addEventListener("taskCreated", handleTaskCreated as EventListener);
-
     return () => {
       window.removeEventListener("taskCreated", handleTaskCreated as EventListener);
     };
-  }, [childId, token, lastCheckTime]);
+  }, [childId, token]);
 
   // Mark notification as read
   const markAsRead = (notificationId: string) => {

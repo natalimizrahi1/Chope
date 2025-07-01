@@ -8,16 +8,18 @@ import { Player } from "@lottiefiles/react-lottie-player";
 import leftAnim from "@/assets/animations/left-decor.json";
 import rightAnim from "@/assets/animations/right-decor.json";
 import { useNavigate } from "react-router-dom";
-import { getTasks, completeTask, undoTask } from "../../lib/api";
+import { getTasks, completeTask, undoTask, getChildCoins, unapproveTask, testServerConnection } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Toaster } from "../ui/toaster";
-import { Star, Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut } from "lucide-react";
+import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut } from "lucide-react";
 import Notifications from "../notifications/Notifications";
+import { useToast } from "../ui/use-toast";
 
 const KidDashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [token] = useState(localStorage.getItem("token") || "");
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
@@ -25,218 +27,143 @@ const KidDashboard = () => {
   const [activeSection, setActiveSection] = useState<"tasks" | "pet" | "shop">("tasks");
   const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "completed">("incomplete");
 
+  // Task categories
   const incompleteTasks = tasks.filter((task: Task) => !task.completed);
+  const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
+  const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
   const completedTasksArr = tasks.filter((task: Task) => task.completed);
 
-  const [animal, setAnimal] = useState<Pet>(() => {
-    const saved = localStorage.getItem("pet");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          name: "Benny",
-          type: "Cute Pet",
-          level: 1,
-          xp: 0,
-          scale: 0.5,
-          stats: { hunger: 75, happiness: 75, energy: 75 },
-          accessories: [],
-        };
+  const [animal, setAnimal] = useState<Pet>({
+    name: "Buddy",
+    type: "dog",
+    level: 1,
+    xp: 50,
+    stats: { hunger: 30, happiness: 80, energy: 60 },
+    accessories: [],
   });
 
   useEffect(() => {
     localStorage.setItem("pet", JSON.stringify(animal));
   }, [animal]);
 
-  // Load tasks from server
+  // Load user data and tasks
   const loadTasks = useCallback(async () => {
-    if (!userId || !token) {
-      return;
-    }
-
     try {
       setLoading(true);
-      const tasksData = await getTasks(token, userId);
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (!token || user.role !== "child") {
+        localStorage.removeItem("cachedTasks");
+        localStorage.removeItem("cachedTasksTimestamp");
+        navigate("/login/kid");
+        return;
+      }
+      setUserId(user.id);
+      setUserName(user.name || user.username || "User");
+      const tasksData = await getTasks(token, user.id);
       setTasks(tasksData);
-
-      // Save tasks to localStorage for faster loading
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
-
-      // Calculate total coins from completed tasks
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
+      // Get coins from server
+      const coinsData = await getChildCoins(token, user.id);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
     } catch (error) {
-      console.error("❌ Failed to load tasks:", error);
+      console.error("Failed to load tasks:", error);
     } finally {
       setLoading(false);
     }
+  }, [token, navigate]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  // Refresh coins every 5 seconds
+  useEffect(() => {
+    if (!userId || !token) return;
+    const interval = setInterval(async () => {
+      try {
+        const coinsData = await getChildCoins(token, userId);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      } catch (error) {
+        console.error("Failed to refresh coins:", error);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, [userId, token]);
 
-  // Load user data and tasks
+  // Listen for task completion/approval events
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-    if (!token || user.role !== "child") {
-      localStorage.removeItem("cachedTasks");
-      localStorage.removeItem("cachedTasksTimestamp");
-      navigate("/login/kid");
-      return;
-    }
-
-    setUserId(user.id);
-    setUserName(user.name || user.username || "User");
-
-    // Load cached tasks immediately if available
-    const cachedTasks = localStorage.getItem("cachedTasks");
-    const cacheTimestamp = localStorage.getItem("cachedTasksTimestamp");
-    const now = Date.now();
-    const cacheAge = cacheTimestamp ? now - parseInt(cacheTimestamp) : Infinity;
-    const maxCacheAge = 5 * 60 * 1000; // 5 minutes
-
-    if (cachedTasks && cacheAge < maxCacheAge) {
-      try {
-        const tasksData = JSON.parse(cachedTasks);
-        setTasks(tasksData);
-
-        const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const availableCoins = coins - spentCoins;
-        setTotalCoins(availableCoins);
-
-        if (cacheAge > 60 * 1000) {
-          setTimeout(() => {
-            if (user.id && token) {
-              loadTasks();
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.error("Failed to parse cached tasks:", error);
-        if (user.id && token) {
-          loadTasks();
-        }
-      }
-    } else {
-      if (cacheAge >= maxCacheAge) {
-        localStorage.removeItem("cachedTasks");
-        localStorage.removeItem("cachedTasksTimestamp");
-      }
-    }
-  }, [token, navigate, loadTasks]);
-
-  useEffect(() => {
-    if (userId && token && tasks.length === 0) {
-      loadTasks();
-    }
-  }, [userId, token, loadTasks, tasks.length]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && userId && token && tasks.length === 0) {
-        loadTasks();
-      }
+    const handleTaskCompleted = async () => {
+      await loadTasks();
     };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const handleTaskApproved = async () => {
+      await loadTasks();
+    };
+    window.addEventListener("taskCompleted", handleTaskCompleted);
+    window.addEventListener("taskApproved", handleTaskApproved);
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("taskCompleted", handleTaskCompleted);
+      window.removeEventListener("taskApproved", handleTaskApproved);
     };
-  }, [userId, token, loadTasks, tasks.length]);
+  }, [loadTasks]);
 
-  useEffect(() => {
-    const loadCoins = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
-      } else {
-        const calculateCoins = async () => {
-          try {
-            const tasks = await getTasks(token, userId);
-            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-            const availableCoins = totalCoins - spentCoins;
-            setTotalCoins(availableCoins);
-            localStorage.setItem("currentCoins", availableCoins.toString());
-          } catch (error) {
-            console.error("Failed to calculate coins:", error);
-          }
-        };
-
-        if (token && userId) {
-          calculateCoins();
-        }
-      }
-    };
-
-    const handleCoinUpdate = () => {
-      const savedCoins = localStorage.getItem("currentCoins");
-      if (savedCoins) {
-        setTotalCoins(parseInt(savedCoins));
-      }
-    };
-
-    const handleNewTasksReceived = (event: CustomEvent) => {
-      const { tasks: newTasks, childId: eventChildId } = event.detail;
-      if (eventChildId === userId) {
-        loadTasks();
-      }
-    };
-
-    loadCoins();
-
-    window.addEventListener("coinsUpdated", handleCoinUpdate);
-    window.addEventListener("taskCompleted", handleCoinUpdate);
-    window.addEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
-
-    return () => {
-      window.removeEventListener("coinsUpdated", handleCoinUpdate);
-      window.removeEventListener("taskCompleted", handleCoinUpdate);
-      window.removeEventListener("newTasksReceived", handleNewTasksReceived as EventListener);
-    };
-  }, [token, userId, loadTasks]);
-
+  // Task actions
   const handleCompleteTask = async (taskId: string) => {
     try {
       await completeTask(token, taskId);
-      const tasksData = await getTasks(token, userId);
-      setTasks(tasksData);
-
-      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
-      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
-
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
-
+      await loadTasks();
+      toast({
+        title: "Task Sent for Approval",
+        description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
+      });
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("Failed to complete task:", error);
+      toast({
+        title: "Error completing task",
+        description: "There was an error completing the task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleUndoTask = async (taskId: string) => {
     try {
       await undoTask(token, taskId);
-      const tasksData = await getTasks(token, userId);
-      setTasks(tasksData);
-
-      localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
-      localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
-
-      const coins = tasksData.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-      const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-      const availableCoins = coins - spentCoins;
-      setTotalCoins(availableCoins);
-      localStorage.setItem("currentCoins", availableCoins.toString());
-
+      await loadTasks();
+      toast({
+        title: "Task Undone",
+        description: "The task has been undone. If it was approved, coins have been deducted.",
+      });
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
       console.error("Failed to undo task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to undo task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnapproveTask = async (taskId: string) => {
+    try {
+      await unapproveTask(token, taskId);
+      await loadTasks();
+      toast({
+        title: "Task Unapproved",
+        description: "The task has been unapproved and coins have been deducted. You can complete it again to earn coins.",
+      });
+      window.dispatchEvent(new CustomEvent("taskCompleted"));
+    } catch (error) {
+      console.error("Failed to unapprove task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to unapprove task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -249,6 +176,9 @@ const KidDashboard = () => {
   const handleShopClick = () => {
     navigate("/kid/shop");
   };
+
+  // Debug: Log task categories
+  useEffect(() => {}, [tasks, incompleteTasks, pendingApprovalTasks, approvedTasks]);
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] relative overflow-hidden'>
@@ -294,7 +224,7 @@ const KidDashboard = () => {
         />
       </div>
 
-      {/* Header */}
+      {/* Modern Header */}
       <motion.div className='relative z-10 p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <div className='flex items-center justify-between'>
           {/* User info */}
@@ -320,7 +250,7 @@ const KidDashboard = () => {
                   <Target className='w-4 h-4' />
                   Tasks
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/virtualpet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "pet" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <motion.button onClick={() => setActiveSection("pet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "pet" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Play className='w-4 h-4' />
                   My Pet
                 </motion.button>
@@ -349,208 +279,173 @@ const KidDashboard = () => {
       </motion.div>
 
       {/* Main content */}
-      <div className='relative z-0 px-6 pb-6'>
-        <AnimatePresence mode='wait'>
-          {activeSection === "tasks" && (
-            <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
-              {/* Stats cards */}
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                  <div className='flex items-center gap-3'>
-                    <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
-                      <Target className='w-6 h-6 text-white' />
-                    </div>
-                    <div>
-                      <p className='text-sm text-gray-600'>Remaining Tasks</p>
-                      <p className='text-2xl font-bold text-gray-800'>{incompleteTasks.length}</p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                  <div className='flex items-center gap-3'>
-                    <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
-                      <CheckCircle className='w-6 h-6 text-white' />
-                    </div>
-                    <div>
-                      <p className='text-sm text-gray-600'>Completed Today</p>
-                      <p className='text-2xl font-bold text-gray-800'>{completedTasksArr.length}</p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                  <div className='flex items-center gap-3'>
-                    <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
-                      <Trophy className='w-6 h-6 text-white' />
-                    </div>
-                    <div>
-                      <p className='text-sm text-gray-600'>Progress Level</p>
-                      <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Tasks */}
-              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-                <div className='flex items-center gap-3 mb-6'>
+      {/* AnimatePresence and tab content are now outside the px-6 pb-6 container */}
+      <AnimatePresence mode='wait'>
+        {activeSection === "tasks" && (
+          <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
+            {/* Stats cards */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                <div className='flex items-center gap-3'>
                   <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
                     <Target className='w-6 h-6 text-white' />
                   </div>
-                  <h2 className='text-2xl font-bold text-gray-800'>Your Tasks Today</h2>
+                  <div>
+                    <p className='text-sm text-gray-600'>Remaining Tasks</p>
+                    <p className='text-2xl font-bold text-gray-800'>{incompleteTasks.length}</p>
+                  </div>
                 </div>
+              </motion.div>
 
-                {/* Task tabs */}
-                <div className='flex gap-2 mb-6'>
-                  <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    Remaining ({incompleteTasks.length})
-                  </motion.button>
-                  <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    Completed ({completedTasksArr.length})
-                  </motion.button>
-                </div>
-
-                {loading ? (
-                  <div className='text-center py-8'>
-                    <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[#87d4ee] mx-auto'></div>
-                    <p className='text-gray-600 mt-4'>Loading tasks...</p>
-                  </div>
-                ) : activeTaskTab === "incomplete" && incompleteTasks.length === 0 ? (
-                  <div className='text-center py-8'>
-                    <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                      <Trophy className='w-8 h-8 text-white' />
-                    </div>
-                    <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
-                    <p className='text-gray-600'>You've completed all your tasks today!</p>
-                  </div>
-                ) : activeTaskTab === "completed" && completedTasksArr.length === 0 ? (
-                  <div className='text-center py-8'>
-                    <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                      <Target className='w-8 h-8 text-white' />
-                    </div>
-                    <h3 className='text-xl font-bold text-gray-800 mb-2'>No completed tasks yet</h3>
-                    <p className='text-gray-600'>Complete some tasks to see them here!</p>
-                  </div>
-                ) : (
-                  <div className='space-y-4'>
-                    {(activeTaskTab === "incomplete" ? incompleteTasks : completedTasksArr).map((task, index) => (
-                      <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex-1'>
-                            <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
-                            {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
-                            <div className='flex items-center gap-2 mt-2'>
-                              <Coins className='w-4 h-4 text-yellow-500' />
-                              <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
-                            </div>
-                          </div>
-                          {activeTaskTab === "incomplete" ? (
-                            <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              Complete! ✨
-                            </motion.button>
-                          ) : (
-                            <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              Undo
-                            </motion.button>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {activeSection === "pet" && (
-            <motion.div key='pet' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
-              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-                <div className='flex items-center gap-3 mb-6'>
+              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                <div className='flex items-center gap-3'>
                   <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
-                    <Play className='w-6 h-6 text-white' />
+                    <CheckCircle className='w-6 h-6 text-white' />
                   </div>
-                  <h2 className='text-2xl font-bold text-gray-800'>My Pet - {animal.name}</h2>
-                </div>
-
-                <div className='flex flex-col lg:flex-row gap-6'>
-                  <div className='flex-1'>
-                    <VirtualPet animal={animal} setAnimal={setAnimal} />
-                  </div>
-
-                  <div className='flex-1 space-y-4'>
-                    <div className='bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4'>
-                      <h3 className='font-semibold text-gray-800 mb-3'>Statistics</h3>
-                      <div className='space-y-3'>
-                        <div>
-                          <div className='flex justify-between text-sm mb-1'>
-                            <span>Level</span>
-                            <span className='font-semibold'>{animal.level}</span>
-                          </div>
-                          <div className='w-full bg-gray-200 rounded-full h-2'>
-                            <div className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] h-2 rounded-full transition-all' style={{ width: `${(animal.xp / (animal.level * 100)) * 100}%` }}></div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className='flex justify-between text-sm mb-1'>
-                            <span>Hunger</span>
-                            <span className='font-semibold'>{animal.stats.hunger}%</span>
-                          </div>
-                          <div className='w-full bg-gray-200 rounded-full h-2'>
-                            <div className='bg-gradient-to-r from-[#ffd986] to-[#ffbacc] h-2 rounded-full transition-all' style={{ width: `${animal.stats.hunger}%` }}></div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className='flex justify-between text-sm mb-1'>
-                            <span>Happiness</span>
-                            <span className='font-semibold'>{animal.stats.happiness}%</span>
-                          </div>
-                          <div className='w-full bg-gray-200 rounded-full h-2'>
-                            <div className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] h-2 rounded-full transition-all' style={{ width: `${animal.stats.happiness}%` }}></div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className='flex justify-between text-sm mb-1'>
-                            <span>Energy</span>
-                            <span className='font-semibold'>{animal.stats.energy}%</span>
-                          </div>
-                          <div className='w-full bg-gray-200 rounded-full h-2'>
-                            <div className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] h-2 rounded-full transition-all' style={{ width: `${animal.stats.energy}%` }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <div>
+                    <p className='text-sm text-gray-600'>Completed Today</p>
+                    <p className='text-2xl font-bold text-gray-800'>{completedTasksArr.length}</p>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
 
-          {activeSection === "shop" && (
-            <motion.div key='shop' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>
-              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-                <div className='flex items-center gap-3 mb-6'>
+              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                <div className='flex items-center gap-3'>
                   <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
-                    <ShoppingBag className='w-6 h-6 text-white' />
+                    <Trophy className='w-6 h-6 text-white' />
                   </div>
-                  <h2 className='text-2xl font-bold text-gray-800'>Pet Shop</h2>
+                  <div>
+                    <p className='text-sm text-gray-600'>Progress Level</p>
+                    <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</p>
+                  </div>
                 </div>
+              </motion.div>
+            </div>
 
+            {/* Tasks */}
+            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+              <div className='flex items-center gap-3 mb-6'>
+                <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                  <Target className='w-6 h-6 text-white' />
+                </div>
+                <h2 className='text-2xl font-bold text-gray-800'>Your Tasks Today</h2>
+              </div>
+
+              {/* Task tabs */}
+              <div className='flex gap-2 mb-6'>
+                <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  Remaining ({incompleteTasks.length})
+                </motion.button>
+                <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  Completed ({completedTasksArr.length})
+                </motion.button>
+              </div>
+
+              {loading ? (
+                <div className='text-center py-8'>
+                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[#87d4ee] mx-auto'></div>
+                  <p className='text-gray-600 mt-4'>Loading tasks...</p>
+                </div>
+              ) : activeTaskTab === "incomplete" && incompleteTasks.length === 0 ? (
                 <div className='text-center py-8'>
                   <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                    <ShoppingBag className='w-8 h-8 text-white' />
+                    <Trophy className='w-8 h-8 text-white' />
                   </div>
-                  <h3 className='text-xl font-bold text-gray-800 mb-2'>Coming Soon! 🛍️</h3>
-                  <p className='text-gray-600'>The shop will open soon with lots of surprises!</p>
+                  <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
+                  <p className='text-gray-600'>You've completed all your tasks today!</p>
+                </div>
+              ) : activeTaskTab === "completed" && completedTasksArr.length === 0 ? (
+                <div className='text-center py-8'>
+                  <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                    <Target className='w-8 h-8 text-white' />
+                  </div>
+                  <h3 className='text-xl font-bold text-gray-800 mb-2'>No completed tasks yet</h3>
+                  <p className='text-gray-600'>Complete some tasks to see them here!</p>
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  {(activeTaskTab === "incomplete" ? incompleteTasks : completedTasksArr).map((task, index) => (
+                    <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
+                      <div className='flex items-center justify-between'>
+                        <div className='flex-1'>
+                          <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
+                          {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
+                          <div className='flex items-center gap-2 mt-2'>
+                            <Coins className='w-4 h-4 text-yellow-500' />
+                            <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
+                          </div>
+                        </div>
+                        {activeTaskTab === "incomplete" ? (
+                          <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            Complete! ✨
+                          </motion.button>
+                        ) : (
+                          <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            Undo
+                          </motion.button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pending Approval Section */}
+            {pendingApprovalTasks.length > 0 && (
+              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+                <div className='flex items-center gap-3 mb-6'>
+                  <div className='bg-gradient-to-br from-yellow-200 to-orange-200 rounded-xl p-2'>
+                    <CheckCircle className='w-6 h-6 text-white' />
+                  </div>
+                  <h2 className='text-2xl font-bold text-gray-800'>Waiting for Parent Approval</h2>
+                </div>
+                <div className='space-y-4'>
+                  {pendingApprovalTasks.map(task => (
+                    <div key={task._id} className='bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border-l-4 border-yellow-300 flex items-center justify-between'>
+                      <div>
+                        <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
+                        <p className='text-sm text-gray-600'>{task.description}</p>
+                      </div>
+                      <span className='text-yellow-600 font-bold'>Pending Approval</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeSection === "pet" && (
+          <motion.div key='pet' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='w-full flex flex-col items-center justify-center min-h-[60vh] p-0 m-0'>
+            {/* Pet board full width, centered */}
+            <div className='w-full flex flex-col items-center justify-center'>
+              <VirtualPet animal={animal} setAnimal={setAnimal} />
+            </div>
+          </motion.div>
+        )}
+
+        {activeSection === "shop" && (
+          <motion.div key='shop' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
+            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+              <div className='flex items-center gap-3 mb-6'>
+                <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
+                  <ShoppingBag className='w-6 h-6 text-white' />
+                </div>
+                <h2 className='text-2xl font-bold text-gray-800'>Pet Shop</h2>
+              </div>
+
+              <div className='text-center py-8'>
+                <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                  <ShoppingBag className='w-8 h-8 text-white' />
+                </div>
+                <h3 className='text-xl font-bold text-gray-800 mb-2'>Coming Soon! 🛍️</h3>
+                <p className='text-gray-600'>The shop will open soon with lots of surprises!</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Toaster />
     </div>

@@ -1,4 +1,4 @@
-export type UserRole = 'parent' | 'child';
+export type UserRole = "parent" | "child";
 
 export interface User {
   id: string;
@@ -15,6 +15,9 @@ export interface Task {
   description: string;
   reward: number;
   completed: boolean;
+  approved: boolean;
+  completedAt?: string;
+  approvedAt?: string;
   child: string;
 }
 
@@ -32,7 +35,7 @@ export interface Animal {
   };
   accessories: Array<{
     _id: string;
-    type: 'hat' | 'collar' | 'toy' | 'bed' | 'food';
+    type: "hat" | "collar" | "toy" | "bed" | "food";
     name: string;
     price: number;
     equipped: boolean;
@@ -40,4 +43,4 @@ export interface Animal {
   lastFed: string;
   lastPlayed: string;
   lastSlept: string;
-} 
+}
