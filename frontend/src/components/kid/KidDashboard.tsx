@@ -12,6 +12,7 @@ import { getTasks, completeTask, undoTask } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Toaster } from "../ui/toaster";
 import { Star, Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut } from "lucide-react";
+import Notifications from "../notifications/Notifications";
 
 const KidDashboard = () => {
   const navigate = useNavigate();
@@ -334,6 +335,12 @@ const KidDashboard = () => {
               <Coins className='w-5 h-5 text-yellow-500' />
               <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
             </motion.div>
+
+            {/* Notifications */}
+            <div className='relative z-50'>
+              <Notifications childId={userId} token={token} />
+            </div>
+
             <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <LogOut className='w-5 h-5 text-gray-600' />
             </motion.button>
@@ -342,7 +349,7 @@ const KidDashboard = () => {
       </motion.div>
 
       {/* Main content */}
-      <div className='relative z-10 px-6 pb-6'>
+      <div className='relative z-0 px-6 pb-6'>
         <AnimatePresence mode='wait'>
           {activeSection === "tasks" && (
             <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='space-y-6'>

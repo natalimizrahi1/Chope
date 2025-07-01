@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Bell, X, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { getTasks } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Notification {
   id: string;
@@ -185,10 +186,10 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
   return (
     <div className='relative'>
       {/* Notification Bell Button */}
-      <Button
-        variant='ghost'
-        size='icon'
-        className='relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg'
+      <motion.button
+        className='relative bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:bg-white transition-colors'
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => {
           // If panel is open, close it and mark notifications as read
           if (isOpen) {
@@ -197,56 +198,79 @@ const Notifications = ({ childId, token }: NotificationsProps) => {
 
           setIsOpen(!isOpen);
           setShowBadge(false);
-        }}
-      >
-        <Bell className='w-5 h-5' />
-        {showBadge && unreadCount > 0 && <Badge className='absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white border-0'>{unreadCount > 9 ? "9+" : unreadCount}</Badge>}
-      </Button>
+        }}>
+        <Bell className='w-5 h-5 text-gray-600' />
+        {showBadge && unreadCount > 0 && <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold'>{unreadCount > 9 ? "9+" : unreadCount}</span>}
+      </motion.button>
 
       {/* Notification Panel */}
-      {isOpen && (
-        <div className='absolute right-0 top-12 w-96 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 max-h-[500px] overflow-hidden'>
-          <div className='p-4 bg-gradient-to-r from-purple-50 to-blue-50'>
-            <div className='flex items-center justify-between mb-3'>
-              <h3 className='text-lg font-semibold text-gray-900'>Notifications</h3>
-            </div>
-
-            {notifications.length === 0 ? (
-              <div className='text-center text-gray-500'>
-                <Bell className='w-8 h-8 mx-auto mb-2 opacity-50' />
-                <p>No new notifications</p>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} transition={{ duration: 0.2 }} className='absolute right-0 top-14 w-80 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 max-h-[500px] overflow-hidden' style={{ zIndex: 999999 }}>
+            <div className='p-4'>
+              {/* Header */}
+              <div className='flex items-center justify-between mb-4'>
+                <div className='flex items-center gap-2'>
+                  <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                    <Bell className='w-4 h-4 text-white' />
+                  </div>
+                  <h3 className='text-lg font-bold text-gray-800'>Notifications</h3>
+                </div>
+                <div className='flex items-center gap-2'>
+                  {unreadCount > 0 && <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] text-white text-xs px-2 py-1 rounded-full font-bold'>{unreadCount} new</div>}
+                  <span className='text-sm text-gray-500'>{notifications.length} total</span>
+                </div>
               </div>
-            ) : (
-              <div className='max-h-64 overflow-y-auto'>
-                <div className='space-y-2'>
-                  {notifications.map(notification => (
-                    <div key={notification.id} className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${!notification.read ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}`} onClick={() => markAsRead(notification.id)}>
-                      <div className='flex items-start gap-3'>
+
+              {notifications.length === 0 ? (
+                <div className='text-center py-8'>
+                  <motion.div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4' animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+                    <span className='text-2xl'>🔔</span>
+                  </motion.div>
+                  <h3 className='text-lg font-bold text-gray-800 mb-2'>All caught up! 🎉</h3>
+                  <p className='text-gray-600 text-sm'>No new notifications</p>
+                  <p className='text-gray-500 text-xs mt-1'>You're doing great!</p>
+                </div>
+              ) : (
+                <div className='max-h-64 overflow-y-auto space-y-3 pr-2'>
+                  {notifications.map((notification, index) => (
+                    <motion.div key={notification.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }} className={`relative overflow-hidden rounded-xl border transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] ${!notification.read ? "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-blue-200 shadow-md" : "bg-white border-gray-200 hover:bg-gray-50"}`} onClick={() => markAsRead(notification.id)}>
+                      {/* Unread indicator line */}
+                      {!notification.read && <div className='absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#87d4ee] to-[#4ec3f7]'></div>}
+                      <div className='flex items-start gap-3 p-4'>
                         {/* Icon */}
-                        <div className='w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-400 rounded-lg flex items-center justify-center flex-shrink-0'>
-                          <span className='text-white text-sm'>📝</span>
+                        <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-lg mt-1 ${!notification.read ? "bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7]" : "bg-gray-100"}`}>
+                          <span className='text-base'>📝</span>
                         </div>
-
-                        {/* Content */}
-                        <div className='flex-1 min-w-0'>
-                          <h4 className='font-medium text-sm text-gray-900 mb-1 truncate'>{notification.title}</h4>
-                          <p className='text-xs text-gray-600 mb-2 line-clamp-2'>{notification.description}</p>
-
-                          {/* Time and status */}
-                          <div className='flex items-center justify-between'>
-                            <span className='text-xs text-gray-500'>{formatTime(notification.timestamp)}</span>
-                            {!notification.read && <div className='w-2 h-2 bg-blue-500 rounded-full'></div>}
+                        {/* Text block */}
+                        <div className='flex-1'>
+                          <div className='flex items-baseline gap-2'>
+                            <span className='font-bold text-sm text-gray-800'>{notification.title}</span>
+                            <span className='text-xs text-gray-500 font-medium'>{formatTime(notification.timestamp)}</span>
+                          </div>
+                          <div className='mt-1 ml-0 pl-0'>
+                            <span className='text-sm text-gray-600'>{notification.description}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              )}
+
+              {/* Footer */}
+              {notifications.length > 0 && (
+                <div className='mt-4 pt-3 border-t border-gray-200'>
+                  <div className='flex items-center justify-between text-xs text-gray-500'>
+                    <span>Click to mark as read</span>
+                    <span>{unreadCount} unread</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
