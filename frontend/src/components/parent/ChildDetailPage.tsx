@@ -7,9 +7,10 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, PawPrint, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
+import TaskCategorySelector from "./TaskCategorySelector";
 
 type Child = {
   _id: string;
@@ -26,6 +27,7 @@ export default function ChildDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [token] = useState(localStorage.getItem("token") || "");
   const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
   const { toast } = useToast();
 
   const loadChildData = async () => {
@@ -223,6 +225,7 @@ export default function ChildDetailPage() {
       });
 
       setNewTask({ title: "", description: "", reward: 0 });
+      setShowCategorySelector(false);
 
       await loadTasks();
 
@@ -257,6 +260,20 @@ export default function ChildDetailPage() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleTaskSelect = (taskTemplate: { title: string; description: string; reward: number; category: string }) => {
+    setNewTask({
+      title: taskTemplate.title,
+      description: taskTemplate.description,
+      reward: taskTemplate.reward,
+    });
+    setShowCategorySelector(false);
+  };
+
+  const handleCustomTask = (customTask: { title: string; description: string; reward: number }) => {
+    setNewTask(customTask);
+    setShowCategorySelector(false);
   };
 
   const handleApproveTask = async (taskId: string) => {
@@ -461,28 +478,46 @@ export default function ChildDetailPage() {
           {/* Create Task */}
           <Card>
             <CardHeader>
-              <CardTitle>Create New Task</CardTitle>
-              <CardDescription>Add a new task for {child.name}</CardDescription>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <CardTitle>Create New Task</CardTitle>
+                  <CardDescription>Add a new task for {child.name}</CardDescription>
+                </div>
+                <div className='flex gap-2'>
+                  <Button variant={showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(!showCategorySelector)}>
+                    <Grid className='w-4 h-4 mr-2' />
+                    Task Categories
+                  </Button>
+                  <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(false)}>
+                    <List className='w-4 h-4 mr-2' />
+                    Quick Create
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className='grid gap-4'>
-                <div className='grid gap-2'>
-                  <Label htmlFor='title'>Title</Label>
-                  <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' />
+              {showCategorySelector ? (
+                <TaskCategorySelector onTaskSelect={handleTaskSelect} onCustomTask={handleCustomTask} />
+              ) : (
+                <div className='grid gap-4'>
+                  <div className='grid gap-2'>
+                    <Label htmlFor='title'>Title</Label>
+                    <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' />
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label htmlFor='description'>Description</Label>
+                    <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label htmlFor='reward'>Reward (coins)</Label>
+                    <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' />
+                  </div>
+                  <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.description || newTask.reward <= 0}>
+                    <Plus className='mr-2 h-4 w-4' />
+                    Create Task
+                  </Button>
                 </div>
-                <div className='grid gap-2'>
-                  <Label htmlFor='description'>Description</Label>
-                  <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
-                </div>
-                <div className='grid gap-2'>
-                  <Label htmlFor='reward'>Reward (coins)</Label>
-                  <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' />
-                </div>
-                <Button onClick={handleCreateTask}>
-                  <Plus className='mr-2 h-4 w-4' />
-                  Create Task
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
 
