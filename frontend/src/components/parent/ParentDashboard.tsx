@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getChildren, getTasks } from "../../lib/api";
 import type { Animal } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
@@ -38,6 +38,7 @@ export default function ParentDashboard() {
     { name: "Total Children Coins", value: 0, color: "#4ECDC4" },
   ]);
   const { toast } = useToast();
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     // Check if user is logged in and is a parent
@@ -56,7 +57,9 @@ export default function ParentDashboard() {
     const loadChildren = async (showLoading = true) => {
       try {
         const childrenData = await getChildren(token);
-        setChildren(childrenData);
+        if (isMountedRef.current) {
+          setChildren(childrenData);
+        }
       } catch (error) {
         console.error("Failed to load children:", error);
         if (error instanceof Error && error.message.includes("401")) {
@@ -69,7 +72,10 @@ export default function ParentDashboard() {
 
     const checkPendingTasks = async () => {
       try {
-        const pendingTasksPromises = children.map(async child => {
+        const currentChildren = children; // Use current children state
+        if (currentChildren.length === 0) return;
+
+        const pendingTasksPromises = currentChildren.map(async child => {
           const tasks = await getTasks(token, child._id);
           const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
           return { childId: child._id, childName: child.name, pendingCount };
@@ -82,7 +88,9 @@ export default function ParentDashboard() {
           console.log(`Found ${totalPending} pending tasks across all children`);
         }
 
-        setPendingTasksCount(totalPending);
+        if (isMountedRef.current) {
+          setPendingTasksCount(totalPending);
+        }
         return pendingResults;
       } catch (error) {
         console.error("Failed to check pending tasks:", error);
@@ -91,7 +99,7 @@ export default function ParentDashboard() {
     };
 
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && isMountedRef.current) {
         loadChildren(false); // Silent refresh when returning to page
         checkPendingTasks();
       }
@@ -125,7 +133,7 @@ export default function ParentDashboard() {
 
     // Listen for storage events (when tasks are created or approved)
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === "lastTaskUpdate") {
+      if (event.key === "lastTaskUpdate" && isMountedRef.current) {
         console.log("Storage event: Task update detected, silently refreshing parent dashboard...");
         loadChildren(false);
         checkPendingTasks();
@@ -135,30 +143,35 @@ export default function ParentDashboard() {
     window.addEventListener("storage", handleStorage);
     // Set up interval to refresh children data only (not chart data)
     const interval = setInterval(() => {
-      getChildren(token)
-        .then(childrenData => {
-          setChildren(childrenData);
-          // Only update pending count, not chart data
-          updatePendingCountOnly();
-        })
-        .catch(error => {
-          console.error("Failed to refresh children:", error);
-        });
+      if (isMountedRef.current) {
+        getChildren(token)
+          .then(childrenData => {
+            if (isMountedRef.current) {
+              setChildren(childrenData);
+              // Only update pending count, not chart data
+              updatePendingCountOnly();
+            }
+          })
+          .catch(error => {
+            console.error("Failed to refresh children:", error);
+          });
+      }
     }, 30000);
 
     return () => {
+      isMountedRef.current = false;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("storage", handleStorage);
       clearInterval(interval);
     };
-  }, [token, navigate, toast, children]);
+  }, [token, navigate, toast]); // Removed 'children' from dependencies
 
   // Load initial chart data when children are loaded (only once)
   useEffect(() => {
     if (children.length > 0 && token) {
       checkPendingTasks();
     }
-  }, [children, token]); // Remove token from dependencies to prevent re-runs
+  }, [children, token]); // Keep this one as it only runs when children change
 
   // Map children to the format required by AppSidebar/NavDocuments
   const childrenList = children.map(child => ({

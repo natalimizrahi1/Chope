@@ -96,39 +96,7 @@ export default function ChildDetailPage() {
         setLoading(true);
       }
       const tasksData = await getTasks(token, childId);
-      tasksData.forEach((task: Task, index: number) => {
-        console.log(`Task ${index + 1}:`, {
-          id: task._id,
-          title: task.title,
-          category: task.category || "MISSING CATEGORY",
-          createdAt: task.createdAt,
-          completed: task.completed,
-          approved: task.approved,
-        });
-
-        // Check if task is missing category
-        if (!task.category) {
-          console.warn(`Task "${task.title}" is missing category field!`);
-        }
-
-        // Check if task is missing createdAt
-        if (!task.createdAt) {
-          console.warn(`Task "${task.title}" is missing createdAt field!`);
-        } else {
-          const taskDate = new Date(task.createdAt);
-          if (isNaN(taskDate.getTime())) {
-            console.warn(`Task "${task.title}" has invalid createdAt date: ${task.createdAt}`);
-          } else {
-            // Check if date is in the future (which would be suspicious)
-            const now = new Date();
-            if (taskDate > now) {
-              console.warn(`Task "${task.title}" has future date: ${task.createdAt} (${taskDate.toLocaleDateString()})`);
-            }
-          }
-        }
-      });
-      console.log("=== END LOADED TASKS ===");
-
+      // Removed console.log loop to prevent infinite rendering
       setTasks(tasksData);
     } catch (error) {
       console.error("Failed to load tasks:", error);
@@ -196,7 +164,10 @@ export default function ChildDetailPage() {
     }
   }, [child, token]);
 
+  // Single useEffect for all auto-refresh and event handling
   useEffect(() => {
+    if (!childId || !token) return;
+
     const loadData = async () => {
       await loadChildData(true);
       await loadTasks(true);
@@ -212,8 +183,8 @@ export default function ChildDetailPage() {
         const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
         const currentTime = Date.now();
 
-        // If more than 5 seconds have passed since last update, refresh silently
-        if (currentTime - lastUpdateTime > 5000) {
+        // If more than 10 seconds have passed since last update, refresh silently
+        if (currentTime - lastUpdateTime > 10000) {
           console.log("Auto-refreshing child detail page silently...");
           await silentRefreshAll();
         }
@@ -222,8 +193,8 @@ export default function ChildDetailPage() {
       }
     };
 
-    // Set up auto-refresh every 5 seconds
-    const interval = setInterval(autoRefresh, 5000);
+    // Set up auto-refresh every 10 seconds
+    const interval = setInterval(autoRefresh, 10000);
 
     // Listen for visibility changes to refresh when returning to page
     const handleVisibilityChange = () => {
@@ -259,125 +230,14 @@ export default function ChildDetailPage() {
     window.addEventListener("taskCreated", handleTaskCreated);
     window.addEventListener("taskApproved", handleTaskApproved);
 
-    // Listen for immediate refresh requests
-    const handleImmediateRefresh = () => {
-      console.log("Immediate refresh requested for child detail page...");
-      silentRefreshAll();
-    };
-
-    window.addEventListener("refreshChildDetail", handleImmediateRefresh);
-
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("taskCreated", handleTaskCreated);
       window.removeEventListener("taskApproved", handleTaskApproved);
-      window.removeEventListener("refreshChildDetail", handleImmediateRefresh);
     };
-  }, [loadChildData, loadTasks]);
-
-  // Load initial data
-  useEffect(() => {
-    if (childId && token) {
-      loadChildData();
-      loadTasks();
-
-      // Check for new tasks in localStorage on mount
-      const newTaskInfo = localStorage.getItem("newTaskCreated");
-      if (newTaskInfo) {
-        try {
-          const taskInfo = JSON.parse(newTaskInfo);
-          if (taskInfo.childId === childId) {
-            // Refresh tasks immediately
-            loadTasks().then(() => {
-              localStorage.setItem("cachedTasks", JSON.stringify(tasks));
-              localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
-            });
-
-            // Clear the localStorage item
-            localStorage.removeItem("newTaskCreated");
-          }
-        } catch (error) {
-          console.error("Failed to parse new task info on mount:", error);
-        }
-      }
-    }
-  }, [childId, token]);
-
-  // Force refresh tasks after task creation
-  useEffect(() => {
-    const handleTaskCreated = () => {
-      if (childId && token) {
-        loadTasks();
-      }
-    };
-
-    window.addEventListener("taskCreated", handleTaskCreated);
-    return () => {
-      window.removeEventListener("taskCreated", handleTaskCreated);
-    };
-  }, [childId, token]);
-
-  // Listen for storage changes to refresh tasks immediately
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "newTaskCreated" && event.newValue && childId) {
-        try {
-          const taskInfo = JSON.parse(event.newValue);
-          if (taskInfo.childId === childId) {
-            loadTasks();
-            localStorage.removeItem("newTaskCreated");
-          }
-        } catch (error) {
-          console.error("Failed to parse new task info from storage:", error);
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [childId]);
-
-  // Force immediate refresh after task creation
-  useEffect(() => {
-    const handleImmediateRefresh = () => {
-      if (childId && token) {
-        setTimeout(() => {
-          loadTasks();
-        }, 100); // Small delay to ensure server has processed the task
-      }
-    };
-
-    window.addEventListener("taskCreated", handleImmediateRefresh);
-    return () => {
-      window.removeEventListener("taskCreated", handleImmediateRefresh);
-    };
-  }, [childId, token]);
-
-  // Check for new tasks every 2 seconds as backup
-  useEffect(() => {
-    if (!childId || !token) return;
-
-    const interval = setInterval(() => {
-      const newTaskInfo = localStorage.getItem("newTaskCreated");
-      if (newTaskInfo) {
-        try {
-          const taskInfo = JSON.parse(newTaskInfo);
-          if (taskInfo.childId === childId) {
-            loadTasks();
-            localStorage.removeItem("newTaskCreated");
-          }
-        } catch (error) {
-          console.error("Failed to parse new task info in backup check:", error);
-        }
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [childId, token]);
+  }, [childId, token]); // Only depend on childId and token
 
   const handleCreateTask = async () => {
     if (!child) return;
@@ -1103,59 +963,50 @@ export default function ChildDetailPage() {
                       ) : null}
                     </div>
                     <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-                      {filteredTasks.map(task => {
-                        console.log("Rendering task:", {
-                          id: task._id,
-                          title: task.title,
-                          completed: task.completed,
-                          approved: task.approved,
-                          showDeleteButton: !task.completed,
-                        });
-                        return (
-                          <Card key={task._id}>
-                            <CardHeader>
-                              <div className='flex items-center justify-between'>
-                                <div className='flex items-center gap-2'>
-                                  {!task.completed && (
-                                    <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
-                                      <XCircle className='w-4 h-4' />
-                                    </Button>
-                                  )}
-                                  <CardTitle className='text-sm'>{task.title}</CardTitle>
-                                </div>
-                                {getTaskStatusIcon(task)}
-                              </div>
-                              <CardDescription>{task.description}</CardDescription>
-                              <div className='flex items-center justify-between'>
-                                <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                                {getCategoryBadge(task.category || "custom")}
-                                {getTaskStatusBadge(task)}
-                              </div>
-                              <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
-                            </CardHeader>
-                            <CardContent>
-                              {task.completed && !task.approved && (
-                                <div className='flex gap-2'>
-                                  <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
-                                    <CheckCircle className='w-3 h-3 mr-1' />
-                                    Approve
+                      {filteredTasks.map(task => (
+                        <Card key={task._id}>
+                          <CardHeader>
+                            <div className='flex items-center justify-between'>
+                              <div className='flex items-center gap-2'>
+                                {!task.completed && (
+                                  <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
+                                    <XCircle className='w-4 h-4' />
                                   </Button>
-                                  <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
-                                    <XCircle className='w-3 h-3 mr-1' />
-                                    Reject
-                                  </Button>
-                                </div>
-                              )}
-                              {task.approved && (
-                                <div className='flex gap-2'>
-                                  <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
-                                </div>
-                              )}
-                              {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                                )}
+                                <CardTitle className='text-sm'>{task.title}</CardTitle>
+                              </div>
+                              {getTaskStatusIcon(task)}
+                            </div>
+                            <CardDescription>{task.description}</CardDescription>
+                            <div className='flex items-center justify-between'>
+                              <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                              {getCategoryBadge(task.category || "custom")}
+                              {getTaskStatusBadge(task)}
+                            </div>
+                            <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
+                          </CardHeader>
+                          <CardContent>
+                            {task.completed && !task.approved && (
+                              <div className='flex gap-2'>
+                                <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
+                                  <CheckCircle className='w-3 h-3 mr-1' />
+                                  Approve
+                                </Button>
+                                <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
+                                  <XCircle className='w-3 h-3 mr-1' />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                            {task.approved && (
+                              <div className='flex gap-2'>
+                                <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
+                              </div>
+                            )}
+                            {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </div>
                 </div>
