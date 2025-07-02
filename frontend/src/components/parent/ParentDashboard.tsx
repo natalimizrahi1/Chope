@@ -269,12 +269,7 @@ export default function ParentDashboard() {
           <div className='@container/main flex flex-1 flex-col gap-2'>
             <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
               {/* Notifications for Parent */}
-              {children.length > 0 && (
-                <div className='px-4 lg:px-6 flex justify-end'>
-                  <Notifications childId={children[0]._id} token={token} userRole='parent' />
-                </div>
-              )}
-
+              {/* REMOVED: Notifications panel for parent */}
               {/* Pending Tasks Notification */}
               {pendingTasksCount > 0 && (
                 <div className='px-4 lg:px-6'>

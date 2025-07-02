@@ -20,13 +20,13 @@ const handleResponse = async (response: Response) => {
 };
 
 // Auth API functions
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, role: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, role }),
   });
 
   return handleResponse(response);
