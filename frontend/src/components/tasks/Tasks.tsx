@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Moon, Bell, Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, XCircle, Target } from "lucide-react";
+import { Search, Moon, Bell, Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, Target, Filter } from "lucide-react";
 import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Task } from "../../lib/types";
 import { getTasks, completeTask, undoTask, getChildCoins, unapproveTask } from "../../lib/api";
@@ -11,6 +9,20 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../ui/use-toast";
 import { Toaster } from "../ui/toaster";
 import Notifications from "../notifications/Notifications";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+const taskCategories = [
+  { id: "all", name: "All Categories", color: "bg-gray-100 text-gray-800" },
+  { id: "household", name: "Household Chores", color: "bg-blue-100 text-blue-800" },
+  { id: "education", name: "Education & Learning", color: "bg-green-100 text-green-800" },
+  { id: "kitchen", name: "Kitchen & Cooking", color: "bg-orange-100 text-orange-800" },
+  { id: "health", name: "Health & Hygiene", color: "bg-red-100 text-red-800" },
+  { id: "fitness", name: "Sports & Fitness", color: "bg-purple-100 text-purple-800" },
+  { id: "creative", name: "Creative Activities", color: "bg-pink-100 text-pink-800" },
+  { id: "music", name: "Music & Entertainment", color: "bg-indigo-100 text-indigo-800" },
+  { id: "nature", name: "Nature & Outdoors", color: "bg-emerald-100 text-emerald-800" },
+  { id: "custom", name: "Custom Tasks", color: "bg-gray-100 text-gray-800" },
+];
 
 const Tasks = () => {
   const navigate = useNavigate();
@@ -18,10 +30,291 @@ const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCoins, setTotalCoins] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedTime, setSelectedTime] = useState("all");
 
-  const incompleteTasks = tasks.filter((task: Task) => !task.completed);
-  const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
-  const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
+  // Filter tasks by selected category, status, and time
+  const filteredTasks = tasks.filter((task: Task) => {
+    // Category filter
+    const taskCategory = task.category || "custom"; // Default to "custom" if missing
+    const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
+
+    // Status filter
+    let statusMatch = true;
+    if (selectedStatus === "completed") {
+      statusMatch = task.completed && !task.approved;
+    } else if (selectedStatus === "approved") {
+      statusMatch = task.completed && task.approved;
+    } else if (selectedStatus === "incomplete") {
+      statusMatch = !task.completed;
+    }
+
+    // Time filter
+    let timeMatch = true;
+    if (selectedTime !== "all") {
+      const taskDate = new Date(task.createdAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      if (selectedTime === "today") {
+        timeMatch = taskDate >= today;
+      } else if (selectedTime === "week") {
+        timeMatch = taskDate >= weekAgo;
+      } else if (selectedTime === "month") {
+        timeMatch = taskDate >= monthAgo;
+      } else if (selectedTime === "older") {
+        timeMatch = taskDate < monthAgo;
+      }
+    }
+
+    // Debug logging
+    if (selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") {
+      console.log(`Task: ${task.title}`, {
+        category: task.category || "MISSING",
+        taskCategory: taskCategory,
+        selectedCategory,
+        categoryMatch,
+        status: `${task.completed ? "completed" : "incomplete"}${task.approved ? " approved" : ""}`,
+        selectedStatus,
+        statusMatch,
+        createdAt: task.createdAt,
+        taskDate: new Date(task.createdAt),
+        selectedTime,
+        timeMatch,
+        finalResult: categoryMatch && statusMatch && timeMatch,
+      });
+    }
+
+    return categoryMatch && statusMatch && timeMatch;
+  });
+
+  const incompleteTasks = filteredTasks.filter((task: Task) => !task.completed);
+  const completedTasksArr = filteredTasks.filter((task: Task) => task.completed);
+  const pendingApprovalTasks = filteredTasks.filter((task: Task) => task.completed && !task.approved);
+  const approvedTasks = filteredTasks.filter((task: Task) => task.completed && task.approved);
+
+  // Function definitions
+  const loadTasks = async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        toast({
+          title: "Error",
+          description: "Error: Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      console.log("Loading tasks for user ID:", user.id);
+
+      const tasksData = await getTasks(token, user.id);
+      console.log("=== LOADED TASKS ===");
+      tasksData.forEach((task: Task, index: number) => {
+        console.log(`Task ${index + 1}:`, {
+          id: task._id,
+          title: task.title,
+          category: task.category || "MISSING CATEGORY",
+          createdAt: task.createdAt,
+          completed: task.completed,
+          approved: task.approved,
+        });
+
+        // Check if task is missing category
+        if (!task.category) {
+          console.warn(`Task "${task.title}" is missing category field!`);
+        }
+      });
+      console.log("=== END LOADED TASKS ===");
+      setTasks(tasksData);
+      console.log("Tasks loaded successfully:", tasksData);
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadCoins = async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      console.log("Loading coins for user:", user.id);
+
+      const coinsData = await getChildCoins(token, user.id);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+      console.log("Coins loaded successfully:", coinsData.coins);
+    } catch (error) {
+      console.error("Failed to load coins:", error);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Silent refresh function for background updates
+  const silentRefreshTasks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const tasksData = await getTasks(token, user.id);
+      setTasks(tasksData);
+    } catch (error) {
+      console.error("Failed to silent refresh tasks:", error);
+    }
+  };
+
+  // Silent refresh function for coins
+  const silentRefreshCoins = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const coinsData = await getChildCoins(token, user.id);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+    } catch (error) {
+      console.error("Failed to silent refresh coins:", error);
+    }
+  };
+
+  // Silent refresh for both tasks and coins
+  const silentRefreshAll = async () => {
+    await silentRefreshTasks();
+    await silentRefreshCoins();
+  };
+
+  const handleCoinUpdate = async () => {
+    await loadCoins();
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        toast({
+          title: "Error",
+          description: "Error: Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const userId = user.id;
+
+      await completeTask(token, taskId);
+      await silentRefreshTasks();
+
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
+      toast({
+        title: "Task Sent for Approval",
+        description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
+      });
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+      toast({
+        title: "Error completing task",
+        description: "There was an error completing the task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUndoTask = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const userId = user.id;
+
+      await undoTask(token, taskId);
+      await silentRefreshTasks();
+
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
+      toast({
+        title: "Task Undone",
+        description: "The task has been undone and sent back to remaining tasks.",
+      });
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
+    } catch (error) {
+      console.error("Failed to undo task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to undo task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     loadTasks(true);
@@ -285,207 +578,6 @@ const Tasks = () => {
     };
   }, []);
 
-  const loadTasks = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        console.error("No token or user found");
-        toast({
-          title: "Error",
-          description: "Error: Please log in again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      console.log("Loading tasks for user:", user.id);
-
-      const tasksData = await getTasks(token, user.id);
-      setTasks(tasksData);
-      console.log("Tasks loaded successfully:", tasksData);
-    } catch (error) {
-      console.error("Failed to load tasks:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load tasks. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Silent refresh function for background updates
-  const silentRefreshTasks = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      const tasksData = await getTasks(token, user.id);
-      setTasks(tasksData);
-    } catch (error) {
-      console.error("Failed to silent refresh tasks:", error);
-    }
-  };
-
-  const loadCoins = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        console.error("No token or user found");
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      console.log("Loading coins for user:", user.id);
-
-      const coinsData = await getChildCoins(token, user.id);
-      setTotalCoins(coinsData.coins);
-      localStorage.setItem("currentCoins", coinsData.coins.toString());
-      console.log("Coins loaded successfully:", coinsData.coins);
-    } catch (error) {
-      console.error("Failed to load coins:", error);
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Silent refresh function for coins
-  const silentRefreshCoins = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      const coinsData = await getChildCoins(token, user.id);
-      setTotalCoins(coinsData.coins);
-      localStorage.setItem("currentCoins", coinsData.coins.toString());
-    } catch (error) {
-      console.error("Failed to silent refresh coins:", error);
-    }
-  };
-
-  // Silent refresh for both tasks and coins
-  const silentRefreshAll = async () => {
-    await silentRefreshTasks();
-    await silentRefreshCoins();
-  };
-
-  const handleCoinUpdate = async () => {
-    await loadCoins();
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        console.error("No token or user found");
-        toast({
-          title: "Error",
-          description: "Error: Please log in again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      const userId = user.id;
-
-      await completeTask(token, taskId);
-      await silentRefreshTasks();
-
-      // Update last task update time
-      const currentTime = Date.now();
-      localStorage.setItem("lastTaskUpdate", currentTime.toString());
-
-      toast({
-        title: "Task Sent for Approval",
-        description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
-      });
-
-      // Dispatch event to notify other components
-      window.dispatchEvent(
-        new CustomEvent("taskCompleted", {
-          detail: { taskId, childId: userId, timestamp: currentTime },
-        })
-      );
-    } catch (error) {
-      console.error("Failed to complete task:", error);
-      toast({
-        title: "Error completing task",
-        description: "There was an error completing the task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUndoTask = async (taskId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      if (!token || !userStr) {
-        console.error("No token or user found");
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      const userId = user.id;
-
-      await undoTask(token, taskId);
-      await silentRefreshTasks();
-
-      // Update last task update time
-      const currentTime = Date.now();
-      localStorage.setItem("lastTaskUpdate", currentTime.toString());
-
-      toast({
-        title: "Task Undone",
-        description: "The task has been undone and sent back to remaining tasks.",
-      });
-
-      // Dispatch event to notify other components
-      window.dispatchEvent(
-        new CustomEvent("taskCompleted", {
-          detail: { taskId, childId: userId, timestamp: currentTime },
-        })
-      );
-    } catch (error) {
-      console.error("Failed to undo task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to undo task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleUnapproveTask = async (taskId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -553,6 +645,13 @@ const Tasks = () => {
   const handleRefreshClick = () => {
     loadTasks(true);
     loadCoins(true);
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const categoryInfo = taskCategories.find(cat => cat.id === category);
+    if (!categoryInfo) return null;
+
+    return <Badge className={`${categoryInfo.color} text-xs`}>{categoryInfo.name}</Badge>;
   };
 
   return (
@@ -655,6 +754,71 @@ const Tasks = () => {
           <div className='grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6'>
             {/* Main Content */}
             <div className='lg:col-span-3 space-y-6 lg:space-y-8'>
+              {/* Filters */}
+              <Card className='shadow-none bg-white'>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <CardTitle className='text-lg lg:text-xl'>Filter Tasks</CardTitle>
+                    <div className='flex items-center gap-2'>
+                      <Filter className='w-4 h-4 text-muted-foreground' />
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className='w-40'>
+                          <SelectValue placeholder='Category' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {taskCategories.map(category => (
+                            <SelectItem key={category.id} value={category.id}>
+                              <div className='flex items-center gap-2'>
+                                <div className={`w-3 h-3 rounded-full ${category.color.replace("bg-", "bg-").replace(" text-", "")}`}></div>
+                                {category.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger className='w-36'>
+                          <SelectValue placeholder='Status' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value='all'>All Status</SelectItem>
+                          <SelectItem value='incomplete'>Incomplete</SelectItem>
+                          <SelectItem value='completed'>Pending Approval</SelectItem>
+                          <SelectItem value='approved'>Approved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedTime} onValueChange={setSelectedTime}>
+                        <SelectTrigger className='w-36'>
+                          <SelectValue placeholder='Time' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value='all'>All Time</SelectItem>
+                          <SelectItem value='today'>Today</SelectItem>
+                          <SelectItem value='week'>Last Week</SelectItem>
+                          <SelectItem value='month'>Last Month</SelectItem>
+                          <SelectItem value='older'>Older than Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") && (
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => {
+                            setSelectedCategory("all");
+                            setSelectedStatus("all");
+                            setSelectedTime("all");
+                          }}>
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className='text-sm text-muted-foreground'>
+                    Showing {filteredTasks.length} of {tasks.length} tasks
+                  </div>
+                </CardHeader>
+              </Card>
+
               {/* Incomplete Tasks Section */}
               <Card className='shadow-none bg-white'>
                 <CardHeader>
@@ -697,6 +861,8 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
+                              <div className='mt-1'>{getCategoryBadge(task.category || "custom")}</div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button className='mt-2 w-full text-[10px] lg:text-xs py-1' onClick={() => handleCompleteTask(task._id)}>
                               Complete
@@ -732,6 +898,7 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button variant='outline' className='mt-2 w-full text-[10px] lg:text-xs py-1 px-2 lg:px-3' onClick={() => handleUndoTask(task._id)}>
                               Undo
@@ -780,6 +947,7 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button variant='outline' className='mt-2 w-full text-[10px] lg:text-xs py-1 px-2 lg:px-3' onClick={() => handleUnapproveTask(task._id)}>
                               Undo
