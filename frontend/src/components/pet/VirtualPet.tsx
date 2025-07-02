@@ -123,7 +123,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     if (savedPet) {
       try {
         const parsedPet = JSON.parse(savedPet);
-        setAnimal(parsedPet);
+        // Ensure pet always has fixed scale
+        const petWithFixedScale = {
+          ...parsedPet,
+          scale: 0.7,
+        };
+        setAnimal(petWithFixedScale);
       } catch (error) {
         console.error("Failed to parse saved pet:", error);
       }
@@ -167,7 +172,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     if (savedPet) {
       try {
         const parsedPet = JSON.parse(savedPet);
-        currentSetAnimal?.(parsedPet);
+        // Ensure pet always has fixed scale
+        const petWithFixedScale = {
+          ...parsedPet,
+          scale: 0.7,
+        };
+        currentSetAnimal?.(petWithFixedScale);
       } catch (error) {
         console.error("Failed to parse saved pet:", error);
       }
@@ -189,7 +199,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const [showAddedHeart, setShowAddedHeart] = useState(false);
   const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
   const isAllStatsEmpty = currentAnimal.stats.hunger <= 0 && currentAnimal.stats.happiness <= 0 && currentAnimal.stats.energy <= 0;
-  const [petScale, setPetScale] = useState(currentAnimal.scale ?? 0.5);
+  const [petScale, setPetScale] = useState(0.7); // Fixed size - smaller to avoid overlapping buttons
 
   const [displayedProgress, setDisplayedProgress] = useState(0);
   const [filledCount, setFilledCount] = useState(0);
@@ -270,7 +280,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     return () => clearInterval(interval);
   }, []);
 
-  const maxScale = 5;
+  // Removed maxScale - pet stays at fixed size
 
   useEffect(() => {
     // Initialize audio elements
@@ -448,14 +458,14 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   }, [donutLevel, starLevel, heartLevel]);
 
   const handleNextLevel = () => {
-    const newScale = Math.min(petScale + 0.05, maxScale);
-    setPetScale(newScale);
+    // Keep pet at fixed size - no growth
+    setPetScale(0.7);
 
     // Reset all stats to start new level
     currentSetAnimal?.(prev => ({
       ...prev,
       level: prev.level + 1,
-      scale: newScale,
+      scale: 0.7, // Fixed scale - smaller size
       stats: {
         hunger: 0,
         happiness: 0,

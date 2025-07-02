@@ -33,21 +33,43 @@ export default function PetShopInline() {
   const token = localStorage.getItem("token") || "";
 
   useEffect(() => {
-    const calculateCoins = async () => {
-      try {
-        const tasks = await getTasks(token, childId);
-        const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const availableCoins = totalCoins - spentCoins;
+    const loadCoins = () => {
+      // Load coins from localStorage first
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        setCoins(parseInt(savedCoins));
+      } else {
+        // If no saved coins, calculate them
+        const calculateCoins = async () => {
+          try {
+            const tasks = await getTasks(token, childId);
+            const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+            const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+            const availableCoins = totalCoins - spentCoins;
 
-        setCoins(availableCoins);
-        localStorage.setItem("currentCoins", availableCoins.toString());
-      } catch (error) {
-        console.error("Failed to calculate coins:", error);
+            setCoins(availableCoins);
+            localStorage.setItem("currentCoins", availableCoins.toString());
+          } catch (error) {
+            console.error("Failed to calculate coins:", error);
+          }
+        };
+
+        if (token && childId) calculateCoins();
       }
     };
 
-    if (token && childId) calculateCoins();
+    loadCoins();
+
+    // Set up interval to check for coin updates
+    const coinCheckInterval = setInterval(() => {
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        const newCoins = parseInt(savedCoins);
+        if (newCoins !== coins) {
+          setCoins(newCoins);
+        }
+      }
+    }, 1000); // Check every second
 
     // Load purchased items from localStorage
     const savedItems = localStorage.getItem("purchasedItems");
@@ -59,23 +81,19 @@ export default function PetShopInline() {
         console.error("Failed to load purchased items:", error);
       }
     }
-  }, [token, childId]);
+
+    return () => {
+      clearInterval(coinCheckInterval);
+    };
+  }, [token, childId, coins]);
 
   useEffect(() => {
     const handleTaskCompleted = () => {
-      const recalculateCoins = async () => {
-        try {
-          const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-          const availableCoins = totalCoins - spentCoins;
-          setCoins(availableCoins);
-          localStorage.setItem("currentCoins", availableCoins.toString());
-        } catch (error) {
-          console.error("Failed to recalculate coins:", error);
-        }
-      };
-      if (token && childId) recalculateCoins();
+      // Load coins from localStorage instead of recalculating
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) {
+        setCoins(parseInt(savedCoins));
+      }
     };
 
     const handleStorageChange = (e: StorageEvent) => {
@@ -89,14 +107,22 @@ export default function PetShopInline() {
       if (savedCoins) setCoins(parseInt(savedCoins));
     };
 
+    // Listen for coin updates from other components
+    const handleCoinUpdate = () => {
+      const savedCoins = localStorage.getItem("currentCoins");
+      if (savedCoins) setCoins(parseInt(savedCoins));
+    };
+
     window.addEventListener("taskCompleted", handleTaskCompleted);
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("coinsUpdated", handleCustomEvent);
+    window.addEventListener("coinsUpdated", handleCoinUpdate);
 
     return () => {
       window.removeEventListener("taskCompleted", handleTaskCompleted);
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("coinsUpdated", handleCustomEvent);
+      window.removeEventListener("coinsUpdated", handleCoinUpdate);
     };
   }, [token, childId]);
 
@@ -390,7 +416,8 @@ export default function PetShopInline() {
                     "opacity-50 cursor-not-allowed": !affordable,
                     "border-[#ffd986] ring-4 ring-[#ffbacc]/30": isSelected,
                     "border-transparent hover:border-[#87d4ee]": affordable && !isSelected,
-                  })}>
+                  })}
+                >
                   <div className='w-full h-24 overflow-hidden rounded-xl bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] mb-3 flex items-center justify-center'>
                     <img
                       src={item.image}
@@ -436,7 +463,8 @@ export default function PetShopInline() {
               className={clsx("text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2", {
                 "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7]": canAfford,
                 "bg-gray-400 cursor-not-allowed": !canAfford,
-              })}>
+              })}
+            >
               <ShoppingCart className='w-5 h-5' />
               {canAfford ? `Buy Now! (${totalCost} coins)` : `Need ${totalCost - coins} more coins`}
             </motion.button>
