@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById, unapproveTask } from "../../lib/api";
+import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById } from "../../lib/api";
 import type { Task, Animal } from "../../lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -352,24 +352,6 @@ export default function ChildDetailPage() {
     }
   };
 
-  const handleUnapproveTask = async (taskId: string) => {
-    try {
-      await unapproveTask(token, taskId);
-      await loadTasks();
-      await loadChildData(); // Refresh child data to get updated coins
-      toast({
-        title: "Task unapproved",
-        description: "The task has been unapproved and coins have been deducted.",
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to unapprove task",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (!child) {
     return (
       <div className='flex min-h-screen items-center justify-center'>
@@ -594,10 +576,6 @@ export default function ChildDetailPage() {
                             )}
                             {task.approved && (
                               <div className='flex gap-2'>
-                                <Button size='sm' variant='outline' className='flex-1' onClick={() => handleUnapproveTask(task._id)}>
-                                  <XCircle className='w-3 h-3 mr-1' />
-                                  Unapprove
-                                </Button>
                                 <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
                               </div>
                             )}
