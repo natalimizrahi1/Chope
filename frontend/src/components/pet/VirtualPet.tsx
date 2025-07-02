@@ -340,9 +340,33 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
   useEffect(() => {
     // Load purchased items from localStorage
-    const savedItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
-    console.log("Loaded items:", savedItems); // Debug log
-    setPurchasedItems(savedItems);
+    const loadItems = () => {
+      const savedItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
+      console.log("Loaded items:", savedItems); // Debug log
+      setPurchasedItems(savedItems);
+    };
+
+    loadItems();
+
+    // Listen for storage changes to update inventory
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "purchasedItems") {
+        loadItems();
+      }
+    };
+
+    // Listen for custom events from shop
+    const handleItemsUpdated = () => {
+      loadItems();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("itemsUpdated", handleItemsUpdated);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("itemsUpdated", handleItemsUpdated);
+    };
   }, []);
 
   // Simple coin management - load from localStorage and update on events
@@ -694,26 +718,75 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const hungerPercent = Math.max(0, Math.min(100, (currentAnimal.stats.hunger / STATS.MAX) * 100));
 
   const handleUseItem = (item: ShopItem) => {
-    // Remove one item from inventory first
+    // Find the item in purchased items
     const itemIndex = purchasedItems.findIndex(i => i.id === item.id);
-    if (itemIndex !== -1) {
-      const updatedItems = [...purchasedItems];
-      updatedItems.splice(itemIndex, 1);
-      setPurchasedItems(updatedItems);
-      localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
-    }
+    if (itemIndex === -1) return;
+
+    // Remove one item from inventory
+    const updatedItems = [...purchasedItems];
+    updatedItems.splice(itemIndex, 1);
+    setPurchasedItems(updatedItems);
+    localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
 
     // Handle the item based on its type
     switch (item.type) {
       case "food":
-        handleFeed();
+        // Use food item - increase hunger without spending coins
+        const newHunger = Math.min(100, localHunger + 25);
+        setLocalHunger(newHunger);
+        currentSetAnimal?.(prev => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            hunger: newHunger,
+          },
+        }));
+        setIsFeeding(true);
+        audioRefs.current.munch?.play().catch(() => {});
+        setTimeout(() => setIsFeeding(false), 1000);
+        flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
+        setShowAddedDonut(true);
+        setTimeout(() => setShowAddedDonut(false), 700);
         break;
+
       case "toy":
-        handlePlay();
+        // Use toy item - increase happiness without spending coins
+        const newHappiness = Math.min(100, localHappiness + 25);
+        setLocalHappiness(newHappiness);
+        currentSetAnimal?.(prev => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            happiness: newHappiness,
+          },
+        }));
+        setIsPlaying(true);
+        audioRefs.current.laugh?.play().catch(() => {});
+        setTimeout(() => setIsPlaying(false), 1000);
+        flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
+        setShowAddedStar(true);
+        setTimeout(() => setShowAddedStar(false), 700);
         break;
+
       case "energy":
-        handleHeal();
+        // Use energy item - increase energy without spending coins
+        const newEnergy = Math.min(100, localEnergy + 25);
+        setLocalEnergy(newEnergy);
+        currentSetAnimal?.(prev => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            energy: newEnergy,
+          },
+        }));
+        setIsHealing(true);
+        audioRefs.current.pill?.play().catch(() => {});
+        setTimeout(() => setIsHealing(false), 1000);
+        flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
+        setShowAddedHeart(true);
+        setTimeout(() => setShowAddedHeart(false), 700);
         break;
+
       case "accessory":
         // Toggle accessory
         const currentAccessories = currentAnimal.accessories || [];
@@ -723,26 +796,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         if (isWearing) {
           // Remove accessory - add back to inventory
           newAccessories = currentAccessories.filter(acc => acc.id !== item.id);
-          const updatedItems = [...purchasedItems, item];
-          setPurchasedItems(updatedItems);
-          localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
+          const updatedItemsWithAccessory = [...updatedItems, item];
+          setPurchasedItems(updatedItemsWithAccessory);
+          localStorage.setItem("purchasedItems", JSON.stringify(updatedItemsWithAccessory));
         } else {
           // Add accessory
           newAccessories = [...currentAccessories, item];
         }
 
-        // Update localStorage
+        // Update pet with new accessories
         const updatedPet = {
           ...currentAnimal,
           accessories: newAccessories,
         };
         localStorage.setItem("pet", JSON.stringify(updatedPet));
-
-        // Update state
         currentSetAnimal?.(updatedPet);
-        setLastTaskTime(Date.now()); // Reset inactivity timer
         break;
     }
+
+    setLastTaskTime(Date.now()); // Reset inactivity timer
+
+    // Show success message
+    const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
+    alert(message);
   };
 
   const handleRemoveAccessory = (accessory: ShopItem) => {
@@ -873,6 +949,9 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                             <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
                             <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
                           </div>
+                          <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
+                            Use
+                          </button>
                         </div>
                       );
                     })}

@@ -217,6 +217,7 @@ export default function PetShopInline() {
     localStorage.setItem("currentCoins", newCoins.toString());
     window.dispatchEvent(new CustomEvent("coinsUpdated"));
     window.dispatchEvent(new CustomEvent("coinsSpent", { detail: { amount: totalCost } }));
+    window.dispatchEvent(new CustomEvent("itemsUpdated"));
 
     // Update purchased items with quantities
     const currentPurchased = [...purchasedItems];
