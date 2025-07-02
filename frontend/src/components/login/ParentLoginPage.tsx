@@ -24,7 +24,6 @@ export default function ParentLoginPage() {
 
     try {
       const response = await login(formData.email, formData.password, "parent");
-      console.log("Login response:", response);
 
       // Store token in localStorage
       localStorage.setItem("token", response.token);

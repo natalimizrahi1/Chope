@@ -11,6 +11,10 @@ import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List } from "lucide-
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
+import { AppSidebar } from "../ui/app-sidebar";
+import { SiteHeader } from "../ui/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { IconUsers } from "@tabler/icons-react";
 
 type Child = {
   _id: string;
@@ -24,6 +28,7 @@ export default function ChildDetailPage() {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
   const [child, setChild] = useState<Child | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [token] = useState(localStorage.getItem("token") || "");
   const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
@@ -52,6 +57,17 @@ export default function ChildDetailPage() {
     }
   };
 
+  const loadChildren = async () => {
+    if (!token) return;
+
+    try {
+      const childrenData = await getChildren(token);
+      setChildren(childrenData);
+    } catch (error) {
+      console.error("Failed to load children:", error);
+    }
+  };
+
   const loadTasks = async () => {
     if (!childId) return;
 
@@ -77,10 +93,11 @@ export default function ChildDetailPage() {
       return;
     }
 
-    // Load child data
+    // Load child data and children list
     if (childId) {
       loadChildData();
     }
+    loadChildren();
   }, [childId, token, navigate, toast]);
 
   useEffect(() => {
@@ -276,6 +293,18 @@ export default function ChildDetailPage() {
     setShowCategorySelector(false);
   };
 
+  // Map children to the format required by AppSidebar/NavDocuments
+  const childrenList = children.map(child => ({
+    name: child.name,
+    url: child._id, // Use _id for navigation
+    icon: IconUsers,
+  }));
+
+  // Handler for navigating to child detail page
+  const handleChildSelect = (id: string) => {
+    navigate(`/parent/child/${id}`);
+  };
+
   const handleApproveTask = async (taskId: string) => {
     try {
       await approveTask(token, taskId);
@@ -376,197 +405,213 @@ export default function ChildDetailPage() {
   };
 
   return (
-    <div className='min-h-screen bg-background'>
-      {/* Main content */}
-      <div className='p-6'>
-        <div className='grid gap-6'>
-          {/* Child Info Cards */}
-          <div className='grid gap-4 md:grid-cols-3'>
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Total Tasks</CardTitle>
-                <Badge variant='secondary'>{totalTasks}</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-bold'>{approvedTasks.length}</div>
-                <p className='text-xs text-muted-foreground'>Tasks approved</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Progress</CardTitle>
-                <Badge variant='secondary'>{Math.round(progress)}%</Badge>
-              </CardHeader>
-              <CardContent>
-                <Progress value={progress} className='mt-2' />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Coins</CardTitle>
-                <Badge variant='secondary'>{child.coins}</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-bold'>{tasks.reduce((sum, task) => sum + (task.approved ? task.reward : 0), 0)}</div>
-                <p className='text-xs text-muted-foreground'>Earned from approved tasks</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Approved Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-bold'>{approvedTasks.length}</div>
-                <p className='text-xs text-muted-foreground'>Tasks approved</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Pending Approval</CardTitle>
-                {pendingApprovalTasks.length > 0 && <div className='bg-yellow-500 text-white text-xs px-2 py-1 rounded-full animate-pulse'>{pendingApprovalTasks.length} new</div>}
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-bold'>{pendingApprovalTasks.length}</div>
-                <p className='text-xs text-muted-foreground'>Waiting for approval</p>
-              </CardContent>
-            </Card>
-          </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant='inset' childrenList={childrenList} onChildSelect={handleChildSelect} />
+      <SidebarInset>
+        <SiteHeader />
+        <div className='flex flex-1 flex-col'>
+          <div className='@container/main flex flex-1 flex-col gap-2'>
+            <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
+              <div className='px-4 lg:px-6'>
+                <div className='grid gap-6'>
+                  {/* Child Info Cards */}
+                  <div className='grid gap-4 md:grid-cols-3'>
+                    <Card>
+                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                        <CardTitle className='text-sm font-medium'>Total Tasks</CardTitle>
+                        <Badge variant='secondary'>{totalTasks}</Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <div className='text-2xl font-bold'>{approvedTasks.length}</div>
+                        <p className='text-xs text-muted-foreground'>Tasks approved</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                        <CardTitle className='text-sm font-medium'>Progress</CardTitle>
+                        <Badge variant='secondary'>{Math.round(progress)}%</Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <Progress value={progress} className='mt-2' />
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                        <CardTitle className='text-sm font-medium'>Coins</CardTitle>
+                        <Badge variant='secondary'>{child.coins}</Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <div className='text-2xl font-bold'>{tasks.reduce((sum, task) => sum + (task.approved ? task.reward : 0), 0)}</div>
+                        <p className='text-xs text-muted-foreground'>Earned from approved tasks</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                        <CardTitle className='text-sm font-medium'>Approved Tasks</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className='text-2xl font-bold'>{approvedTasks.length}</div>
+                        <p className='text-xs text-muted-foreground'>Tasks approved</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                        <CardTitle className='text-sm font-medium'>Pending Approval</CardTitle>
+                        {pendingApprovalTasks.length > 0 && <div className='bg-yellow-500 text-white text-xs px-2 py-1 rounded-full animate-pulse'>{pendingApprovalTasks.length} new</div>}
+                      </CardHeader>
+                      <CardContent>
+                        <div className='text-2xl font-bold'>{pendingApprovalTasks.length}</div>
+                        <p className='text-xs text-muted-foreground'>Waiting for approval</p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-          {/* Child Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{child.name}</CardTitle>
-              <CardDescription>{child.email}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='grid gap-4'>
-                {child.animal ? (
+                  {/* Child Details */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{child.name}</CardTitle>
+                      <CardDescription>{child.email}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className='grid gap-4'>
+                        {child.animal ? (
+                          <div className='grid gap-4'>
+                            <div className='flex items-center justify-between'>
+                              <div className='flex items-center gap-2'>
+                                <PawPrint className='h-5 w-5 text-primary' />
+                                <span className='text-lg font-medium'>Pet</span>
+                              </div>
+                              <Badge variant='secondary' className='text-base px-3 py-1'>
+                                Level {child.animal.level}
+                              </Badge>
+                            </div>
+                            <div className='grid gap-2'>
+                              <div className='flex items-center justify-between'>
+                                <span className='text-sm text-muted-foreground'>Name</span>
+                                <span className='font-medium'>{child.animal.name}</span>
+                              </div>
+                              <div className='flex items-center justify-between'>
+                                <span className='text-sm text-muted-foreground'>Type</span>
+                                <Badge variant='outline' className='capitalize'>
+                                  {child.animal.type}
+                                </Badge>
+                              </div>
+                              <div className='flex items-center justify-between'>
+                                <span className='text-sm text-muted-foreground'>Last Fed</span>
+                                <span className='text-sm'>{new Date(child.animal.lastFed).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='text-center text-muted-foreground'>Your child hasn't created a pet yet.</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Create Task */}
+                  <Card>
+                    <CardHeader>
+                      <div className='flex items-center justify-between'>
+                        <div>
+                          <CardTitle>Create New Task</CardTitle>
+                          <CardDescription>Add a new task for {child.name}</CardDescription>
+                        </div>
+                        <div className='flex gap-2'>
+                          <Button variant={showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(!showCategorySelector)}>
+                            <Grid className='w-4 h-4 mr-2' />
+                            Task Categories
+                          </Button>
+                          <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(false)}>
+                            <List className='w-4 h-4 mr-2' />
+                            Quick Create
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {showCategorySelector ? (
+                        <TaskCategorySelector onTaskSelect={handleTaskSelect} onCustomTask={handleCustomTask} />
+                      ) : (
+                        <div className='grid gap-4'>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='title'>Title</Label>
+                            <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' />
+                          </div>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='description'>Description</Label>
+                            <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
+                          </div>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='reward'>Reward (coins)</Label>
+                            <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' />
+                          </div>
+                          <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.description || newTask.reward <= 0}>
+                            <Plus className='mr-2 h-4 w-4' />
+                            Create Task
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Tasks List */}
                   <div className='grid gap-4'>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-2'>
-                        <PawPrint className='h-5 w-5 text-primary' />
-                        <span className='text-lg font-medium'>Pet</span>
-                      </div>
-                      <Badge variant='secondary' className='text-base px-3 py-1'>
-                        Level {child.animal.level}
-                      </Badge>
-                    </div>
-                    <div className='grid gap-2'>
-                      <div className='flex items-center justify-between'>
-                        <span className='text-sm text-muted-foreground'>Name</span>
-                        <span className='font-medium'>{child.animal.name}</span>
-                      </div>
-                      <div className='flex items-center justify-between'>
-                        <span className='text-sm text-muted-foreground'>Type</span>
-                        <Badge variant='outline' className='capitalize'>
-                          {child.animal.type}
-                        </Badge>
-                      </div>
-                      <div className='flex items-center justify-between'>
-                        <span className='text-sm text-muted-foreground'>Last Fed</span>
-                        <span className='text-sm'>{new Date(child.animal.lastFed).toLocaleString()}</span>
-                      </div>
+                    <h2 className='text-lg font-semibold'>Tasks</h2>
+                    <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+                      {tasks.map(task => (
+                        <Card key={task._id}>
+                          <CardHeader>
+                            <div className='flex items-center justify-between'>
+                              <CardTitle className='text-sm'>{task.title}</CardTitle>
+                              {getTaskStatusIcon(task)}
+                            </div>
+                            <CardDescription>{task.description}</CardDescription>
+                            <div className='flex items-center justify-between'>
+                              <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                              {getTaskStatusBadge(task)}
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {task.completed && !task.approved && (
+                              <div className='flex gap-2'>
+                                <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
+                                  <CheckCircle className='w-3 h-3 mr-1' />
+                                  Approve
+                                </Button>
+                                <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
+                                  <XCircle className='w-3 h-3 mr-1' />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                            {task.approved && (
+                              <div className='flex gap-2'>
+                                <Button size='sm' variant='outline' className='flex-1' onClick={() => handleUnapproveTask(task._id)}>
+                                  <XCircle className='w-3 h-3 mr-1' />
+                                  Unapprove
+                                </Button>
+                                <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className='text-center text-muted-foreground'>Your child hasn't created a pet yet.</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Create Task */}
-          <Card>
-            <CardHeader>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <CardTitle>Create New Task</CardTitle>
-                  <CardDescription>Add a new task for {child.name}</CardDescription>
-                </div>
-                <div className='flex gap-2'>
-                  <Button variant={showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(!showCategorySelector)}>
-                    <Grid className='w-4 h-4 mr-2' />
-                    Task Categories
-                  </Button>
-                  <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(false)}>
-                    <List className='w-4 h-4 mr-2' />
-                    Quick Create
-                  </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {showCategorySelector ? (
-                <TaskCategorySelector onTaskSelect={handleTaskSelect} onCustomTask={handleCustomTask} />
-              ) : (
-                <div className='grid gap-4'>
-                  <div className='grid gap-2'>
-                    <Label htmlFor='title'>Title</Label>
-                    <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' />
-                  </div>
-                  <div className='grid gap-2'>
-                    <Label htmlFor='description'>Description</Label>
-                    <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
-                  </div>
-                  <div className='grid gap-2'>
-                    <Label htmlFor='reward'>Reward (coins)</Label>
-                    <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' />
-                  </div>
-                  <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.description || newTask.reward <= 0}>
-                    <Plus className='mr-2 h-4 w-4' />
-                    Create Task
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tasks List */}
-          <div className='grid gap-4'>
-            <h2 className='text-lg font-semibold'>Tasks</h2>
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-              {tasks.map(task => (
-                <Card key={task._id}>
-                  <CardHeader>
-                    <div className='flex items-center justify-between'>
-                      <CardTitle className='text-sm'>{task.title}</CardTitle>
-                      {getTaskStatusIcon(task)}
-                    </div>
-                    <CardDescription>{task.description}</CardDescription>
-                    <div className='flex items-center justify-between'>
-                      <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                      {getTaskStatusBadge(task)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {task.completed && !task.approved && (
-                      <div className='flex gap-2'>
-                        <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
-                          <CheckCircle className='w-3 h-3 mr-1' />
-                          Approve
-                        </Button>
-                        <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
-                          <XCircle className='w-3 h-3 mr-1' />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
-                    {task.approved && (
-                      <div className='flex gap-2'>
-                        <Button size='sm' variant='outline' className='flex-1' onClick={() => handleUnapproveTask(task._id)}>
-                          <XCircle className='w-3 h-3 mr-1' />
-                          Unapprove
-                        </Button>
-                        <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
