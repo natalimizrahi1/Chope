@@ -4,7 +4,7 @@ import type { Animal } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { AppSidebar } from "../ui/app-sidebar";
-import { ChartAreaInteractive } from "../ui/chart-area-interactive";
+import { ChartPieInteractive } from "../ui/chart-pie-interactive";
 import { DataTable } from "../ui/data-table";
 import { SectionCards } from "../ui/section-cards";
 import { SiteHeader } from "../ui/site-header";
@@ -27,6 +27,15 @@ export default function ParentDashboard() {
   const [children, setChildren] = useState<Child[]>([]);
   const [token] = useState(localStorage.getItem("token") || "");
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
+  const [chartData, setChartData] = useState([
+    { name: "Tasks Sent", value: 0, color: "#3B82F6" },
+    { name: "Pending Approval", value: 0, color: "#FFBB28" },
+    { name: "Approved Tasks", value: 0, color: "#00C49F" },
+  ]);
+  const [coinsData, setCoinsData] = useState([
+    { name: "Coins Given by Parent", value: 0, color: "#FFD700" },
+    { name: "Total Children Coins", value: 0, color: "#4ECDC4" },
+  ]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -73,24 +82,31 @@ export default function ParentDashboard() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Set up interval to refresh every 15 seconds
+    // Set up interval to refresh children data only (not chart data)
     const interval = setInterval(() => {
       getChildren(token)
         .then(childrenData => {
           setChildren(childrenData);
-          // Check for pending tasks after loading children
-          checkPendingTasks();
+          // Only update pending count, not chart data
+          updatePendingCountOnly();
         })
         .catch(error => {
           console.error("Failed to refresh children:", error);
         });
-    }, 15000);
+    }, 30000);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
     };
   }, [token, navigate, toast]);
+
+  // Load initial chart data when children are loaded (only once)
+  useEffect(() => {
+    if (children.length > 0 && token) {
+      checkPendingTasks();
+    }
+  }, [children, token]); // Remove token from dependencies to prevent re-runs
 
   // Map children to the format required by AppSidebar/NavDocuments
   const childrenList = children.map(child => ({
@@ -99,24 +115,82 @@ export default function ParentDashboard() {
     icon: IconUsers,
   }));
 
-  // Check for pending approval tasks
+  // Update pending count only (without updating chart data)
+  const updatePendingCountOnly = async () => {
+    try {
+      const pendingTasksPromises = children.map(async child => {
+        const tasks = await getTasks(token, child._id);
+        const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
+        return { pendingCount };
+      });
+
+      const pendingResults = await Promise.all(pendingTasksPromises);
+      const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
+      setPendingTasksCount(totalPending);
+    } catch (error) {
+      console.error("Failed to update pending count:", error);
+    }
+  };
+
+  // Check for pending approval tasks and update chart data
   const checkPendingTasks = async () => {
     try {
       const pendingTasksPromises = children.map(async child => {
         const tasks = await getTasks(token, child._id);
         const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-        return { childId: child._id, childName: child.name, pendingCount };
+        const approvedCount = tasks.filter((task: any) => task.completed && task.approved).length;
+        const totalTasks = tasks.length;
+        return {
+          childId: child._id,
+          childName: child.name,
+          pendingCount,
+          approvedCount,
+          totalTasks,
+          coins: child.coins,
+        };
       });
 
       const pendingResults = await Promise.all(pendingTasksPromises);
       const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
+      const totalApproved = pendingResults.reduce((sum, result) => sum + result.approvedCount, 0);
+      const totalTasksSent = pendingResults.reduce((sum, result) => sum + result.totalTasks, 0);
+      const totalChildrenCoins = pendingResults.reduce((sum, result) => sum + result.coins, 0);
 
       if (totalPending > 0) {
         console.log(`Found ${totalPending} pending tasks across all children`);
-        // You can add a toast notification here if you want
       }
 
       setPendingTasksCount(totalPending);
+
+      // Calculate total coins given by parent (assuming 10 coins per approved task)
+      const totalCoinsGiven = totalApproved * 10;
+
+      // Only update chart data if it's the initial load
+      const isInitialLoad = chartData[0].value === 0 && chartData[1].value === 0 && chartData[2].value === 0;
+
+      if (isInitialLoad) {
+        // Update tasks chart data
+        const newChartData = [
+          { name: "Tasks Sent", value: totalTasksSent, color: "#3B82F6" },
+          { name: "Pending Approval", value: totalPending, color: "#FFBB28" },
+          { name: "Approved Tasks", value: totalApproved, color: "#00C49F" },
+        ];
+
+        console.log("Initial tasks chart data load:", newChartData);
+        setChartData(newChartData);
+
+        // Update coins chart data
+        const newCoinsData = [
+          { name: "Coins Given by Parent", value: totalCoinsGiven, color: "#FFD700" },
+          { name: "Total Children Coins", value: totalChildrenCoins, color: "#4ECDC4" },
+        ];
+
+        console.log("Initial coins data load:", newCoinsData);
+        setCoinsData(newCoinsData);
+      } else {
+        console.log("Chart data already loaded, skipping update");
+      }
+
       return pendingResults;
     } catch (error) {
       console.error("Failed to check pending tasks:", error);
@@ -177,7 +251,7 @@ export default function ParentDashboard() {
               )}
               <SectionCards />
               <div className='px-4 lg:px-6'>
-                <ChartAreaInteractive />
+                <ChartPieInteractive data={chartData} rightData={coinsData} title='Task Distribution' description="Overview of all children's task status" rightTitle='Coins Overview' rightDescription="Coins given by parent vs children's total coins" />
               </div>
               <DataTable data={data} />
             </div>
