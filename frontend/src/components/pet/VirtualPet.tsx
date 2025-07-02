@@ -255,7 +255,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       const now = Date.now();
       const diff = now - last;
 
-      if (diff > 60000) {
+      if (diff > 21600000) {
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
@@ -265,7 +265,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           },
         }));
       }
-    }, 60000); // every minute
+    }, 60000); // check every minute
 
     return () => clearInterval(interval);
   }, []);
@@ -475,6 +475,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   };
 
   const handleFeed = () => {
+    // Check if user has enough coins
+    if (totalCoins < 10) {
+      alert("You need 10 coins to feed your pet!");
+      return;
+    }
+
+    // Deduct coins
+    const newCoins = totalCoins - 10;
+    setTotalCoins(newCoins);
+    localStorage.setItem("currentCoins", newCoins.toString());
+
+    // Update spent coins in localStorage
+    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+    localStorage.setItem("spentCoins", (spentCoins + 10).toString());
+
     setIsFeeding(true);
     onFeed();
     audioRefs.current.munch?.play().catch(() => {});
@@ -500,6 +515,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   };
 
   const handleDrink = () => {
+    // Check if user has enough coins
+    if (totalCoins < 10) {
+      alert("You need 10 coins to give your pet a drink!");
+      return;
+    }
+
+    // Deduct coins
+    const newCoins = totalCoins - 10;
+    setTotalCoins(newCoins);
+    localStorage.setItem("currentCoins", newCoins.toString());
+
+    // Update spent coins in localStorage
+    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+    localStorage.setItem("spentCoins", (spentCoins + 10).toString());
+
     setIsFeeding(true);
     onFeed();
     audioRefs.current.slurp?.play().catch(() => {});
@@ -525,6 +555,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   };
 
   const handleHeal = () => {
+    // Check if user has enough coins
+    if (totalCoins < 10) {
+      alert("You need 10 coins to give your pet energy!");
+      return;
+    }
+
+    // Deduct coins
+    const newCoins = totalCoins - 10;
+    setTotalCoins(newCoins);
+    localStorage.setItem("currentCoins", newCoins.toString());
+
+    // Update spent coins in localStorage
+    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+    localStorage.setItem("spentCoins", (spentCoins + 10).toString());
+
     setIsHealing(true);
     onSleep();
     const pillAudio = audioRefs.current.pill;
@@ -554,6 +599,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   };
 
   const handlePlay = () => {
+    // Check if user has enough coins
+    if (totalCoins < 10) {
+      alert("You need 10 coins to play with your pet!");
+      return;
+    }
+
+    // Deduct coins
+    const newCoins = totalCoins - 10;
+    setTotalCoins(newCoins);
+    localStorage.setItem("currentCoins", newCoins.toString());
+
+    // Update spent coins in localStorage
+    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
+    localStorage.setItem("spentCoins", (spentCoins + 10).toString());
+
     setIsPlaying(true);
     onPlay();
     const laughAudio = audioRefs.current.laugh;
@@ -884,24 +944,28 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           {/* Buttons row */}
           <div className='bg-transparent border-gray-200 p-0 z-0'>
             <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
-              <button ref={playBtnRef} onClick={handlePlay} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='משחק'>
+              <button ref={playBtnRef} onClick={handlePlay} disabled={totalCoins < 10} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 10 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 10 ? "Need 10 coins to play!" : "משחק"}>
                 <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Game</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>10</span>
               </button>
 
-              <button ref={feedBtnRef} onClick={handleFeed} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='אוכל'>
+              <button ref={feedBtnRef} onClick={handleFeed} disabled={totalCoins < 10} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 10 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 10 ? "Need 10 coins to feed!" : "אוכל"}>
                 <img src={IMAGES.food} alt='sandwich' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Food</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>10</span>
               </button>
 
-              <button onClick={handleDrink} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='שתייה'>
+              <button onClick={handleDrink} disabled={totalCoins < 10} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 10 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 10 ? "Need 10 coins for drink!" : "שתייה"}>
                 <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>10</span>
               </button>
 
-              <button ref={healBtnRef} onClick={handleHeal} className='flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/80 transition-all transform hover:scale-105 touch-manipulation' title='תרופה'>
+              <button ref={healBtnRef} onClick={handleHeal} disabled={totalCoins < 10} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 10 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 10 ? "Need 10 coins for energy!" : "תרופה"}>
                 <img src={IMAGES.pill} alt='pill' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Energy</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>10</span>
               </button>
             </div>
           </div>
