@@ -3,10 +3,8 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { getTasks } from "../../lib/api";
 import { Task } from "../../lib/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Home, Coins, Star, ShoppingBag, ArrowLeft, Store, Target, Play } from "lucide-react";
+import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export type ShopItem = {

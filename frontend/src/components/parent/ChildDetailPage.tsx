@@ -230,7 +230,7 @@ export default function ChildDetailPage() {
       await loadTasks();
 
       // Dispatch event to notify child's dashboard about new task
-      const taskCreatedEvent = new CustomEvent("taskCreated", {
+      const taskCreatedEvent = new CustomEvent("newTaskCreated", {
         detail: { task: newTask, childId: childId },
       });
       window.dispatchEvent(taskCreatedEvent);
@@ -246,6 +246,16 @@ export default function ChildDetailPage() {
       );
       // Force storage event for immediate update in all tabs
       window.dispatchEvent(new Event("storage"));
+
+      // Clear the localStorage item after a short delay to prevent accumulation
+      setTimeout(() => {
+        localStorage.removeItem("newTaskCreated");
+      }, 1000);
+
+      // Refresh child data to update any changes
+      setTimeout(() => {
+        loadChildData();
+      }, 500);
 
       toast({
         title: "Task created successfully",
@@ -292,6 +302,16 @@ export default function ChildDetailPage() {
       });
       window.dispatchEvent(customEvent);
 
+      // Clear the localStorage item after a short delay to prevent accumulation
+      setTimeout(() => {
+        localStorage.removeItem("taskApproved");
+      }, 1000);
+
+      // Refresh child data to update coins display
+      setTimeout(() => {
+        loadChildData();
+      }, 500);
+
       toast({
         title: "Task approved",
         description: "Your child has received the coins for this task.",
@@ -310,6 +330,7 @@ export default function ChildDetailPage() {
     try {
       await rejectTask(token, taskId);
       await loadTasks();
+      await loadChildData(); // Refresh child data to get updated coins
       toast({
         title: "Task rejected",
         description: "The task has been marked as incomplete.",
@@ -328,6 +349,27 @@ export default function ChildDetailPage() {
       await unapproveTask(token, taskId);
       await loadTasks();
       await loadChildData(); // Refresh child data to get updated coins
+
+      // Notify child for immediate update
+      localStorage.setItem("taskApproved", JSON.stringify({ taskId, childId: child?._id, timestamp: Date.now() }));
+      window.dispatchEvent(new Event("storage"));
+
+      // Also dispatch custom event for same-tab notification
+      const customEvent = new CustomEvent("taskApproved", {
+        detail: { childId: child?._id, taskId, timestamp: Date.now() },
+      });
+      window.dispatchEvent(customEvent);
+
+      // Clear the localStorage item after a short delay to prevent accumulation
+      setTimeout(() => {
+        localStorage.removeItem("taskApproved");
+      }, 1000);
+
+      // Refresh child data to update coins display
+      setTimeout(() => {
+        loadChildData();
+      }, 500);
+
       toast({
         title: "Task unapproved",
         description: "The task has been unapproved and coins have been deducted.",

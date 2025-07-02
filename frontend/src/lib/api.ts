@@ -1,5 +1,3 @@
-import { Task, Animal, UserRole, User } from "./types";
-
 const API_BASE_URL = "http://localhost:5001/api";
 
 // Helper function to handle API responses
@@ -21,34 +19,14 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-// Helper function to make authenticated API calls
-const authenticatedRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-
-  return handleResponse(response);
-};
-
 // Auth API functions
-export const login = async (email: string, password: string, role: string) => {
+export const login = async (email: string, password: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ email, password }),
   });
 
   return handleResponse(response);

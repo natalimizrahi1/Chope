@@ -1,17 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import VirtualPet, { Pet } from "../pet/VirtualPet";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "../ui/card";
-import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-import { Player } from "@lottiefiles/react-lottie-player";
-import leftAnim from "@/assets/animations/left-decor.json";
-import rightAnim from "@/assets/animations/right-decor.json";
 import { useNavigate } from "react-router-dom";
-import { getTasks, completeTask, undoTask, getChildCoins, unapproveTask, testServerConnection } from "../../lib/api";
+import { getTasks, completeTask, undoTask, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Toaster } from "../ui/toaster";
-import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut } from "lucide-react";
+import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut, Clock } from "lucide-react";
 import Notifications from "../notifications/Notifications";
 import { useToast } from "../ui/use-toast";
 
@@ -25,13 +20,12 @@ const KidDashboard = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
   const [activeSection, setActiveSection] = useState<"tasks" | "pet" | "shop">("tasks");
-  const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "completed">("incomplete");
+  const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "pending" | "completed">("incomplete");
 
   // Task categories
   const incompleteTasks = tasks.filter((task: Task) => !task.completed);
   const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
   const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
-  const completedTasksArr = tasks.filter((task: Task) => task.completed);
 
   const [animal, setAnimal] = useState<Pet>({
     name: "Buddy",
@@ -98,16 +92,127 @@ const KidDashboard = () => {
     const handleTaskCompleted = async () => {
       await loadTasks();
     };
+
     const handleTaskApproved = async () => {
       await loadTasks();
     };
+
+    const handleNewTaskCreated = async () => {
+      await loadTasks();
+    };
+
     window.addEventListener("taskCompleted", handleTaskCompleted);
     window.addEventListener("taskApproved", handleTaskApproved);
+    window.addEventListener("newTaskCreated", handleNewTaskCreated);
+
     return () => {
       window.removeEventListener("taskCompleted", handleTaskCompleted);
       window.removeEventListener("taskApproved", handleTaskApproved);
+      window.removeEventListener("newTaskCreated", handleNewTaskCreated);
     };
   }, [loadTasks]);
+
+  // Listen for task approval events to update immediately
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "taskApproved" && event.newValue) {
+        const info = JSON.parse(event.newValue);
+        if (info.childId === userId) {
+          loadTasks();
+          // Also refresh coins immediately
+          if (token && userId) {
+            getChildCoins(token, userId)
+              .then(coinsData => {
+                setTotalCoins(coinsData.coins);
+                localStorage.setItem("currentCoins", coinsData.coins.toString());
+              })
+              .catch(error => {
+                console.error("Failed to refresh coins:", error);
+              });
+          }
+          // Clean up localStorage after a short delay
+          setTimeout(() => {
+            localStorage.removeItem("taskApproved");
+          }, 1000);
+        }
+      }
+
+      // Listen for new task creation
+      if (event.key === "newTaskCreated" && event.newValue) {
+        const info = JSON.parse(event.newValue);
+        if (info.childId === userId) {
+          loadTasks();
+          // Also refresh coins immediately in case there were any changes
+          if (token && userId) {
+            getChildCoins(token, userId)
+              .then(coinsData => {
+                setTotalCoins(coinsData.coins);
+                localStorage.setItem("currentCoins", coinsData.coins.toString());
+              })
+              .catch(error => {
+                console.error("Failed to refresh coins:", error);
+              });
+          }
+          // Clean up localStorage after a short delay
+          setTimeout(() => {
+            localStorage.removeItem("newTaskCreated");
+          }, 1000);
+        }
+      }
+    };
+
+    const handleCustomEvent = (event: CustomEvent) => {
+      if (event.detail && event.detail.childId === userId) {
+        loadTasks();
+        // Also refresh coins immediately
+        if (token && userId) {
+          getChildCoins(token, userId)
+            .then(coinsData => {
+              setTotalCoins(coinsData.coins);
+              localStorage.setItem("currentCoins", coinsData.coins.toString());
+            })
+            .catch(error => {
+              console.error("Failed to refresh coins:", error);
+            });
+        }
+        // Clean up localStorage after a short delay
+        setTimeout(() => {
+          localStorage.removeItem("taskApproved");
+        }, 1000);
+      }
+    };
+
+    const handleNewTaskCustomEvent = (event: CustomEvent) => {
+      if (event.detail && event.detail.childId === userId) {
+        loadTasks();
+        // Also refresh coins immediately in case there were any changes
+        if (token && userId) {
+          getChildCoins(token, userId)
+            .then(coinsData => {
+              setTotalCoins(coinsData.coins);
+              localStorage.setItem("currentCoins", coinsData.coins.toString());
+            })
+            .catch(error => {
+              console.error("Failed to refresh coins:", error);
+            });
+        }
+        // Clean up localStorage after a short delay
+        setTimeout(() => {
+          localStorage.removeItem("newTaskCreated");
+        }, 1000);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("taskApproved", handleCustomEvent as EventListener);
+    window.addEventListener("newTaskCreated", handleNewTaskCustomEvent as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("taskApproved", handleCustomEvent as EventListener);
+      window.removeEventListener("newTaskCreated", handleNewTaskCustomEvent as EventListener);
+    };
+  }, [userId, loadTasks, token]);
 
   // Task actions
   const handleCompleteTask = async (taskId: string) => {
@@ -135,7 +240,7 @@ const KidDashboard = () => {
       await loadTasks();
       toast({
         title: "Task Undone",
-        description: "The task has been undone. If it was approved, coins have been deducted.",
+        description: "The task has been undone and sent back to remaining tasks.",
       });
       window.dispatchEvent(new CustomEvent("taskCompleted"));
     } catch (error) {
@@ -143,25 +248,6 @@ const KidDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to undo task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUnapproveTask = async (taskId: string) => {
-    try {
-      await unapproveTask(token, taskId);
-      await loadTasks();
-      toast({
-        title: "Task Unapproved",
-        description: "The task has been unapproved and coins have been deducted. You can complete it again to earn coins.",
-      });
-      window.dispatchEvent(new CustomEvent("taskCompleted"));
-    } catch (error) {
-      console.error("Failed to unapprove task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to unapprove task. Please try again.",
         variant: "destructive",
       });
     }
@@ -284,7 +370,7 @@ const KidDashboard = () => {
         {activeSection === "tasks" && (
           <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
             {/* Stats cards */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
               <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
                 <div className='flex items-center gap-3'>
                   <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
@@ -299,12 +385,24 @@ const KidDashboard = () => {
 
               <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
                 <div className='flex items-center gap-3'>
+                  <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl p-2'>
+                    <Clock className='w-6 h-6 text-white' />
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-600'>Pending Approval</p>
+                    <p className='text-2xl font-bold text-gray-800'>{pendingApprovalTasks.length}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+                <div className='flex items-center gap-3'>
                   <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
                     <CheckCircle className='w-6 h-6 text-white' />
                   </div>
                   <div>
                     <p className='text-sm text-gray-600'>Completed Today</p>
-                    <p className='text-2xl font-bold text-gray-800'>{completedTasksArr.length}</p>
+                    <p className='text-2xl font-bold text-gray-800'>{approvedTasks.length}</p>
                   </div>
                 </div>
               </motion.div>
@@ -316,7 +414,7 @@ const KidDashboard = () => {
                   </div>
                   <div>
                     <p className='text-sm text-gray-600'>Progress Level</p>
-                    <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((completedTasksArr.length / tasks.length) * 100) : 0}%</p>
+                    <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((approvedTasks.length / tasks.length) * 100) : 0}%</p>
                   </div>
                 </div>
               </motion.div>
@@ -336,8 +434,11 @@ const KidDashboard = () => {
                 <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   Remaining ({incompleteTasks.length})
                 </motion.button>
+                <motion.button onClick={() => setActiveTaskTab("pending")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "pending" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  Pending ({pendingApprovalTasks.length})
+                </motion.button>
                 <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  Completed ({completedTasksArr.length})
+                  Completed ({approvedTasks.length})
                 </motion.button>
               </div>
 
@@ -354,7 +455,15 @@ const KidDashboard = () => {
                   <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
                   <p className='text-gray-600'>You've completed all your tasks today!</p>
                 </div>
-              ) : activeTaskTab === "completed" && completedTasksArr.length === 0 ? (
+              ) : activeTaskTab === "pending" && pendingApprovalTasks.length === 0 ? (
+                <div className='text-center py-8'>
+                  <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                    <Clock className='w-8 h-8 text-white' />
+                  </div>
+                  <h3 className='text-xl font-bold text-gray-800 mb-2'>No pending tasks</h3>
+                  <p className='text-gray-600'>Complete some tasks to see them here!</p>
+                </div>
+              ) : activeTaskTab === "completed" && approvedTasks.length === 0 ? (
                 <div className='text-center py-8'>
                   <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
                     <Target className='w-8 h-8 text-white' />
@@ -364,8 +473,8 @@ const KidDashboard = () => {
                 </div>
               ) : (
                 <div className='space-y-4'>
-                  {(activeTaskTab === "incomplete" ? incompleteTasks : completedTasksArr).map((task, index) => (
-                    <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
+                  {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => (
+                    <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : activeTaskTab === "pending" ? "border-yellow-400 hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
                       <div className='flex items-center justify-between'>
                         <div className='flex-1'>
                           <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
@@ -375,12 +484,13 @@ const KidDashboard = () => {
                             <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
                           </div>
                         </div>
-                        {activeTaskTab === "incomplete" ? (
+                        {activeTaskTab === "incomplete" && (
                           <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             Complete! ✨
                           </motion.button>
-                        ) : (
-                          <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        )}
+                        {activeTaskTab === "pending" && (
+                          <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             Undo
                           </motion.button>
                         )}
@@ -390,29 +500,6 @@ const KidDashboard = () => {
                 </div>
               )}
             </div>
-
-            {/* Pending Approval Section */}
-            {pendingApprovalTasks.length > 0 && (
-              <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-                <div className='flex items-center gap-3 mb-6'>
-                  <div className='bg-gradient-to-br from-yellow-200 to-orange-200 rounded-xl p-2'>
-                    <CheckCircle className='w-6 h-6 text-white' />
-                  </div>
-                  <h2 className='text-2xl font-bold text-gray-800'>Waiting for Parent Approval</h2>
-                </div>
-                <div className='space-y-4'>
-                  {pendingApprovalTasks.map(task => (
-                    <div key={task._id} className='bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border-l-4 border-yellow-300 flex items-center justify-between'>
-                      <div>
-                        <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
-                        <p className='text-sm text-gray-600'>{task.description}</p>
-                      </div>
-                      <span className='text-yellow-600 font-bold'>Pending Approval</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
 
