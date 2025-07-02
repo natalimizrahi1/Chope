@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById } from "../../lib/api";
+import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById, deleteTask } from "../../lib/api";
 import type { Task, Animal } from "../../lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List } from "lucide-react";
+import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List, Trash2 } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
@@ -73,6 +73,14 @@ export default function ChildDetailPage() {
 
     try {
       const tasksData = await getTasks(token, childId);
+      tasksData.forEach((task: Task, index: number) => {
+        console.log(`Task ${index + 1}:`, {
+          id: task._id,
+          title: task.title,
+          completed: task.completed,
+          approved: task.approved,
+        });
+      });
 
       setTasks(tasksData);
     } catch (error) {
@@ -352,6 +360,30 @@ export default function ChildDetailPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      await deleteTask(token, taskId);
+
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+      });
+
+      loadTasks();
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!child) {
     return (
       <div className='flex min-h-screen items-center justify-center'>
@@ -548,40 +580,57 @@ export default function ChildDetailPage() {
                   <div className='grid gap-4'>
                     <h2 className='text-lg font-semibold'>Tasks</h2>
                     <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-                      {tasks.map(task => (
-                        <Card key={task._id}>
-                          <CardHeader>
-                            <div className='flex items-center justify-between'>
-                              <CardTitle className='text-sm'>{task.title}</CardTitle>
-                              {getTaskStatusIcon(task)}
-                            </div>
-                            <CardDescription>{task.description}</CardDescription>
-                            <div className='flex items-center justify-between'>
-                              <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                              {getTaskStatusBadge(task)}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            {task.completed && !task.approved && (
-                              <div className='flex gap-2'>
-                                <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
-                                  <CheckCircle className='w-3 h-3 mr-1' />
-                                  Approve
-                                </Button>
-                                <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
-                                  <XCircle className='w-3 h-3 mr-1' />
-                                  Reject
-                                </Button>
+                      {tasks.map(task => {
+                        console.log("Rendering task:", {
+                          id: task._id,
+                          title: task.title,
+                          completed: task.completed,
+                          approved: task.approved,
+                          showDeleteButton: !task.completed,
+                        });
+                        return (
+                          <Card key={task._id}>
+                            <CardHeader>
+                              <div className='flex items-center justify-between'>
+                                <div className='flex items-center gap-2'>
+                                  {!task.completed && (
+                                    <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
+                                      <XCircle className='w-4 h-4' />
+                                    </Button>
+                                  )}
+                                  <CardTitle className='text-sm'>{task.title}</CardTitle>
+                                </div>
+                                {getTaskStatusIcon(task)}
                               </div>
-                            )}
-                            {task.approved && (
-                              <div className='flex gap-2'>
-                                <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
+                              <CardDescription>{task.description}</CardDescription>
+                              <div className='flex items-center justify-between'>
+                                <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                                {getTaskStatusBadge(task)}
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
+                            </CardHeader>
+                            <CardContent>
+                              {task.completed && !task.approved && (
+                                <div className='flex gap-2'>
+                                  <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
+                                    <CheckCircle className='w-3 h-3 mr-1' />
+                                    Approve
+                                  </Button>
+                                  <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
+                                    <XCircle className='w-3 h-3 mr-1' />
+                                    Reject
+                                  </Button>
+                                </div>
+                              )}
+                              {task.approved && (
+                                <div className='flex gap-2'>
+                                  <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
+                                </div>
+                              )}
+                              {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

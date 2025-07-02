@@ -150,6 +150,19 @@ export const unapproveTask = async (token: string, taskId: string) => {
   return handleResponse(response);
 };
 
+export const deleteTask = async (token: string, taskId: string) => {
+  const response = await fetch(`${API_BASE_URL}/task/${taskId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
 // Parent API functions
 export const getChildren = async (token: string) => {
   const response = await fetch(`${API_BASE_URL}/parent/children`, {
