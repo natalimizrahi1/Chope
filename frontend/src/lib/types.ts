@@ -14,6 +14,7 @@ export interface Task {
   title: string;
   description: string;
   reward: number;
+  category: string;
   completed: boolean;
   approved: boolean;
   completedAt?: string;

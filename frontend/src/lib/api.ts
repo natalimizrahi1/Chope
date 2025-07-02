@@ -248,7 +248,7 @@ export async function getChildProgress(token: string, childId: string) {
   return res.json();
 }
 
-export async function createTask(token: string, data: { title: string; description: string; reward: number; child: string }) {
+export async function createTask(token: string, data: { title: string; description: string; reward: number; child: string; category?: string }) {
   console.log("=== API: CREATING TASK ===");
   console.log("Task data:", data);
   console.log("Token:", token ? "Present" : "Missing");

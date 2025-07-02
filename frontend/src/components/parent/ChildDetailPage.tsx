@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List, Trash2 } from "lucide-react";
+import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List, Trash2, Filter } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
@@ -15,6 +15,7 @@ import { AppSidebar } from "../ui/app-sidebar";
 import { SiteHeader } from "../ui/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconUsers } from "@tabler/icons-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 type Child = {
   _id: string;
@@ -23,6 +24,19 @@ type Child = {
   coins: number;
   animal?: Animal;
 };
+
+const taskCategories = [
+  { id: "all", name: "All Categories", color: "bg-gray-100 text-gray-800" },
+  { id: "household", name: "Household Chores", color: "bg-blue-100 text-blue-800" },
+  { id: "education", name: "Education & Learning", color: "bg-green-100 text-green-800" },
+  { id: "kitchen", name: "Kitchen & Cooking", color: "bg-orange-100 text-orange-800" },
+  { id: "health", name: "Health & Hygiene", color: "bg-red-100 text-red-800" },
+  { id: "fitness", name: "Sports & Fitness", color: "bg-purple-100 text-purple-800" },
+  { id: "creative", name: "Creative Activities", color: "bg-pink-100 text-pink-800" },
+  { id: "music", name: "Music & Entertainment", color: "bg-indigo-100 text-indigo-800" },
+  { id: "nature", name: "Nature & Outdoors", color: "bg-emerald-100 text-emerald-800" },
+  { id: "custom", name: "Custom Tasks", color: "bg-gray-100 text-gray-800" },
+];
 
 export default function ChildDetailPage() {
   const { childId } = useParams<{ childId: string }>();
@@ -33,6 +47,8 @@ export default function ChildDetailPage() {
   const [token] = useState(localStorage.getItem("token") || "");
   const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
   const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const { toast } = useToast();
 
   const loadChildData = async () => {
@@ -247,6 +263,7 @@ export default function ChildDetailPage() {
       await createTask(token, {
         ...newTask,
         child: child._id,
+        category: "custom",
       });
 
       setNewTask({ title: "", description: "", reward: 0 });
@@ -294,11 +311,83 @@ export default function ChildDetailPage() {
       reward: taskTemplate.reward,
     });
     setShowCategorySelector(false);
+
+    // Create task immediately with the selected template
+    if (childId) {
+      createTask(token, {
+        title: taskTemplate.title,
+        description: taskTemplate.description,
+        reward: taskTemplate.reward,
+        child: childId,
+        category: taskTemplate.category,
+      })
+        .then(() => {
+          toast({
+            title: "Task created",
+            description: "New task has been created successfully.",
+          });
+          loadTasks();
+
+          // Notify child for immediate update
+          localStorage.setItem("newTaskCreated", JSON.stringify({ childId, timestamp: Date.now() }));
+          window.dispatchEvent(new Event("storage"));
+
+          // Also dispatch custom event for same-tab notification
+          const customEvent = new CustomEvent("taskCreated", {
+            detail: { childId, timestamp: Date.now() },
+          });
+          window.dispatchEvent(customEvent);
+        })
+        .catch(error => {
+          console.error("Failed to create task:", error);
+          toast({
+            title: "Error",
+            description: "Failed to create task. Please try again.",
+            variant: "destructive",
+          });
+        });
+    }
   };
 
   const handleCustomTask = (customTask: { title: string; description: string; reward: number }) => {
     setNewTask(customTask);
     setShowCategorySelector(false);
+
+    // Create task immediately with custom category
+    if (childId) {
+      createTask(token, {
+        title: customTask.title,
+        description: customTask.description,
+        reward: customTask.reward,
+        child: childId,
+        category: "custom",
+      })
+        .then(() => {
+          toast({
+            title: "Task created",
+            description: "New custom task has been created successfully.",
+          });
+          loadTasks();
+
+          // Notify child for immediate update
+          localStorage.setItem("newTaskCreated", JSON.stringify({ childId, timestamp: Date.now() }));
+          window.dispatchEvent(new Event("storage"));
+
+          // Also dispatch custom event for same-tab notification
+          const customEvent = new CustomEvent("taskCreated", {
+            detail: { childId, timestamp: Date.now() },
+          });
+          window.dispatchEvent(customEvent);
+        })
+        .catch(error => {
+          console.error("Failed to create task:", error);
+          toast({
+            title: "Error",
+            description: "Failed to create task. Please try again.",
+            variant: "destructive",
+          });
+        });
+    }
   };
 
   // Map children to the format required by AppSidebar/NavDocuments
@@ -400,6 +489,24 @@ export default function ChildDetailPage() {
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (approvedTasks.length / totalTasks) * 100 : 0;
 
+  // Filter tasks by selected category and status
+  const filteredTasks = tasks.filter((task: Task) => {
+    // Category filter
+    const categoryMatch = selectedCategory === "all" || task.category === selectedCategory;
+
+    // Status filter
+    let statusMatch = true;
+    if (selectedStatus === "completed") {
+      statusMatch = task.completed && !task.approved;
+    } else if (selectedStatus === "approved") {
+      statusMatch = task.completed && task.approved;
+    } else if (selectedStatus === "incomplete") {
+      statusMatch = !task.completed;
+    }
+
+    return categoryMatch && statusMatch;
+  });
+
   const getTaskStatusBadge = (task: Task) => {
     if (task.approved) {
       return <Badge className='bg-green-100 text-green-800'>Approved</Badge>;
@@ -416,6 +523,13 @@ export default function ChildDetailPage() {
       return <Clock className='w-4 h-4 text-yellow-500' />;
     }
     return <div className='w-4 h-4 bg-gray-400 rounded' />;
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const categoryInfo = taskCategories.find(cat => cat.id === category);
+    if (!categoryInfo) return null;
+
+    return <Badge className={`${categoryInfo.color} text-xs`}>{categoryInfo.name}</Badge>;
   };
 
   return (
@@ -578,9 +692,55 @@ export default function ChildDetailPage() {
 
                   {/* Tasks List */}
                   <div className='grid gap-4'>
-                    <h2 className='text-lg font-semibold'>Tasks</h2>
+                    <div className='flex items-center justify-between'>
+                      <h2 className='text-lg font-semibold'>Tasks</h2>
+                      <div className='flex items-center gap-2'>
+                        <Filter className='w-4 h-4 text-muted-foreground' />
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                          <SelectTrigger className='w-48'>
+                            <SelectValue placeholder='Filter by category' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {taskCategories.map(category => (
+                              <SelectItem key={category.id} value={category.id}>
+                                <div className='flex items-center gap-2'>
+                                  <div className={`w-3 h-3 rounded-full ${category.color.replace("bg-", "bg-").replace(" text-", "")}`}></div>
+                                  {category.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                          <SelectTrigger className='w-40'>
+                            <SelectValue placeholder='Filter by status' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='all'>All Status</SelectItem>
+                            <SelectItem value='incomplete'>Incomplete</SelectItem>
+                            <SelectItem value='completed'>Pending Approval</SelectItem>
+                            <SelectItem value='approved'>Approved</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(selectedCategory !== "all" || selectedStatus !== "all") && (
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => {
+                              setSelectedCategory("all");
+                              setSelectedStatus("all");
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className='text-sm text-muted-foreground'>
+                      Showing {filteredTasks.length} of {tasks.length} tasks
+                    </div>
                     <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-                      {tasks.map(task => {
+                      {filteredTasks.map(task => {
                         console.log("Rendering task:", {
                           id: task._id,
                           title: task.title,
@@ -605,6 +765,7 @@ export default function ChildDetailPage() {
                               <CardDescription>{task.description}</CardDescription>
                               <div className='flex items-center justify-between'>
                                 <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                                {getCategoryBadge(task.category)}
                                 {getTaskStatusBadge(task)}
                               </div>
                             </CardHeader>

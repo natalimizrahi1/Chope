@@ -16,6 +16,11 @@ const taskSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  category: {
+    type: String,
+    default: "custom",
+    enum: ["household", "education", "kitchen", "health", "fitness", "creative", "music", "nature", "custom"],
+  },
   child: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Child",

@@ -8,12 +8,13 @@ const router = express.Router();
 // Create task
 router.post("/", protect, async (req, res) => {
   try {
-    const { title, description, reward, child } = req.body;
+    const { title, description, reward, child, category } = req.body;
     const task = await Task.create({
       title,
       description,
       reward,
       child,
+      category: category || "custom",
     });
     res.status(201).json(task);
   } catch (error) {
@@ -214,15 +215,12 @@ router.patch("/:taskId/unapprove", protect, async (req, res) => {
 
 // Delete task (parent can delete task if not completed)
 router.delete("/:taskId", protect, async (req, res) => {
- 
-
   try {
     const task = await Task.findById(req.params.taskId);
 
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
     }
-
 
     // Only allow deletion if task is not completed
     if (task.completed) {
