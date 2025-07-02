@@ -102,23 +102,33 @@ function Benny() {
   );
 }
 
-export default function VirtualPet({
-  animal = {
+export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPlay = () => {}, onSleep = () => {}, onResetHunger, onResetHappiness, onResetEnergy, setAnimal: propSetAnimal }: VirtualPetProps) {
+  // Internal state management
+  const [animal, setAnimal] = useState<Pet>({
     name: "Benny",
     type: "Cute Pet",
     level: 1,
     xp: 0,
     stats: { hunger: 75, happiness: 75, energy: 75 },
     accessories: [],
-  },
-  onFeed = () => {},
-  onPlay = () => {},
-  onSleep = () => {},
-  onResetHunger,
-  onResetHappiness,
-  onResetEnergy,
-  setAnimal,
-}: VirtualPetProps) {
+  });
+
+  // Use prop animal if provided, otherwise use internal state
+  const currentAnimal = propAnimal || animal;
+  const currentSetAnimal = propSetAnimal || setAnimal;
+
+  // Load pet from localStorage on mount
+  useEffect(() => {
+    const savedPet = localStorage.getItem("pet");
+    if (savedPet) {
+      try {
+        const parsedPet = JSON.parse(savedPet);
+        setAnimal(parsedPet);
+      } catch (error) {
+        console.error("Failed to parse saved pet:", error);
+      }
+    }
+  }, []);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
@@ -135,9 +145,34 @@ export default function VirtualPet({
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
-  const [localHunger, setLocalHunger] = useState(animal.stats.hunger);
-  const [localHappiness, setLocalHappiness] = useState(animal.stats.happiness);
-  const [localEnergy, setLocalEnergy] = useState(animal.stats.energy);
+  const [localHunger, setLocalHunger] = useState(currentAnimal.stats.hunger);
+  const [localHappiness, setLocalHappiness] = useState(currentAnimal.stats.happiness);
+  const [localEnergy, setLocalEnergy] = useState(currentAnimal.stats.energy);
+
+  // Update local stats when animal stats change
+  useEffect(() => {
+    setLocalHunger(currentAnimal.stats.hunger);
+    setLocalHappiness(currentAnimal.stats.happiness);
+    setLocalEnergy(currentAnimal.stats.energy);
+  }, [currentAnimal.stats.hunger, currentAnimal.stats.happiness, currentAnimal.stats.energy]);
+
+  // Save animal stats to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem("pet", JSON.stringify(currentAnimal));
+  }, [currentAnimal]);
+
+  // Load pet from localStorage on component mount
+  useEffect(() => {
+    const savedPet = localStorage.getItem("pet");
+    if (savedPet) {
+      try {
+        const parsedPet = JSON.parse(savedPet);
+        currentSetAnimal?.(parsedPet);
+      } catch (error) {
+        console.error("Failed to parse saved pet:", error);
+      }
+    }
+  }, [currentSetAnimal]);
   const [flyingIcon, setFlyingIcon] = useState<null | {
     type: "donut" | "star" | "heart";
     src: string;
@@ -153,14 +188,15 @@ export default function VirtualPet({
   const [showAddedStar, setShowAddedStar] = useState(false);
   const [showAddedHeart, setShowAddedHeart] = useState(false);
   const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
-  const isAllStatsEmpty = animal.stats.hunger <= 0 && animal.stats.happiness <= 0 && animal.stats.energy <= 0;
-  const [petScale, setPetScale] = useState(animal.scale ?? 0.5);
+  const isAllStatsEmpty = currentAnimal.stats.hunger <= 0 && currentAnimal.stats.happiness <= 0 && currentAnimal.stats.energy <= 0;
+  const [petScale, setPetScale] = useState(currentAnimal.scale ?? 0.5);
 
   const [displayedProgress, setDisplayedProgress] = useState(0);
   const [filledCount, setFilledCount] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
+  const [localAnimal, setLocalAnimal] = useState(animal);
 
   const initialLastTaskTime = () => {
     const stored = localStorage.getItem("lastTaskTime");
@@ -185,7 +221,7 @@ export default function VirtualPet({
       // mark that the warning has been shown
       localStorage.setItem("hasSeenInactivityWarning", "true");
 
-      setAnimal?.(prev => {
+      currentSetAnimal?.(prev => {
         const newStats = {
           hunger: Math.max(0, prev.stats.hunger - 10),
           happiness: Math.max(0, prev.stats.happiness - 10),
@@ -220,7 +256,7 @@ export default function VirtualPet({
       const diff = now - last;
 
       if (diff > 60000) {
-        setAnimal?.(prev => ({
+        currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
             hunger: Math.max(0, prev.stats.hunger - 1),
@@ -277,16 +313,16 @@ export default function VirtualPet({
   }, [isDead]);
 
   useEffect(() => {
-    if (animal.stats.hunger <= 0 || animal.stats.happiness <= 0 || animal.stats.energy <= 0) {
+    if (currentAnimal.stats.hunger <= 0 || currentAnimal.stats.happiness <= 0 || currentAnimal.stats.energy <= 0) {
       setIsDead(true);
     }
-  }, [animal.stats]);
+  }, [currentAnimal.stats]);
 
   useEffect(() => {
-    setLocalHunger(animal.stats.hunger);
-    setLocalHappiness(animal.stats.happiness);
-    setLocalEnergy(animal.stats.energy);
-  }, [animal.stats.hunger, animal.stats.happiness, animal.stats.energy]);
+    setLocalHunger(currentAnimal.stats.hunger);
+    setLocalHappiness(currentAnimal.stats.happiness);
+    setLocalEnergy(currentAnimal.stats.energy);
+  }, [currentAnimal.stats.hunger, currentAnimal.stats.happiness, currentAnimal.stats.energy]);
 
   useEffect(() => {
     localStorage.setItem("petScale", petScale.toString());
@@ -391,9 +427,9 @@ export default function VirtualPet({
     setTimeout(() => setFlyingIcon(null), 700);
   };
 
-  const donutLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.hunger / 25))) as unknown as keyof typeof IMAGES.donut;
-  const starLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.happiness / 25))) as unknown as keyof typeof IMAGES.star;
-  const heartLevel = Math.max(1, Math.min(4, Math.ceil(animal.stats.energy / 25))) as unknown as keyof typeof IMAGES.heart;
+  const donutLevel = Math.max(1, Math.min(4, Math.ceil(localHunger / 25))) as unknown as keyof typeof IMAGES.donut;
+  const starLevel = Math.max(1, Math.min(4, Math.ceil(localHappiness / 25))) as unknown as keyof typeof IMAGES.star;
+  const heartLevel = Math.max(1, Math.min(4, Math.ceil(localEnergy / 25))) as unknown as keyof typeof IMAGES.heart;
 
   useEffect(() => {
     const maxIcons = [donutLevel === 4, starLevel === 4, heartLevel === 4].filter(Boolean).length;
@@ -416,7 +452,7 @@ export default function VirtualPet({
     setPetScale(newScale);
 
     // Reset all stats to start new level
-    setAnimal?.(prev => ({
+    currentSetAnimal?.(prev => ({
       ...prev,
       level: prev.level + 1,
       scale: newScale,
@@ -448,6 +484,19 @@ export default function VirtualPet({
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
     setLastTaskTime(Date.now());
+
+    // Update local stats
+    const newHunger = Math.min(100, localHunger + 25);
+    setLocalHunger(newHunger);
+
+    // Update animal stats
+    currentSetAnimal?.(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        hunger: newHunger,
+      },
+    }));
   };
 
   const handleDrink = () => {
@@ -460,6 +509,19 @@ export default function VirtualPet({
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
     setLastTaskTime(Date.now());
+
+    // Update local stats
+    const newHunger = Math.min(100, localHunger + 15);
+    setLocalHunger(newHunger);
+
+    // Update animal stats
+    currentSetAnimal?.(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        hunger: newHunger,
+      },
+    }));
   };
 
   const handleHeal = () => {
@@ -476,6 +538,19 @@ export default function VirtualPet({
     setShowAddedHeart(true);
     setTimeout(() => setShowAddedHeart(false), 700);
     setLastTaskTime(Date.now());
+
+    // Update local stats
+    const newEnergy = Math.min(100, localEnergy + 25);
+    setLocalEnergy(newEnergy);
+
+    // Update animal stats
+    currentSetAnimal?.(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        energy: newEnergy,
+      },
+    }));
   };
 
   const handlePlay = () => {
@@ -492,6 +567,19 @@ export default function VirtualPet({
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
     setLastTaskTime(Date.now());
+
+    // Update local stats
+    const newHappiness = Math.min(100, localHappiness + 25);
+    setLocalHappiness(newHappiness);
+
+    // Update animal stats
+    currentSetAnimal?.(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        happiness: newHappiness,
+      },
+    }));
   };
   const handleDismissWarning = () => {
     console.log("👋 Got it clicked");
@@ -533,7 +621,7 @@ export default function VirtualPet({
     setLastTaskTime(Date.now()); // Reset inactivity timer
   };
 
-  const hungerPercent = Math.max(0, Math.min(100, (animal.stats.hunger / STATS.MAX) * 100));
+  const hungerPercent = Math.max(0, Math.min(100, (currentAnimal.stats.hunger / STATS.MAX) * 100));
 
   const handleUseItem = (item: ShopItem) => {
     // Remove one item from inventory first
@@ -558,7 +646,7 @@ export default function VirtualPet({
         break;
       case "accessory":
         // Toggle accessory
-        const currentAccessories = animal.accessories || [];
+        const currentAccessories = currentAnimal.accessories || [];
         const isWearing = currentAccessories.some(acc => acc.id === item.id);
 
         let newAccessories;
@@ -575,13 +663,13 @@ export default function VirtualPet({
 
         // Update localStorage
         const updatedPet = {
-          ...animal,
+          ...currentAnimal,
           accessories: newAccessories,
         };
         localStorage.setItem("pet", JSON.stringify(updatedPet));
 
         // Update state
-        setAnimal?.(updatedPet);
+        currentSetAnimal?.(updatedPet);
         setLastTaskTime(Date.now()); // Reset inactivity timer
         break;
     }
@@ -589,15 +677,15 @@ export default function VirtualPet({
 
   const handleRemoveAccessory = (accessory: ShopItem) => {
     // Remove accessory from pet
-    const updatedAccessories = animal.accessories.filter(acc => acc.id !== accessory.id);
+    const updatedAccessories = currentAnimal.accessories.filter(acc => acc.id !== accessory.id);
     const updatedPet = {
-      ...animal,
+      ...currentAnimal,
       accessories: updatedAccessories,
     };
 
     // Update localStorage
     localStorage.setItem("pet", JSON.stringify(updatedPet));
-    setAnimal?.(updatedPet);
+    currentSetAnimal?.(updatedPet);
 
     // Add item back to inventory
     const updatedItems = [...purchasedItems, accessory];
@@ -640,7 +728,7 @@ export default function VirtualPet({
       <div className='w-full flex items-center justify-between px-6 pt-8 z-10'>
         <div className='flex items-center gap-4'>
           <div>
-            <h1 className='text-2xl font-bold text-white drop-shadow-lg'>My Pet - {animal.name} 🐾</h1>
+            <h1 className='text-2xl font-bold text-white drop-shadow-lg'>My Pet - {currentAnimal.name} 🐾</h1>
             <p className='text-white/90 text-sm'>Take care of your virtual friend!</p>
           </div>
         </div>
@@ -750,7 +838,7 @@ export default function VirtualPet({
 
           {/* Level indicator */}
           <div className='absolute top-4 left-4 z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-2 shadow-lg'>
-            <span className='text-gray-800 font-bold text-lg'>Level {animal.level}</span>
+            <span className='text-gray-800 font-bold text-lg'>Level {currentAnimal.level}</span>
           </div>
 
           {/* Main board - with dynamic height */}
@@ -759,7 +847,8 @@ export default function VirtualPet({
             <div
               className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
                             bg-blue-100 border-4 border-amber-700 rounded-xl 
-                            shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'>
+                            shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
+            >
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
                 {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
@@ -782,8 +871,8 @@ export default function VirtualPet({
               <div className='relative'>
                 <Benny />
                 {/* Display accessories */}
-                {animal.accessories &&
-                  animal.accessories.map(accessory => (
+                {currentAnimal.accessories &&
+                  currentAnimal.accessories.map(accessory => (
                     <div key={accessory.id} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
                       <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
                     </div>
