@@ -1016,7 +1016,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             </div>
 
             {/* Pet in the center */}
-            <div className='absolute left-1/2 top-32 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
+            <div className='absolute left-1/2 top-25 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
               <div className='relative'>
                 <Benny />
                 {/* Display accessories */}
