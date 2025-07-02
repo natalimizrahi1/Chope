@@ -26,6 +26,7 @@ router.get("/children", auth, async (req, res) => {
     if (!parent) return res.status(404).json({ error: "Parent not found" });
     res.json(parent.children);
   } catch (err) {
+    console.error("Error getting children:", err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -45,6 +46,30 @@ router.get("/child/:childId/progress", auth, async (req, res) => {
       animal: child.animal,
     });
   } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Get specific child by ID
+router.get("/child/:childId", auth, async (req, res) => {
+  try {
+    const child = await Child.findById(req.params.childId);
+    if (!child) return res.status(404).json({ error: "Child not found" });
+    res.json(child);
+  } catch (err) {
+    console.error("Error getting child:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Get child's coins
+router.get("/child/:childId/coins", auth, async (req, res) => {
+  try {
+    const child = await Child.findById(req.params.childId);
+    if (!child) return res.status(404).json({ error: "Child not found" });
+    res.json({ coins: child.coins });
+  } catch (err) {
+    console.error("Error getting child coins:", err);
     res.status(400).json({ error: err.message });
   }
 });

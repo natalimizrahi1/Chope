@@ -1,13 +1,11 @@
 import { useEffect, useState, useRef } from "react";
-import { Menu, X, Home, User, FileText, BookOpen, Play, CreditCard, Library, TrendingUp, ArrowLeft, Coins, Store, Target, ShoppingBag } from "lucide-react";
+import { Play, Coins, Store, Target, ShoppingBag } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks } from "../../lib/api";
+import { getTasks, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
-import { Card, CardContent, CardHeader } from "../ui/card";
-import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -15,8 +13,6 @@ const STATS = {
   MAX: 4,
   MIN: 0,
 } as const;
-
-type StatLevel = 1 | 2 | 3 | 4;
 
 const IMAGES = {
   bar: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857600/virtual%20pet/item-box.png",
@@ -305,46 +301,42 @@ export default function VirtualPet({
 
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
-    const loadCoins = () => {
-      // Calculate initial coins by making API call
-      const calculateCoins = async () => {
+    const loadCoins = async () => {
+      // Get coins directly from server
+      try {
+        if (token && childId) {
+          const coinsData = await getChildCoins(token, childId);
+          console.log("🪙 VirtualPet - coins from server:", coinsData.coins);
+          setTotalCoins(coinsData.coins);
+          localStorage.setItem("currentCoins", coinsData.coins.toString());
+        }
+      } catch (serverError) {
+        console.error("Failed to get coins from server, falling back to calculation:", serverError);
+        // Fallback to old calculation method
         try {
           const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
+          const totalCoins = tasks.filter((task: Task) => task.approved).reduce((sum: number, task: Task) => sum + task.reward, 0);
           const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
           const availableCoins = totalCoins - spentCoins;
           setTotalCoins(availableCoins);
           localStorage.setItem("currentCoins", availableCoins.toString());
-          console.log("🪙 VirtualPet - Calculated initial coins:", availableCoins);
+          console.log("🪙 VirtualPet - Calculated coins (fallback):", availableCoins);
         } catch (error) {
           console.error("Failed to calculate coins:", error);
         }
-      };
-
-      if (token && childId) {
-        calculateCoins();
       }
     };
 
     // Listen for coin updates
-    const handleCoinUpdate = () => {
-      // Recalculate coins by making API call
-      const recalculateCoins = async () => {
-        try {
-          const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.completed).reduce((sum: number, task: Task) => sum + task.reward, 0);
-          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-          const availableCoins = totalCoins - spentCoins;
-          setTotalCoins(availableCoins);
-          localStorage.setItem("currentCoins", availableCoins.toString());
-          console.log("🪙 VirtualPet - Updated coins from event:", availableCoins);
-        } catch (error) {
-          console.error("Failed to recalculate coins:", error);
-        }
-      };
+    const handleCoinUpdate = async () => {
+      await loadCoins();
+    };
 
-      if (token && childId) {
-        recalculateCoins();
+    // Listen for visibility changes to refresh coins when returning to page
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("VirtualPet page became visible, refreshing coins...");
+        loadCoins();
       }
     };
 
@@ -352,10 +344,18 @@ export default function VirtualPet({
 
     window.addEventListener("coinsUpdated", handleCoinUpdate);
     window.addEventListener("taskCompleted", handleCoinUpdate);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Set up interval to update coins every 5 seconds
+    const interval = setInterval(() => {
+      loadCoins();
+    }, 5000);
 
     return () => {
       window.removeEventListener("coinsUpdated", handleCoinUpdate);
       window.removeEventListener("taskCompleted", handleCoinUpdate);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
     };
   }, [token, childId]);
 
@@ -613,6 +613,19 @@ export default function VirtualPet({
       itemCounts[item.id]++;
     }
   });
+
+  const handleRefreshCoins = async () => {
+    try {
+      if (token && childId) {
+        const coinsData = await getChildCoins(token, childId);
+        console.log("🪙 VirtualPet - manually refreshed coins:", coinsData.coins);
+        setTotalCoins(coinsData.coins);
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      }
+    } catch (error) {
+      console.error("Failed to manually refresh coins:", error);
+    }
+  };
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] flex flex-col items-center justify-start relative overflow-hidden'>

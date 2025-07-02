@@ -5,6 +5,7 @@ import ParentRegisterPage from "./components/login/ParentRegisterPage";
 import KidLoginPage from "./components/login/KidLoginPage";
 import KidRegisterPage from "./components/login/KidRegisterPage";
 import ParentDashboard from "./components/parent/ParentDashboard";
+import ChildDetailPage from "./components/parent/ChildDetailPage";
 import ChildDashboard from "./components/kid/KidDashboard";
 import PetShop from "./components/pet/PetShop";
 import VirtualPet from "./components/pet/VirtualPet";
@@ -21,6 +22,7 @@ function App() {
         <Route path='/login/kid' element={<KidLoginPage />} />
         <Route path='/register/kid' element={<KidRegisterPage />} />
         <Route path='/parent/dashboard' element={<ParentDashboard />} />
+        <Route path='/parent/child/:childId' element={<ChildDetailPage />} />
         <Route path='/kid/dashboard' element={<ChildDashboard />} />
         <Route path='/kid/shop' element={<PetShop />} />
         <Route path='/kid/tasks' element={<Tasks />} />

@@ -23,7 +23,7 @@ export default function ParentLoginPage() {
     console.log("Submitting login form with data:", formData);
 
     try {
-      const response = await login(formData);
+      const response = await login(formData.email, formData.password);
       console.log("Login response:", response);
 
       // Store token in localStorage
