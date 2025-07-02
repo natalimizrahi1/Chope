@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import VirtualPet, { Pet } from "../pet/VirtualPet";
+import { Pet } from "../pet/VirtualPet";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +19,6 @@ const KidDashboard = () => {
   const [userId, setUserId] = useState("");
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
-  const [activeSection, setActiveSection] = useState<"tasks" | "pet" | "shop">("tasks");
   const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "pending" | "completed">("incomplete");
 
   // Task categories
@@ -259,10 +258,6 @@ const KidDashboard = () => {
     navigate("/");
   };
 
-  const handleShopClick = () => {
-    navigate("/kid/shop");
-  };
-
   // Debug: Log task categories
   useEffect(() => {}, [tasks, incompleteTasks, pendingApprovalTasks, approvedTasks]);
 
@@ -332,15 +327,15 @@ const KidDashboard = () => {
             {/* Navigation tabs */}
             <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
               <div className='flex gap-2'>
-                <motion.button onClick={() => setActiveSection("tasks")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "tasks" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <motion.button className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Target className='w-4 h-4' />
                   Tasks
                 </motion.button>
-                <motion.button onClick={() => setActiveSection("pet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "pet" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <motion.button onClick={() => navigate("/kid/virtualpet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Play className='w-4 h-4' />
                   My Pet
                 </motion.button>
-                <motion.button onClick={handleShopClick} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm ${activeSection === "shop" ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <motion.button onClick={() => navigate("/kid/shop")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <ShoppingBag className='w-4 h-4' />
                   Shop
                 </motion.button>
@@ -367,171 +362,139 @@ const KidDashboard = () => {
       {/* Main content */}
       {/* AnimatePresence and tab content are now outside the px-6 pb-6 container */}
       <AnimatePresence mode='wait'>
-        {activeSection === "tasks" && (
-          <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
-            {/* Stats cards */}
-            <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
-              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                <div className='flex items-center gap-3'>
-                  <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
-                    <Target className='w-6 h-6 text-white' />
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600'>Remaining Tasks</p>
-                    <p className='text-2xl font-bold text-gray-800'>{incompleteTasks.length}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                <div className='flex items-center gap-3'>
-                  <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl p-2'>
-                    <Clock className='w-6 h-6 text-white' />
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600'>Pending Approval</p>
-                    <p className='text-2xl font-bold text-gray-800'>{pendingApprovalTasks.length}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                <div className='flex items-center gap-3'>
-                  <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
-                    <CheckCircle className='w-6 h-6 text-white' />
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600'>Completed Today</p>
-                    <p className='text-2xl font-bold text-gray-800'>{approvedTasks.length}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
-                <div className='flex items-center gap-3'>
-                  <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
-                    <Trophy className='w-6 h-6 text-white' />
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600'>Progress Level</p>
-                    <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((approvedTasks.length / tasks.length) * 100) : 0}%</p>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Tasks */}
-            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-              <div className='flex items-center gap-3 mb-6'>
+        <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
+          {/* Stats cards */}
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+              <div className='flex items-center gap-3'>
                 <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
                   <Target className='w-6 h-6 text-white' />
                 </div>
-                <h2 className='text-2xl font-bold text-gray-800'>Your Tasks Today</h2>
+                <div>
+                  <p className='text-sm text-gray-600'>Remaining Tasks</p>
+                  <p className='text-2xl font-bold text-gray-800'>{incompleteTasks.length}</p>
+                </div>
               </div>
+            </motion.div>
 
-              {/* Task tabs */}
-              <div className='flex gap-2 mb-6'>
-                <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  Remaining ({incompleteTasks.length})
-                </motion.button>
-                <motion.button onClick={() => setActiveTaskTab("pending")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "pending" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  Pending ({pendingApprovalTasks.length})
-                </motion.button>
-                <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  Completed ({approvedTasks.length})
-                </motion.button>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+              <div className='flex items-center gap-3'>
+                <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl p-2'>
+                  <Clock className='w-6 h-6 text-white' />
+                </div>
+                <div>
+                  <p className='text-sm text-gray-600'>Pending Approval</p>
+                  <p className='text-2xl font-bold text-gray-800'>{pendingApprovalTasks.length}</p>
+                </div>
               </div>
+            </motion.div>
 
-              {loading ? (
-                <div className='text-center py-8'>
-                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[#87d4ee] mx-auto'></div>
-                  <p className='text-gray-600 mt-4'>Loading tasks...</p>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+              <div className='flex items-center gap-3'>
+                <div className='bg-gradient-to-br from-[#f9a8d4] to-[#ffbacc] rounded-xl p-2'>
+                  <CheckCircle className='w-6 h-6 text-white' />
                 </div>
-              ) : activeTaskTab === "incomplete" && incompleteTasks.length === 0 ? (
-                <div className='text-center py-8'>
-                  <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                    <Trophy className='w-8 h-8 text-white' />
-                  </div>
-                  <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
-                  <p className='text-gray-600'>You've completed all your tasks today!</p>
+                <div>
+                  <p className='text-sm text-gray-600'>Completed Today</p>
+                  <p className='text-2xl font-bold text-gray-800'>{approvedTasks.length}</p>
                 </div>
-              ) : activeTaskTab === "pending" && pendingApprovalTasks.length === 0 ? (
-                <div className='text-center py-8'>
-                  <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                    <Clock className='w-8 h-8 text-white' />
-                  </div>
-                  <h3 className='text-xl font-bold text-gray-800 mb-2'>No pending tasks</h3>
-                  <p className='text-gray-600'>Complete some tasks to see them here!</p>
-                </div>
-              ) : activeTaskTab === "completed" && approvedTasks.length === 0 ? (
-                <div className='text-center py-8'>
-                  <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                    <Target className='w-8 h-8 text-white' />
-                  </div>
-                  <h3 className='text-xl font-bold text-gray-800 mb-2'>No completed tasks yet</h3>
-                  <p className='text-gray-600'>Complete some tasks to see them here!</p>
-                </div>
-              ) : (
-                <div className='space-y-4'>
-                  {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => (
-                    <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : activeTaskTab === "pending" ? "border-yellow-400 hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
-                      <div className='flex items-center justify-between'>
-                        <div className='flex-1'>
-                          <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
-                          {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
-                          <div className='flex items-center gap-2 mt-2'>
-                            <Coins className='w-4 h-4 text-yellow-500' />
-                            <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
-                          </div>
-                        </div>
-                        {activeTaskTab === "incomplete" && (
-                          <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            Complete! ✨
-                          </motion.button>
-                        )}
-                        {activeTaskTab === "pending" && (
-                          <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            Undo
-                          </motion.button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+              </div>
+            </motion.div>
 
-        {activeSection === "pet" && (
-          <motion.div key='pet' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='w-full flex flex-col items-center justify-center min-h-[60vh] p-0 m-0'>
-            {/* Pet board full width, centered */}
-            <div className='w-full flex flex-col items-center justify-center'>
-              <VirtualPet animal={animal} setAnimal={setAnimal} />
-            </div>
-          </motion.div>
-        )}
-
-        {activeSection === "shop" && (
-          <motion.div key='shop' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
-            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
-              <div className='flex items-center gap-3 mb-6'>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg' whileHover={{ scale: 1.02 }}>
+              <div className='flex items-center gap-3'>
                 <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-xl p-2'>
-                  <ShoppingBag className='w-6 h-6 text-white' />
+                  <Trophy className='w-6 h-6 text-white' />
                 </div>
-                <h2 className='text-2xl font-bold text-gray-800'>Pet Shop</h2>
+                <div>
+                  <p className='text-sm text-gray-600'>Progress Level</p>
+                  <p className='text-2xl font-bold text-gray-800'>{tasks.length > 0 ? Math.round((approvedTasks.length / tasks.length) * 100) : 0}%</p>
+                </div>
               </div>
+            </motion.div>
+          </div>
 
+          {/* Tasks */}
+          <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg'>
+            <div className='flex items-center gap-3 mb-6'>
+              <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                <Target className='w-6 h-6 text-white' />
+              </div>
+              <h2 className='text-2xl font-bold text-gray-800'>Your Tasks Today</h2>
+            </div>
+
+            {/* Task tabs */}
+            <div className='flex gap-2 mb-6'>
+              <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                Remaining ({incompleteTasks.length})
+              </motion.button>
+              <motion.button onClick={() => setActiveTaskTab("pending")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "pending" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                Pending ({pendingApprovalTasks.length})
+              </motion.button>
+              <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                Completed ({approvedTasks.length})
+              </motion.button>
+            </div>
+
+            {loading ? (
+              <div className='text-center py-8'>
+                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[#87d4ee] mx-auto'></div>
+                <p className='text-gray-600 mt-4'>Loading tasks...</p>
+              </div>
+            ) : activeTaskTab === "incomplete" && incompleteTasks.length === 0 ? (
               <div className='text-center py-8'>
                 <div className='bg-gradient-to-br from-[#ffd986] to-[#ffbacc] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
-                  <ShoppingBag className='w-8 h-8 text-white' />
+                  <Trophy className='w-8 h-8 text-white' />
                 </div>
-                <h3 className='text-xl font-bold text-gray-800 mb-2'>Coming Soon! 🛍️</h3>
-                <p className='text-gray-600'>The shop will open soon with lots of surprises!</p>
+                <h3 className='text-xl font-bold text-gray-800 mb-2'>Great job! 🎉</h3>
+                <p className='text-gray-600'>You've completed all your tasks today!</p>
               </div>
-            </div>
-          </motion.div>
-        )}
+            ) : activeTaskTab === "pending" && pendingApprovalTasks.length === 0 ? (
+              <div className='text-center py-8'>
+                <div className='bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                  <Clock className='w-8 h-8 text-white' />
+                </div>
+                <h3 className='text-xl font-bold text-gray-800 mb-2'>No pending tasks</h3>
+                <p className='text-gray-600'>Complete some tasks to see them here!</p>
+              </div>
+            ) : activeTaskTab === "completed" && approvedTasks.length === 0 ? (
+              <div className='text-center py-8'>
+                <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4'>
+                  <Target className='w-8 h-8 text-white' />
+                </div>
+                <h3 className='text-xl font-bold text-gray-800 mb-2'>No completed tasks yet</h3>
+                <p className='text-gray-600'>Complete some tasks to see them here!</p>
+              </div>
+            ) : (
+              <div className='space-y-4'>
+                {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => (
+                  <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : activeTaskTab === "pending" ? "border-yellow-400 hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex-1'>
+                        <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
+                        {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
+                        <div className='flex items-center gap-2 mt-2'>
+                          <Coins className='w-4 h-4 text-yellow-500' />
+                          <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
+                        </div>
+                      </div>
+                      {activeTaskTab === "incomplete" && (
+                        <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          Complete! ✨
+                        </motion.button>
+                      )}
+                      {activeTaskTab === "pending" && (
+                        <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          Undo
+                        </motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
       </AnimatePresence>
 
       <Toaster />
