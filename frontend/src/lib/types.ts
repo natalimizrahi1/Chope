@@ -19,6 +19,7 @@ export interface Task {
   approved: boolean;
   completedAt?: string;
   approvedAt?: string;
+  createdAt: string;
   child: string;
 }
 

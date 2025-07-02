@@ -49,7 +49,11 @@ export default function ChildDetailPage() {
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedTime, setSelectedTime] = useState("all");
   const { toast } = useToast();
+
+  // Debug: Log filter changes
+  useEffect(() => {}, [selectedCategory, selectedStatus, selectedTime, tasks.length]);
 
   const loadChildData = async () => {
     if (!token || !childId) return;
@@ -93,10 +97,34 @@ export default function ChildDetailPage() {
         console.log(`Task ${index + 1}:`, {
           id: task._id,
           title: task.title,
+          category: task.category || "MISSING CATEGORY",
+          createdAt: task.createdAt,
           completed: task.completed,
           approved: task.approved,
         });
+
+        // Check if task is missing category
+        if (!task.category) {
+          console.warn(`Task "${task.title}" is missing category field!`);
+        }
+
+        // Check if task is missing createdAt
+        if (!task.createdAt) {
+          console.warn(`Task "${task.title}" is missing createdAt field!`);
+        } else {
+          const taskDate = new Date(task.createdAt);
+          if (isNaN(taskDate.getTime())) {
+            console.warn(`Task "${task.title}" has invalid createdAt date: ${task.createdAt}`);
+          } else {
+            // Check if date is in the future (which would be suspicious)
+            const now = new Date();
+            if (taskDate > now) {
+              console.warn(`Task "${task.title}" has future date: ${task.createdAt} (${taskDate.toLocaleDateString()})`);
+            }
+          }
+        }
       });
+      console.log("=== END LOADED TASKS ===");
 
       setTasks(tasksData);
     } catch (error) {
@@ -489,10 +517,10 @@ export default function ChildDetailPage() {
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (approvedTasks.length / totalTasks) * 100 : 0;
 
-  // Filter tasks by selected category and status
   const filteredTasks = tasks.filter((task: Task) => {
     // Category filter
-    const categoryMatch = selectedCategory === "all" || task.category === selectedCategory;
+    const taskCategory = task.category || "custom"; // Default to "custom" if missing
+    const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
 
     // Status filter
     let statusMatch = true;
@@ -504,8 +532,124 @@ export default function ChildDetailPage() {
       statusMatch = !task.completed;
     }
 
-    return categoryMatch && statusMatch;
+    // Time filter
+    let timeMatch = true;
+    if (selectedTime !== "all") {
+      const taskDate = new Date(task.createdAt);
+      const now = new Date();
+
+      // Calculate days difference
+      const taskTime = taskDate.getTime();
+      const nowTime = now.getTime();
+      const daysDiff = Math.floor((nowTime - taskTime) / (1000 * 60 * 60 * 24));
+
+      if (selectedTime === "today") {
+        // Same day
+        const taskDay = taskDate.getDate();
+        const taskMonth = taskDate.getMonth();
+        const taskYear = taskDate.getFullYear();
+        const nowDay = now.getDate();
+        const nowMonth = now.getMonth();
+        const nowYear = now.getFullYear();
+        timeMatch = taskDay === nowDay && taskMonth === nowMonth && taskYear === nowYear;
+      } else if (selectedTime === "week") {
+        // Within last 7 days (but not today)
+        timeMatch = daysDiff > 0 && daysDiff <= 7;
+      } else if (selectedTime === "month") {
+        // Within last 30 days (but not this week)
+        timeMatch = daysDiff > 7 && daysDiff <= 30;
+      } else if (selectedTime === "older") {
+        // More than 30 days ago
+        timeMatch = daysDiff > 30;
+      }
+
+      // Debug time calculation
+      console.log(`Time calculation for "${task.title}":`, {
+        taskDate: taskDate.toISOString(),
+        taskDateLocal: taskDate.toLocaleDateString(),
+        daysDiff,
+        selectedTime,
+        timeMatch,
+        note: `Task is ${daysDiff} days ${daysDiff > 0 ? "ago" : "in the future"}`,
+      });
+    }
+
+    // Debug logging for ALL tasks when filters are active
+    if (selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") {
+      console.log(`Task: "${task.title}"`, {
+        category: task.category || "MISSING",
+        taskCategory: taskCategory,
+        selectedCategory,
+        categoryMatch,
+        status: `${task.completed ? "completed" : "incomplete"}${task.approved ? " approved" : ""}`,
+        selectedStatus,
+        statusMatch,
+        createdAt: task.createdAt,
+        taskDate: new Date(task.createdAt),
+        selectedTime,
+        timeMatch,
+        finalResult: categoryMatch && statusMatch && timeMatch,
+      });
+    }
+
+    const result = categoryMatch && statusMatch && timeMatch;
+    return result;
   });
+
+  // Additional debug: Show which tasks passed each filter
+  if (selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") {
+    tasks.forEach((task, index) => {
+      const taskCategory = task.category || "custom";
+      const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
+
+      let statusMatch = true;
+      if (selectedStatus === "completed") {
+        statusMatch = task.completed && !task.approved;
+      } else if (selectedStatus === "approved") {
+        statusMatch = task.completed && task.approved;
+      } else if (selectedStatus === "incomplete") {
+        statusMatch = !task.completed;
+      }
+
+      let timeMatch = true;
+      if (selectedTime !== "all") {
+        const taskDate = new Date(task.createdAt);
+        const now = new Date();
+
+        // Calculate days difference
+        const taskTime = taskDate.getTime();
+        const nowTime = now.getTime();
+        const daysDiff = Math.floor((nowTime - taskTime) / (1000 * 60 * 60 * 24));
+
+        if (selectedTime === "today") {
+          // Same day
+          const taskDay = taskDate.getDate();
+          const taskMonth = taskDate.getMonth();
+          const taskYear = taskDate.getFullYear();
+          const nowDay = now.getDate();
+          const nowMonth = now.getMonth();
+          const nowYear = now.getFullYear();
+          timeMatch = taskDay === nowDay && taskMonth === nowMonth && taskYear === nowYear;
+        } else if (selectedTime === "week") {
+          // Within last 7 days (but not today)
+          timeMatch = daysDiff > 0 && daysDiff <= 7;
+        } else if (selectedTime === "month") {
+          // Within last 30 days (but not this week)
+          timeMatch = daysDiff > 7 && daysDiff <= 30;
+        } else if (selectedTime === "older") {
+          // More than 30 days ago
+          timeMatch = daysDiff > 30;
+        }
+      }
+
+      console.log(`Task ${index + 1}: "${task.title}"`, {
+        category: `${taskCategory} (${categoryMatch ? "✓" : "✗"})`,
+        status: `${task.completed ? "completed" : "incomplete"}${task.approved ? " approved" : ""} (${statusMatch ? "✓" : "✗"})`,
+        time: `${new Date(task.createdAt).toLocaleDateString()} (${timeMatch ? "✓" : "✗"})`,
+        finalResult: categoryMatch && statusMatch && timeMatch ? "SHOWN" : "HIDDEN",
+      });
+    });
+  }
 
   const getTaskStatusBadge = (task: Task) => {
     if (task.approved) {
@@ -696,7 +840,13 @@ export default function ChildDetailPage() {
                       <h2 className='text-lg font-semibold'>Tasks</h2>
                       <div className='flex items-center gap-2'>
                         <Filter className='w-4 h-4 text-muted-foreground' />
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <Select
+                          value={selectedCategory}
+                          onValueChange={value => {
+                            console.log("Category filter changed to:", value);
+                            setSelectedCategory(value);
+                          }}
+                        >
                           <SelectTrigger className='w-48'>
                             <SelectValue placeholder='Filter by category' />
                           </SelectTrigger>
@@ -711,7 +861,13 @@ export default function ChildDetailPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <Select
+                          value={selectedStatus}
+                          onValueChange={value => {
+                            console.log("Status filter changed to:", value);
+                            setSelectedStatus(value);
+                          }}
+                        >
                           <SelectTrigger className='w-40'>
                             <SelectValue placeholder='Filter by status' />
                           </SelectTrigger>
@@ -722,22 +878,99 @@ export default function ChildDetailPage() {
                             <SelectItem value='approved'>Approved</SelectItem>
                           </SelectContent>
                         </Select>
-                        {(selectedCategory !== "all" || selectedStatus !== "all") && (
+                        <Select
+                          value={selectedTime}
+                          onValueChange={value => {
+                            console.log("Time filter changed to:", value);
+                            setSelectedTime(value);
+                          }}
+                        >
+                          <SelectTrigger className='w-40'>
+                            <SelectValue placeholder='Filter by time' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='all'>All Time</SelectItem>
+                            <SelectItem value='today'>Today</SelectItem>
+                            <SelectItem value='week'>Last Week</SelectItem>
+                            <SelectItem value='month'>Last Month</SelectItem>
+                            <SelectItem value='older'>Older than Month</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") && (
                           <Button
                             variant='outline'
                             size='sm'
                             onClick={() => {
                               setSelectedCategory("all");
                               setSelectedStatus("all");
+                              setSelectedTime("all");
                             }}
                           >
                             Clear Filters
                           </Button>
                         )}
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => {
+                            console.log("=== MANUAL FILTER TEST ===");
+                            console.log("Current filters:", { selectedCategory, selectedStatus, selectedTime });
+                            console.log("Total tasks:", tasks.length);
+                            console.log("Filtered tasks:", filteredTasks.length);
+
+                            // Test each task manually
+                            tasks.forEach((task, index) => {
+                              const taskCategory = task.category || "custom";
+                              const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
+
+                              let statusMatch = true;
+                              if (selectedStatus === "completed") {
+                                statusMatch = task.completed && !task.approved;
+                              } else if (selectedStatus === "approved") {
+                                statusMatch = task.completed && task.approved;
+                              } else if (selectedStatus === "incomplete") {
+                                statusMatch = !task.completed;
+                              }
+
+                              let timeMatch = true;
+                              if (selectedTime !== "all") {
+                                const taskDate = new Date(task.createdAt);
+                                const now = new Date();
+                                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                                if (selectedTime === "today") {
+                                  timeMatch = taskDate >= today;
+                                } else if (selectedTime === "week") {
+                                  timeMatch = taskDate >= weekAgo;
+                                } else if (selectedTime === "month") {
+                                  timeMatch = taskDate >= monthAgo;
+                                } else if (selectedTime === "older") {
+                                  timeMatch = taskDate < monthAgo;
+                                }
+                              }
+
+                              const shouldShow = categoryMatch && statusMatch && timeMatch;
+                              console.log(`Task ${index + 1}: "${task.title}" - Should show: ${shouldShow} (Category: ${categoryMatch}, Status: ${statusMatch}, Time: ${timeMatch})`);
+                            });
+
+                            console.log("=== END MANUAL TEST ===");
+                          }}
+                        >
+                          Debug Filters
+                        </Button>
                       </div>
                     </div>
                     <div className='text-sm text-muted-foreground'>
                       Showing {filteredTasks.length} of {tasks.length} tasks
+                      {selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all" ? (
+                        <div className='text-xs text-gray-500 mt-1'>
+                          Filters: {selectedCategory !== "all" ? `Category: ${selectedCategory}` : ""}
+                          {selectedStatus !== "all" ? ` | Status: ${selectedStatus}` : ""}
+                          {selectedTime !== "all" ? ` | Time: ${selectedTime}` : ""}
+                        </div>
+                      ) : null}
                     </div>
                     <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
                       {filteredTasks.map(task => {
@@ -765,9 +998,10 @@ export default function ChildDetailPage() {
                               <CardDescription>{task.description}</CardDescription>
                               <div className='flex items-center justify-between'>
                                 <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                                {getCategoryBadge(task.category)}
+                                {getCategoryBadge(task.category || "custom")}
                                 {getTaskStatusBadge(task)}
                               </div>
+                              <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
                             </CardHeader>
                             <CardContent>
                               {task.completed && !task.approved && (

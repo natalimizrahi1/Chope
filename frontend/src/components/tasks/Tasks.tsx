@@ -34,11 +34,13 @@ const Tasks = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedTime, setSelectedTime] = useState("all");
 
-  // Filter tasks by selected category and status
+  // Filter tasks by selected category, status, and time
   const filteredTasks = tasks.filter((task: Task) => {
     // Category filter
-    const categoryMatch = selectedCategory === "all" || task.category === selectedCategory;
+    const taskCategory = task.category || "custom"; // Default to "custom" if missing
+    const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
 
     // Status filter
     let statusMatch = true;
@@ -50,7 +52,45 @@ const Tasks = () => {
       statusMatch = !task.completed;
     }
 
-    return categoryMatch && statusMatch;
+    // Time filter
+    let timeMatch = true;
+    if (selectedTime !== "all") {
+      const taskDate = new Date(task.createdAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      if (selectedTime === "today") {
+        timeMatch = taskDate >= today;
+      } else if (selectedTime === "week") {
+        timeMatch = taskDate >= weekAgo;
+      } else if (selectedTime === "month") {
+        timeMatch = taskDate >= monthAgo;
+      } else if (selectedTime === "older") {
+        timeMatch = taskDate < monthAgo;
+      }
+    }
+
+    // Debug logging
+    if (selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") {
+      console.log(`Task: ${task.title}`, {
+        category: task.category || "MISSING",
+        taskCategory: taskCategory,
+        selectedCategory,
+        categoryMatch,
+        status: `${task.completed ? "completed" : "incomplete"}${task.approved ? " approved" : ""}`,
+        selectedStatus,
+        statusMatch,
+        createdAt: task.createdAt,
+        taskDate: new Date(task.createdAt),
+        selectedTime,
+        timeMatch,
+        finalResult: categoryMatch && statusMatch && timeMatch,
+      });
+    }
+
+    return categoryMatch && statusMatch && timeMatch;
   });
 
   const incompleteTasks = filteredTasks.filter((task: Task) => !task.completed);
@@ -271,7 +311,23 @@ const Tasks = () => {
       console.log("Loading tasks for user ID:", user.id);
 
       const tasksData = await getTasks(token, user.id);
-      console.log("Tasks loaded:", tasksData);
+      console.log("=== LOADED TASKS ===");
+      tasksData.forEach((task: Task, index: number) => {
+        console.log(`Task ${index + 1}:`, {
+          id: task._id,
+          title: task.title,
+          category: task.category || "MISSING CATEGORY",
+          createdAt: task.createdAt,
+          completed: task.completed,
+          approved: task.approved,
+        });
+
+        // Check if task is missing category
+        if (!task.category) {
+          console.warn(`Task "${task.title}" is missing category field!`);
+        }
+      });
+      console.log("=== END LOADED TASKS ===");
       setTasks(tasksData);
 
       // Coins are now loaded separately via loadCoins function
@@ -618,13 +674,26 @@ const Tasks = () => {
                           <SelectItem value='approved'>Approved</SelectItem>
                         </SelectContent>
                       </Select>
-                      {(selectedCategory !== "all" || selectedStatus !== "all") && (
+                      <Select value={selectedTime} onValueChange={setSelectedTime}>
+                        <SelectTrigger className='w-36'>
+                          <SelectValue placeholder='Time' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value='all'>All Time</SelectItem>
+                          <SelectItem value='today'>Today</SelectItem>
+                          <SelectItem value='week'>Last Week</SelectItem>
+                          <SelectItem value='month'>Last Month</SelectItem>
+                          <SelectItem value='older'>Older than Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") && (
                         <Button
                           variant='outline'
                           size='sm'
                           onClick={() => {
                             setSelectedCategory("all");
                             setSelectedStatus("all");
+                            setSelectedTime("all");
                           }}
                         >
                           Clear
@@ -680,7 +749,8 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
-                              <div className='mt-1'>{getCategoryBadge(task.category)}</div>
+                              <div className='mt-1'>{getCategoryBadge(task.category || "custom")}</div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button className='mt-2 w-full text-[10px] lg:text-xs py-1' onClick={() => handleCompleteTask(task._id)}>
                               Complete
@@ -716,6 +786,7 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button variant='outline' className='mt-2 w-full text-[10px] lg:text-xs py-1 px-2 lg:px-3' onClick={() => handleUndoTask(task._id)}>
                               Undo
@@ -764,6 +835,7 @@ const Tasks = () => {
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>🪙</span>
                                 <span className='text-yellow-600 font-bold text-[10px] lg:text-xs'>{task.reward}</span>
                               </div>
+                              <div className='text-[8px] lg:text-[10px] text-gray-500 mt-1'>{new Date(task.createdAt).toLocaleDateString()}</div>
                             </div>
                             <Button variant='outline' className='mt-2 w-full text-[10px] lg:text-xs py-1 px-2 lg:px-3' onClick={() => handleUnapproveTask(task._id)}>
                               Undo
