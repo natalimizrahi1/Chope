@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Home, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { Search, Moon, Bell, Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, XCircle, Target } from "lucide-react";
 import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Task } from "../../lib/types";
@@ -555,7 +556,46 @@ const Tasks = () => {
   };
 
   return (
-    <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
+    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50'>
+      <Toaster />
+
+      {/* Header */}
+      <div className='bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex items-center justify-between h-16'>
+            <div className='flex items-center gap-4'>
+              <div className='bg-gradient-to-br from-[#87d4ee] to-[#4ec3f7] rounded-xl p-2'>
+                <Target className='w-6 h-6 text-white' />
+              </div>
+              <h1 className='text-2xl font-bold text-gray-900'>Tasks Dashboard</h1>
+            </div>
+
+            <div className='flex items-center gap-4'>
+              {/* Notifications */}
+              <div className='relative'>
+                {(() => {
+                  const user = JSON.parse(localStorage.getItem("user") || "{}");
+                  const token = localStorage.getItem("token");
+                  if (user.id && token) {
+                    return <Notifications childId={user.id} token={token} userRole='child' />;
+                  }
+                  return null;
+                })()}
+              </div>
+
+              {/* Coins Display */}
+              <div className='flex items-center gap-2 bg-yellow-100 px-3 py-2 rounded-full'>
+                <span className='text-yellow-600 font-bold text-lg'>🪙</span>
+                <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
+                <Button variant='ghost' size='sm' onClick={handleRefreshClick} className='ml-2 p-1 h-6 w-6 hover:bg-yellow-200'>
+                  🔄
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Sidebar */}
       <Card className='w-64 bg-white shadow-none border-0 flex flex-col min-h-screen p-0 m-4 mr-0'>
         {/* Logo */}
@@ -609,31 +649,6 @@ const Tasks = () => {
 
       {/* Main Content */}
       <div className='flex-1 overflow-hidden'>
-        {/* Header */}
-        <header className='px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-4'></div>
-            <div className='flex items-center space-x-4'>
-              <div className='flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-300'>
-                <span className='text-yellow-600 font-bold text-lg'>🪙</span>
-                <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
-                <Button variant='ghost' size='sm' onClick={handleRefreshClick} className='ml-2 p-1 h-6 w-6 hover:bg-yellow-200'>
-                  🔄
-                </Button>
-              </div>
-              {(() => {
-                const user = JSON.parse(localStorage.getItem("user") || "{}");
-                const token = localStorage.getItem("token");
-                console.log("🔔 Tasks page - User:", user.id, "Token:", token ? "present" : "missing");
-                return user.id && token ? <Notifications childId={user.id} token={token} /> : null;
-              })()}
-              <Avatar className='w-8 h-8 bg-purple-500'>
-                <AvatarFallback className='text-white text-sm font-medium'>I</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </header>
-
         {/* Main Content Area */}
         <main className='space-y-6 lg:space-y-8 overflow-y-auto h-full p-4 lg:p-5 pt-0 pb-0'>
           {/* Task Summary Sidebar */}
@@ -841,7 +856,6 @@ const Tasks = () => {
           </div>
         </main>
       </div>
-      <Toaster />
     </div>
   );
 };

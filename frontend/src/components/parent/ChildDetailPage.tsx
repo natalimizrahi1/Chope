@@ -11,6 +11,7 @@ import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List } from "lucide-
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
+import Notifications from "../notifications/Notifications";
 
 type Child = {
   _id: string;
@@ -312,7 +313,7 @@ export default function ChildDetailPage() {
   const handleCreateTask = async () => {
     if (!child) return;
     try {
-      await createTask(token, {
+      const createdTask = await createTask(token, {
         ...newTask,
         child: child._id,
       });
@@ -327,23 +328,30 @@ export default function ChildDetailPage() {
       localStorage.setItem("lastTaskUpdate", currentTime.toString());
 
       // Dispatch event to notify child's dashboard about new task
+      console.log("📤 Parent: Dispatching newTaskCreated event");
+      console.log("📤 Parent: Event detail:", { task: createdTask, childId: childId });
+
       const taskCreatedEvent = new CustomEvent("newTaskCreated", {
-        detail: { task: newTask, childId: childId },
+        detail: { task: createdTask, childId: childId },
       });
       window.dispatchEvent(taskCreatedEvent);
+      console.log("📤 Parent: Event dispatched successfully");
 
       // Also store in localStorage for immediate detection
-      localStorage.setItem(
-        "newTaskCreated",
-        JSON.stringify({
-          task: newTask,
-          childId: childId,
-          timestamp: currentTime,
-        })
-      );
+      console.log("📤 Parent: Storing newTaskCreated in localStorage");
+      const storageData = {
+        task: createdTask,
+        childId: childId,
+        timestamp: currentTime,
+      };
+      console.log("📤 Parent: Storage data:", storageData);
+
+      localStorage.setItem("newTaskCreated", JSON.stringify(storageData));
 
       // Force storage event for immediate update in all tabs
+      console.log("📤 Parent: Dispatching storage event");
       window.dispatchEvent(new Event("storage"));
+      console.log("📤 Parent: Storage event dispatched");
 
       // Clear the localStorage item after a short delay to prevent accumulation
       setTimeout(() => {
@@ -537,8 +545,20 @@ export default function ChildDetailPage() {
 
   return (
     <div className='min-h-screen bg-background'>
+      {/* Header with Notifications */}
+      <div className='p-6 pb-0'>
+        <div className='flex items-center justify-between mb-6'>
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900'>Child Details</h1>
+            <p className='text-gray-600'>Manage tasks and monitor progress</p>
+          </div>
+          {/* Notifications for Parent */}
+          {/* {childId && <Notifications childId={childId} token={token} userRole='parent' />} */}
+        </div>
+      </div>
+
       {/* Main content */}
-      <div className='p-6'>
+      <div className='p-6 pt-0'>
         <div className='grid gap-6'>
           {/* Child Info Cards */}
           <div className='grid gap-4 md:grid-cols-3'>

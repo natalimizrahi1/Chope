@@ -384,7 +384,7 @@ const KidDashboard = () => {
 
             {/* Notifications */}
             <div className='relative z-50'>
-              <Notifications childId={userId} token={token} />
+              <Notifications childId={userId} token={token} userRole='child' />
             </div>
 
             <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

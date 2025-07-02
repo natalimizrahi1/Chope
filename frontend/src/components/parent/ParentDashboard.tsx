@@ -11,6 +11,7 @@ import { SiteHeader } from "../ui/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconUsers } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import Notifications from "../notifications/Notifications";
 
 import data from "../../app/dashboard/data.json";
 
@@ -157,6 +158,13 @@ export default function ParentDashboard() {
         <div className='flex flex-1 flex-col'>
           <div className='@container/main flex flex-1 flex-col gap-2'>
             <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
+              {/* Notifications for Parent */}
+              {children.length > 0 && (
+                <div className='px-4 lg:px-6 flex justify-end'>
+                  <Notifications childId={children[0]._id} token={token} userRole='parent' />
+                </div>
+              )}
+
               {/* Pending Tasks Notification */}
               {pendingTasksCount > 0 && (
                 <div className='px-4 lg:px-6'>
