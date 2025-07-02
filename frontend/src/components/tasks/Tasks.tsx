@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Moon, Bell, Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Home, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Task } from "../../lib/types";
@@ -20,13 +19,12 @@ const Tasks = () => {
   const [totalCoins, setTotalCoins] = useState(0);
 
   const incompleteTasks = tasks.filter((task: Task) => !task.completed);
-  const completedTasksArr = tasks.filter((task: Task) => task.completed);
   const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
   const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
 
   useEffect(() => {
-    loadTasks();
-    loadCoins();
+    loadTasks(true);
+    loadCoins(true);
 
     // Check for new tasks in localStorage on mount
     const newTaskInfo = localStorage.getItem("newTaskCreated");
@@ -36,7 +34,7 @@ const Tasks = () => {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
         if (taskInfo.childId === user.id) {
           // Refresh tasks immediately
-          loadTasks();
+          silentRefreshTasks();
 
           // Clear the localStorage item
           localStorage.removeItem("newTaskCreated");
@@ -46,11 +44,26 @@ const Tasks = () => {
       }
     }
 
+    // Enhanced auto-refresh system
+    const autoRefresh = async () => {
+      try {
+        // Check for new tasks or updates
+        const lastUpdate = localStorage.getItem("lastTaskUpdate");
+        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
+        const currentTime = Date.now();
+
+        // If more than 3 seconds have passed since last update, refresh silently
+        if (currentTime - lastUpdateTime > 3000) {
+          console.log("Auto-refreshing tasks page silently...");
+          await silentRefreshAll();
+        }
+      } catch (error) {
+        console.error("Error in auto-refresh:", error);
+      }
+    };
+
     // Set up interval for periodic refresh
-    const interval = setInterval(() => {
-      loadTasks();
-      loadCoins();
-    }, 3000);
+    const interval = setInterval(autoRefresh, 3000);
 
     // Add event listeners for coin updates
     window.addEventListener("taskCompleted", handleCoinUpdate);
@@ -68,8 +81,9 @@ const Tasks = () => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (eventChildId === user.id) {
         try {
+          console.log("New task created event received, silently refreshing tasks...");
           // Immediately refresh tasks to show the new task
-          await loadTasks();
+          await silentRefreshTasks();
         } catch (error) {
           console.error("Failed to refresh tasks after new task creation:", error);
         }
@@ -83,8 +97,9 @@ const Tasks = () => {
           const taskInfo = JSON.parse(event.newValue);
           const user = JSON.parse(localStorage.getItem("user") || "{}");
           if (taskInfo.childId === user.id) {
+            console.log("New task detected in localStorage, silently refreshing tasks...");
             // Immediately refresh tasks
-            await loadTasks();
+            await silentRefreshTasks();
 
             // Clear the localStorage item
             localStorage.removeItem("newTaskCreated");
@@ -92,6 +107,36 @@ const Tasks = () => {
         } catch (error) {
           console.error("Failed to parse new task info:", error);
         }
+      }
+
+      // Listen for task approval events
+      if (event.key === "taskApproved" && event.newValue) {
+        try {
+          const info = JSON.parse(event.newValue);
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          if (info.childId === user.id) {
+            console.log("Task approval detected in localStorage, silently refreshing tasks and coins...");
+            // Immediately refresh tasks and coins
+            await silentRefreshAll();
+
+            // Show success notification
+            toast({
+              title: "Task Approved! 🎉",
+              description: "Your task has been approved and you received coins!",
+            });
+
+            // Clear the localStorage item
+            localStorage.removeItem("taskApproved");
+          }
+        } catch (error) {
+          console.error("Failed to handle task approval event:", error);
+        }
+      }
+
+      // Listen for last update time changes
+      if (event.key === "lastTaskUpdate") {
+        console.log("Last update time changed, silently refreshing tasks...");
+        silentRefreshAll();
       }
     };
 
@@ -101,8 +146,8 @@ const Tasks = () => {
     // Listen for visibility changes to refresh coins when returning to page
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        loadTasks();
-        loadCoins();
+        console.log("Tasks page became visible, silently refreshing data...");
+        silentRefreshAll();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -112,6 +157,7 @@ const Tasks = () => {
       window.removeEventListener("coinSpent", handleCoinUpdate);
       window.removeEventListener("storage", handleCoinUpdate);
       window.removeEventListener("taskCreated", handleNewTaskCreated);
+      window.removeEventListener("storage", handleStorageChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
     };
@@ -143,9 +189,9 @@ const Tasks = () => {
           const info = JSON.parse(event.newValue);
           const user = JSON.parse(localStorage.getItem("user") || "{}");
           if (info.childId === user.id) {
+            console.log("Task approval event received, silently refreshing tasks and coins...");
             // Immediately refresh tasks and coins
-            await loadTasks();
-            await loadCoins();
+            await silentRefreshAll();
 
             // Show success notification
             toast({
@@ -163,15 +209,15 @@ const Tasks = () => {
     };
 
     // Listen for custom task approval events (same tab)
-    const handleTaskApprovedCustom = async (event: CustomEvent) => {
-      console.log("🎉 Tasks page received custom task approval event:", event.detail);
-      const { childId: eventChildId } = event.detail;
+    const handleTaskApprovedCustom = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log("🎉 Tasks page received custom task approval event:", customEvent.detail);
+      const { childId: eventChildId } = customEvent.detail;
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (eventChildId === user.id) {
         console.log("✅ Tasks page updating for approved task");
         // Immediately refresh tasks and coins
-        await loadTasks();
-        await loadCoins();
+        await silentRefreshAll();
 
         // Show success notification
         toast({
@@ -181,7 +227,7 @@ const Tasks = () => {
       }
     };
 
-    // Set up interval to check for task approval events in localStorage
+    // Enhanced polling for task approval events
     const approvalCheckInterval = setInterval(async () => {
       const taskApprovedInfo = localStorage.getItem("taskApproved");
       if (taskApprovedInfo) {
@@ -192,8 +238,7 @@ const Tasks = () => {
           if (info.childId === user.id) {
             console.log("🔔 Tasks page updating for approved task (localStorage check)");
             // Immediately refresh tasks and coins
-            await loadTasks();
-            await loadCoins();
+            await silentRefreshAll();
 
             // Show success notification
             toast({
@@ -205,101 +250,45 @@ const Tasks = () => {
             localStorage.removeItem("taskApproved");
           }
         } catch (error) {
-          console.error("Failed to parse task approval info:", error);
+          console.error("Failed to handle task approval in polling:", error);
+        }
+      }
+
+      // Check for new task creation
+      const newTaskInfo = localStorage.getItem("newTaskCreated");
+      if (newTaskInfo) {
+        try {
+          const info = JSON.parse(newTaskInfo);
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          if (info.childId === user.id) {
+            console.log("🔔 Tasks page found new task info in localStorage:", info);
+            // Immediately refresh tasks
+            await silentRefreshTasks();
+
+            // Clear the localStorage item
+            localStorage.removeItem("newTaskCreated");
+          }
+        } catch (error) {
+          console.error("Failed to handle new task in polling:", error);
         }
       }
     }, 2000); // Check every 2 seconds
 
     window.addEventListener("storage", handleTaskApproved);
-    window.addEventListener("taskApproved", handleTaskApprovedCustom as unknown as EventListener);
+    window.addEventListener("taskApproved", handleTaskApprovedCustom);
+
     return () => {
       window.removeEventListener("storage", handleTaskApproved);
-      window.removeEventListener("taskApproved", handleTaskApprovedCustom as unknown as EventListener);
+      window.removeEventListener("taskApproved", handleTaskApprovedCustom);
       clearInterval(approvalCheckInterval);
     };
-  }, [toast]);
+  }, []);
 
-  const loadTasks = async () => {
+  const loadTasks = async (showLoading = true) => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      console.log("Loading tasks - Token:", token ? "exists" : "missing");
-      console.log("Loading tasks - User:", userStr);
-
-      if (!token || !userStr) {
-        console.error("No token or user found");
-        return;
+      if (showLoading) {
+        setLoading(true);
       }
-
-      const user = JSON.parse(userStr);
-      console.log("Loading tasks for user ID:", user.id);
-
-      const tasksData = await getTasks(token, user.id);
-      console.log("Tasks loaded:", tasksData);
-      setTasks(tasksData);
-
-      // Coins are now loaded separately via loadCoins function
-    } catch (error) {
-      console.error("Failed to load tasks:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCoins = async () => {
-    try {
-      console.log("=== LOADING COINS IN TASKS ===");
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      console.log("Token:", token ? "Present" : "Missing");
-      console.log("User string:", userStr);
-
-      if (!token || !userStr) {
-        console.log("No token or user found, returning");
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      console.log("User ID:", user.id);
-
-      // Get coins directly from server
-      try {
-        console.log("Getting coins from server...");
-        const coinsData = await getChildCoins(token, user.id);
-        console.log("Coins data from server:", coinsData);
-        console.log("Previous coins in state:", totalCoins);
-        console.log("New coins from server:", coinsData.coins);
-
-        setTotalCoins(coinsData.coins);
-        localStorage.setItem("currentCoins", coinsData.coins.toString());
-        console.log("Coins state updated successfully");
-        console.log("=== COINS LOADED SUCCESSFULLY ===");
-      } catch (serverError) {
-        console.error("Failed to get coins from server, falling back to calculation:", serverError);
-        // Fallback to old calculation method
-        const tasks = await getTasks(token, user.id);
-        const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
-        const earnedCoins = approvedTasks.reduce((sum: number, task: Task) => sum + task.reward, 0);
-        const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-        const currentTotal = earnedCoins - spentCoins;
-        setTotalCoins(currentTotal);
-      }
-    } catch (error) {
-      console.error("Error loading coins:", error);
-    }
-  };
-
-  const handleCoinUpdate = async () => {
-    await loadCoins();
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      console.log("Starting task completion for task ID:", taskId);
-
       const token = localStorage.getItem("token");
       const userStr = localStorage.getItem("user");
 
@@ -314,43 +303,141 @@ const Tasks = () => {
       }
 
       const user = JSON.parse(userStr);
-      console.log("Completing task for user:", user.id);
+      console.log("Loading tasks for user:", user.id);
 
-      await completeTask(token, taskId);
-      console.log("Task completed successfully on server");
-
-      // Show notification to child - this should always appear
-      setTimeout(() => {
-        toast({
-          title: "Task Sent for Approval",
-          description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
-        });
-        console.log("Alert shown to user");
-      }, 100);
-
-      // Reload tasks to get updated data
-      console.log("Reloading tasks...");
       const tasksData = await getTasks(token, user.id);
       setTasks(tasksData);
-      console.log("Tasks reloaded successfully");
-
-      // Reload coins from server
-      console.log("Reloading coins...");
-      await loadCoins();
-      console.log("Coins reloaded successfully");
-
-      // Dispatch event for coin update
-      window.dispatchEvent(new CustomEvent("taskCompleted"));
-
-      // Update last task time
-      localStorage.setItem("lastTaskTime", Date.now().toString());
-      console.log("Task completion process finished successfully");
+      console.log("Tasks loaded successfully:", tasksData);
     } catch (error) {
-      console.error("Error completing task:", error);
-
-      // Show error message to user
+      console.error("Failed to load tasks:", error);
       toast({
         title: "Error",
+        description: "Failed to load tasks. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Silent refresh function for background updates
+  const silentRefreshTasks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const tasksData = await getTasks(token, user.id);
+      setTasks(tasksData);
+    } catch (error) {
+      console.error("Failed to silent refresh tasks:", error);
+    }
+  };
+
+  const loadCoins = async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      console.log("Loading coins for user:", user.id);
+
+      const coinsData = await getChildCoins(token, user.id);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+      console.log("Coins loaded successfully:", coinsData.coins);
+    } catch (error) {
+      console.error("Failed to load coins:", error);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Silent refresh function for coins
+  const silentRefreshCoins = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const coinsData = await getChildCoins(token, user.id);
+      setTotalCoins(coinsData.coins);
+      localStorage.setItem("currentCoins", coinsData.coins.toString());
+    } catch (error) {
+      console.error("Failed to silent refresh coins:", error);
+    }
+  };
+
+  // Silent refresh for both tasks and coins
+  const silentRefreshAll = async () => {
+    await silentRefreshTasks();
+    await silentRefreshCoins();
+  };
+
+  const handleCoinUpdate = async () => {
+    await loadCoins();
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (!token || !userStr) {
+        console.error("No token or user found");
+        toast({
+          title: "Error",
+          description: "Error: Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const userId = user.id;
+
+      await completeTask(token, taskId);
+      await silentRefreshTasks();
+
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
+      toast({
+        title: "Task Sent for Approval",
+        description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
+      });
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+      toast({
+        title: "Error completing task",
         description: "There was an error completing the task. Please try again.",
         variant: "destructive",
       });
@@ -368,24 +455,28 @@ const Tasks = () => {
       }
 
       const user = JSON.parse(userStr);
+      const userId = user.id;
+
       await undoTask(token, taskId);
+      await silentRefreshTasks();
 
-      // Reload tasks to get updated data
-      const tasksData = await getTasks(token, user.id);
-      setTasks(tasksData);
-
-      // Immediately reload coins from server
-      await loadCoins();
-
-      // Dispatch event for coin update
-      window.dispatchEvent(new CustomEvent("taskCompleted"));
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
 
       toast({
         title: "Task Undone",
-        description: "The task has been undone. If it was approved, coins have been deducted.",
+        description: "The task has been undone and sent back to remaining tasks.",
       });
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
     } catch (error) {
-      console.error("Error undoing task:", error);
+      console.error("Failed to undo task:", error);
       toast({
         title: "Error",
         description: "Failed to undo task. Please try again.",
@@ -458,6 +549,11 @@ const Tasks = () => {
     return "bg-blue-100";
   };
 
+  const handleRefreshClick = () => {
+    loadTasks(true);
+    loadCoins(true);
+  };
+
   return (
     <div className='min-h-screen flex' style={{ background: "#f7f6fb" }}>
       {/* Sidebar */}
@@ -521,7 +617,7 @@ const Tasks = () => {
               <div className='flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-300'>
                 <span className='text-yellow-600 font-bold text-lg'>🪙</span>
                 <span className='text-yellow-600 font-bold text-lg'>{totalCoins}</span>
-                <Button variant='ghost' size='sm' onClick={loadCoins} className='ml-2 p-1 h-6 w-6 hover:bg-yellow-200'>
+                <Button variant='ghost' size='sm' onClick={handleRefreshClick} className='ml-2 p-1 h-6 w-6 hover:bg-yellow-200'>
                   🔄
                 </Button>
               </div>

@@ -43,54 +43,93 @@ export default function ParentDashboard() {
       return;
     }
 
-    // Load children data
-    getChildren(token)
-      .then(childrenData => {
+    const loadChildren = async (showLoading = true) => {
+      try {
+        const childrenData = await getChildren(token);
         setChildren(childrenData);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error("Failed to load children:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load children data. Please try again.",
-          variant: "destructive",
-        });
-      });
-
-    // Listen for visibility changes to refresh when returning to page
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("ParentDashboard became visible, refreshing children...");
-        getChildren(token)
-          .then(childrenData => {
-            setChildren(childrenData);
-          })
-          .catch(error => {
-            console.error("Failed to refresh children:", error);
-          });
+        if (error instanceof Error && error.message.includes("401")) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login/parent");
+        }
       }
     };
 
+    const checkPendingTasks = async () => {
+      try {
+        const pendingTasksPromises = children.map(async child => {
+          const tasks = await getTasks(token, child._id);
+          const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
+          return { childId: child._id, childName: child.name, pendingCount };
+        });
+
+        const pendingResults = await Promise.all(pendingTasksPromises);
+        const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
+
+        if (totalPending > 0) {
+          console.log(`Found ${totalPending} pending tasks across all children`);
+        }
+
+        setPendingTasksCount(totalPending);
+        return pendingResults;
+      } catch (error) {
+        console.error("Failed to check pending tasks:", error);
+        return [];
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadChildren(false); // Silent refresh when returning to page
+        checkPendingTasks();
+      }
+    };
+
+    // Silent auto-refresh system
+    const autoRefresh = async () => {
+      try {
+        // Check for new tasks or updates
+        const lastUpdate = localStorage.getItem("lastTaskUpdate");
+        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
+        const currentTime = Date.now();
+
+        // If more than 10 seconds have passed since last update, refresh silently
+        if (currentTime - lastUpdateTime > 10000) {
+          console.log("Auto-refreshing parent dashboard silently...");
+          await loadChildren(false);
+          await checkPendingTasks();
+        }
+      } catch (error) {
+        console.error("Error in auto-refresh:", error);
+      }
+    };
+
+    loadChildren(true); // Show loading on initial load
+    checkPendingTasks();
+
+    // Set up auto-refresh every 10 seconds
+    const interval = setInterval(autoRefresh, 10000);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Set up interval to refresh every 15 seconds
-    const interval = setInterval(() => {
-      getChildren(token)
-        .then(childrenData => {
-          setChildren(childrenData);
-          // Check for pending tasks after loading children
-          checkPendingTasks();
-        })
-        .catch(error => {
-          console.error("Failed to refresh children:", error);
-        });
-    }, 15000);
+    // Listen for storage events (when tasks are created or approved)
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "lastTaskUpdate") {
+        console.log("Storage event: Task update detected, silently refreshing parent dashboard...");
+        loadChildren(false);
+        checkPendingTasks();
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorage);
       clearInterval(interval);
     };
-  }, [token, navigate, toast]);
+  }, [token, navigate, toast, children]);
 
   // Map children to the format required by AppSidebar/NavDocuments
   const childrenList = children.map(child => ({
@@ -98,31 +137,6 @@ export default function ParentDashboard() {
     url: child._id, // Use _id for navigation
     icon: IconUsers,
   }));
-
-  // Check for pending approval tasks
-  const checkPendingTasks = async () => {
-    try {
-      const pendingTasksPromises = children.map(async child => {
-        const tasks = await getTasks(token, child._id);
-        const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-        return { childId: child._id, childName: child.name, pendingCount };
-      });
-
-      const pendingResults = await Promise.all(pendingTasksPromises);
-      const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
-
-      if (totalPending > 0) {
-        console.log(`Found ${totalPending} pending tasks across all children`);
-        // You can add a toast notification here if you want
-      }
-
-      setPendingTasksCount(totalPending);
-      return pendingResults;
-    } catch (error) {
-      console.error("Failed to check pending tasks:", error);
-      return [];
-    }
-  };
 
   // Handler for navigating to child detail page
   const handleChildSelect = (id: string) => {
@@ -136,8 +150,7 @@ export default function ParentDashboard() {
           "--sidebar-width": "calc(var(--spacing) * 72)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
-      }
-    >
+      }>
       <AppSidebar variant='inset' childrenList={childrenList} onChildSelect={handleChildSelect} />
       <SidebarInset>
         <SiteHeader />
@@ -168,8 +181,7 @@ export default function ParentDashboard() {
                         if (firstChild) {
                           navigate(`/parent/child/${firstChild._id}`);
                         }
-                      }}
-                    >
+                      }}>
                       Review Tasks
                     </Button>
                   </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Pet } from "../pet/VirtualPet";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -21,6 +21,11 @@ const KidDashboard = () => {
   const [userName, setUserName] = useState("");
   const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "pending" | "completed">("incomplete");
 
+  // Add refs for tracking last update times
+  const lastTaskUpdateRef = useRef<number>(0);
+  const lastCoinsUpdateRef = useRef<number>(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Task categories
   const incompleteTasks = tasks.filter((task: Task) => !task.completed);
   const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
@@ -40,64 +45,140 @@ const KidDashboard = () => {
   }, [animal]);
 
   // Load user data and tasks
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (!token || user.role !== "child") {
+          localStorage.removeItem("cachedTasks");
+          localStorage.removeItem("cachedTasksTimestamp");
+          navigate("/login/kid");
+          return;
+        }
+        setUserId(user.id);
+        setUserName(user.name || user.username || "User");
+        const tasksData = await getTasks(token, user.id);
+        setTasks(tasksData);
+        lastTaskUpdateRef.current = Date.now();
+        localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
+        localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+        // Get coins from server
+        const coinsData = await getChildCoins(token, user.id);
+        setTotalCoins(coinsData.coins);
+        lastCoinsUpdateRef.current = Date.now();
+        localStorage.setItem("currentCoins", coinsData.coins.toString());
+      } catch (error) {
+        console.error("Failed to load tasks:", error);
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [token, navigate]
+  );
+
+  // Silent refresh function for background updates
+  const silentRefresh = useCallback(async () => {
     try {
-      setLoading(true);
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (!token || user.role !== "child") {
-        localStorage.removeItem("cachedTasks");
-        localStorage.removeItem("cachedTasksTimestamp");
-        navigate("/login/kid");
         return;
       }
-      setUserId(user.id);
-      setUserName(user.name || user.username || "User");
       const tasksData = await getTasks(token, user.id);
       setTasks(tasksData);
+      lastTaskUpdateRef.current = Date.now();
       localStorage.setItem("cachedTasks", JSON.stringify(tasksData));
       localStorage.setItem("cachedTasksTimestamp", Date.now().toString());
+
       // Get coins from server
       const coinsData = await getChildCoins(token, user.id);
       setTotalCoins(coinsData.coins);
+      lastCoinsUpdateRef.current = Date.now();
       localStorage.setItem("currentCoins", coinsData.coins.toString());
     } catch (error) {
-      console.error("Failed to load tasks:", error);
-    } finally {
-      setLoading(false);
+      console.error("Failed to silent refresh:", error);
     }
-  }, [token, navigate]);
+  }, [token]);
 
   useEffect(() => {
-    loadTasks();
+    loadTasks(true); // Show loading on initial load
   }, [loadTasks]);
 
-  // Refresh coins every 5 seconds
+  // Enhanced auto-refresh system with polling
   useEffect(() => {
     if (!userId || !token) return;
-    const interval = setInterval(async () => {
+
+    // Function to check for updates
+    const checkForUpdates = async () => {
       try {
-        const coinsData = await getChildCoins(token, userId);
-        setTotalCoins(coinsData.coins);
-        localStorage.setItem("currentCoins", coinsData.coins.toString());
+        // Check if there's a new task created
+        const newTaskCreated = localStorage.getItem("newTaskCreated");
+        if (newTaskCreated) {
+          const info = JSON.parse(newTaskCreated);
+          if (info.childId === userId) {
+            console.log("New task detected, silent refreshing tasks...");
+            await silentRefresh();
+            localStorage.removeItem("newTaskCreated");
+            return;
+          }
+        }
+
+        // Check if there's a task approval
+        const taskApproved = localStorage.getItem("taskApproved");
+        if (taskApproved) {
+          const info = JSON.parse(taskApproved);
+          if (info.childId === userId) {
+            console.log("Task approval detected, silent refreshing tasks and coins...");
+            await silentRefresh();
+            localStorage.removeItem("taskApproved");
+            return;
+          }
+        }
+
+        // Check for last update time to see if we need to refresh
+        const lastUpdate = localStorage.getItem("lastTaskUpdate");
+        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
+        const currentTime = Date.now();
+
+        // If more than 5 seconds have passed since last update, refresh silently
+        if (currentTime - lastUpdateTime > 5000) {
+          console.log("Auto-refreshing tasks and coins silently...");
+          await silentRefresh();
+        }
       } catch (error) {
-        console.error("Failed to refresh coins:", error);
+        console.error("Error in auto-refresh:", error);
       }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [userId, token]);
+    };
+
+    // Set up polling every 3 seconds
+    pollingIntervalRef.current = setInterval(checkForUpdates, 3000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [userId, token, silentRefresh]);
 
   // Listen for task completion/approval events
   useEffect(() => {
     const handleTaskCompleted = async () => {
-      await loadTasks();
+      console.log("Task completed event received");
+      await silentRefresh();
     };
 
     const handleTaskApproved = async () => {
-      await loadTasks();
+      console.log("Task approved event received");
+      await silentRefresh();
     };
 
     const handleNewTaskCreated = async () => {
-      await loadTasks();
+      console.log("New task created event received");
+      await silentRefresh();
     };
 
     window.addEventListener("taskCompleted", handleTaskCompleted);
@@ -109,30 +190,16 @@ const KidDashboard = () => {
       window.removeEventListener("taskApproved", handleTaskApproved);
       window.removeEventListener("newTaskCreated", handleNewTaskCreated);
     };
-  }, [loadTasks]);
+  }, [silentRefresh]);
 
-  // Listen for task approval events to update immediately
+  // Listen for storage events (cross-tab communication)
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === "taskApproved" && event.newValue) {
         const info = JSON.parse(event.newValue);
         if (info.childId === userId) {
-          loadTasks();
-          // Also refresh coins immediately
-          if (token && userId) {
-            getChildCoins(token, userId)
-              .then(coinsData => {
-                setTotalCoins(coinsData.coins);
-                localStorage.setItem("currentCoins", coinsData.coins.toString());
-              })
-              .catch(error => {
-                console.error("Failed to refresh coins:", error);
-              });
-          }
-          // Clean up localStorage after a short delay
-          setTimeout(() => {
-            localStorage.removeItem("taskApproved");
-          }, 1000);
+          console.log("Storage event: Task approved");
+          silentRefresh();
         }
       }
 
@@ -140,89 +207,46 @@ const KidDashboard = () => {
       if (event.key === "newTaskCreated" && event.newValue) {
         const info = JSON.parse(event.newValue);
         if (info.childId === userId) {
-          loadTasks();
-          // Also refresh coins immediately in case there were any changes
-          if (token && userId) {
-            getChildCoins(token, userId)
-              .then(coinsData => {
-                setTotalCoins(coinsData.coins);
-                localStorage.setItem("currentCoins", coinsData.coins.toString());
-              })
-              .catch(error => {
-                console.error("Failed to refresh coins:", error);
-              });
-          }
-          // Clean up localStorage after a short delay
-          setTimeout(() => {
-            localStorage.removeItem("newTaskCreated");
-          }, 1000);
+          console.log("Storage event: New task created");
+          silentRefresh();
         }
       }
-    };
 
-    const handleCustomEvent = (event: CustomEvent) => {
-      if (event.detail && event.detail.childId === userId) {
-        loadTasks();
-        // Also refresh coins immediately
-        if (token && userId) {
-          getChildCoins(token, userId)
-            .then(coinsData => {
-              setTotalCoins(coinsData.coins);
-              localStorage.setItem("currentCoins", coinsData.coins.toString());
-            })
-            .catch(error => {
-              console.error("Failed to refresh coins:", error);
-            });
-        }
-        // Clean up localStorage after a short delay
-        setTimeout(() => {
-          localStorage.removeItem("taskApproved");
-        }, 1000);
-      }
-    };
-
-    const handleNewTaskCustomEvent = (event: CustomEvent) => {
-      if (event.detail && event.detail.childId === userId) {
-        loadTasks();
-        // Also refresh coins immediately in case there were any changes
-        if (token && userId) {
-          getChildCoins(token, userId)
-            .then(coinsData => {
-              setTotalCoins(coinsData.coins);
-              localStorage.setItem("currentCoins", coinsData.coins.toString());
-            })
-            .catch(error => {
-              console.error("Failed to refresh coins:", error);
-            });
-        }
-        // Clean up localStorage after a short delay
-        setTimeout(() => {
-          localStorage.removeItem("newTaskCreated");
-        }, 1000);
+      // Listen for last update time changes
+      if (event.key === "lastTaskUpdate") {
+        console.log("Storage event: Last update time changed");
+        silentRefresh();
       }
     };
 
     window.addEventListener("storage", handleStorage);
-    window.addEventListener("taskApproved", handleCustomEvent as EventListener);
-    window.addEventListener("newTaskCreated", handleNewTaskCustomEvent as EventListener);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("taskApproved", handleCustomEvent as EventListener);
-      window.removeEventListener("newTaskCreated", handleNewTaskCustomEvent as EventListener);
     };
-  }, [userId, loadTasks, token]);
+  }, [silentRefresh, userId]);
 
   // Task actions
   const handleCompleteTask = async (taskId: string) => {
     try {
       await completeTask(token, taskId);
-      await loadTasks();
+      await silentRefresh();
+
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
       toast({
         title: "Task Sent for Approval",
         description: "Your task has been sent to your parent for approval. You will receive your coins once approved.",
       });
-      window.dispatchEvent(new CustomEvent("taskCompleted"));
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
     } catch (error) {
       console.error("Failed to complete task:", error);
       toast({
@@ -236,12 +260,23 @@ const KidDashboard = () => {
   const handleUndoTask = async (taskId: string) => {
     try {
       await undoTask(token, taskId);
-      await loadTasks();
+      await silentRefresh();
+
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
       toast({
         title: "Task Undone",
         description: "The task has been undone and sent back to remaining tasks.",
       });
-      window.dispatchEvent(new CustomEvent("taskCompleted"));
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(
+        new CustomEvent("taskCompleted", {
+          detail: { taskId, childId: userId, timestamp: currentTime },
+        })
+      );
     } catch (error) {
       console.error("Failed to undo task:", error);
       toast({

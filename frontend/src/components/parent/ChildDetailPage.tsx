@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById, unapproveTask } from "../../lib/api";
+import { getTasks, createTask, approveTask, rejectTask, getChildById, unapproveTask } from "../../lib/api";
 import type { Task, Animal } from "../../lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -29,39 +29,76 @@ export default function ChildDetailPage() {
   const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  const loadChildData = async () => {
+  const loadChildData = async (showLoading = true) => {
     if (!token || !childId) return;
-
     try {
-      // Use the new direct API call
+      if (showLoading) {
+        setLoading(true);
+      }
       const childData = await getChildById(token, childId);
       setChild(childData);
     } catch (error) {
       console.error("Failed to load child data:", error);
-      // Fallback to the old method
-      try {
-        const children = await getChildren(token);
-        const foundChild = children.find((c: Child) => c._id === childId);
-        if (foundChild) {
-          setChild(foundChild);
-        }
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
+      if (error instanceof Error && error.message.includes("401")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login/parent");
+      }
+    } finally {
+      if (showLoading) {
+        setLoading(false);
       }
     }
   };
 
-  const loadTasks = async () => {
+  const loadTasks = async (showLoading = true) => {
     if (!childId) return;
-
     try {
+      if (showLoading) {
+        setLoading(true);
+      }
       const tasksData = await getTasks(token, childId);
-
       setTasks(tasksData);
     } catch (error) {
       console.error("Failed to load tasks:", error);
+      if (error instanceof Error && error.message.includes("401")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login/parent");
+      }
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
     }
+  };
+
+  // Silent refresh functions for background updates
+  const silentRefreshChildData = async () => {
+    if (!token || !childId) return;
+    try {
+      const childData = await getChildById(token, childId);
+      setChild(childData);
+    } catch (error) {
+      console.error("Failed to silent refresh child data:", error);
+    }
+  };
+
+  const silentRefreshTasks = async () => {
+    if (!childId) return;
+    try {
+      const tasksData = await getTasks(token, childId);
+      setTasks(tasksData);
+    } catch (error) {
+      console.error("Failed to silent refresh tasks:", error);
+    }
+  };
+
+  const silentRefreshAll = async () => {
+    await silentRefreshChildData();
+    await silentRefreshTasks();
   };
 
   useEffect(() => {
@@ -90,29 +127,85 @@ export default function ChildDetailPage() {
   }, [child, token]);
 
   useEffect(() => {
-    loadChildData();
-    loadTasks();
+    const loadData = async () => {
+      await loadChildData(true);
+      await loadTasks(true);
+    };
+
+    loadData();
+
+    // Silent auto-refresh system
+    const autoRefresh = async () => {
+      try {
+        // Check for new tasks or updates
+        const lastUpdate = localStorage.getItem("lastTaskUpdate");
+        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
+        const currentTime = Date.now();
+
+        // If more than 5 seconds have passed since last update, refresh silently
+        if (currentTime - lastUpdateTime > 5000) {
+          console.log("Auto-refreshing child detail page silently...");
+          await silentRefreshAll();
+        }
+      } catch (error) {
+        console.error("Error in auto-refresh:", error);
+      }
+    };
+
+    // Set up auto-refresh every 5 seconds
+    const interval = setInterval(autoRefresh, 5000);
 
     // Listen for visibility changes to refresh when returning to page
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        loadChildData();
-        loadTasks();
+        console.log("ChildDetailPage became visible, silently refreshing data...");
+        silentRefreshAll();
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Set up interval to refresh every 10 seconds
-    const interval = setInterval(() => {
-      loadTasks();
-    }, 10000);
+    // Listen for storage events (when tasks are created or approved)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "lastTaskUpdate") {
+        console.log("Storage event: Task update detected, silently refreshing child detail page...");
+        silentRefreshAll();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Listen for custom events
+    const handleTaskCreated = () => {
+      console.log("Custom event: Task created, silently refreshing child detail page...");
+      silentRefreshAll();
+    };
+
+    const handleTaskApproved = () => {
+      console.log("Custom event: Task approved, silently refreshing child detail page...");
+      silentRefreshAll();
+    };
+
+    window.addEventListener("taskCreated", handleTaskCreated);
+    window.addEventListener("taskApproved", handleTaskApproved);
+
+    // Listen for immediate refresh requests
+    const handleImmediateRefresh = () => {
+      console.log("Immediate refresh requested for child detail page...");
+      silentRefreshAll();
+    };
+
+    window.addEventListener("refreshChildDetail", handleImmediateRefresh);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("taskCreated", handleTaskCreated);
+      window.removeEventListener("taskApproved", handleTaskApproved);
+      window.removeEventListener("refreshChildDetail", handleImmediateRefresh);
     };
-  }, [childId, token]);
+  }, [loadChildData, loadTasks]);
 
   // Load initial data
   useEffect(() => {
@@ -229,6 +322,10 @@ export default function ChildDetailPage() {
 
       await loadTasks();
 
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
       // Dispatch event to notify child's dashboard about new task
       const taskCreatedEvent = new CustomEvent("newTaskCreated", {
         detail: { task: newTask, childId: childId },
@@ -241,16 +338,17 @@ export default function ChildDetailPage() {
         JSON.stringify({
           task: newTask,
           childId: childId,
-          timestamp: Date.now(),
+          timestamp: currentTime,
         })
       );
+
       // Force storage event for immediate update in all tabs
       window.dispatchEvent(new Event("storage"));
 
       // Clear the localStorage item after a short delay to prevent accumulation
       setTimeout(() => {
         localStorage.removeItem("newTaskCreated");
-      }, 1000);
+      }, 2000);
 
       // Refresh child data to update any changes
       setTimeout(() => {
@@ -261,7 +359,6 @@ export default function ChildDetailPage() {
         title: "Task created successfully",
         description: "The task has been added to your child's list.",
       });
-      localStorage.setItem("lastTaskTime", Date.now().toString());
     } catch (error) {
       console.error("Failed to create task:", error);
       toast({
@@ -292,20 +389,31 @@ export default function ChildDetailPage() {
       await loadTasks();
       await loadChildData(); // Refresh child data to get updated coins
 
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
       // Notify child for immediate update
-      localStorage.setItem("taskApproved", JSON.stringify({ taskId, childId: child?._id, timestamp: Date.now() }));
+      localStorage.setItem(
+        "taskApproved",
+        JSON.stringify({
+          taskId,
+          childId: child?._id,
+          timestamp: currentTime,
+        })
+      );
       window.dispatchEvent(new Event("storage"));
 
       // Also dispatch custom event for same-tab notification
       const customEvent = new CustomEvent("taskApproved", {
-        detail: { childId: child?._id, taskId, timestamp: Date.now() },
+        detail: { childId: child?._id, taskId, timestamp: currentTime },
       });
       window.dispatchEvent(customEvent);
 
       // Clear the localStorage item after a short delay to prevent accumulation
       setTimeout(() => {
         localStorage.removeItem("taskApproved");
-      }, 1000);
+      }, 2000);
 
       // Refresh child data to update coins display
       setTimeout(() => {
@@ -350,20 +458,31 @@ export default function ChildDetailPage() {
       await loadTasks();
       await loadChildData(); // Refresh child data to get updated coins
 
+      // Update last task update time
+      const currentTime = Date.now();
+      localStorage.setItem("lastTaskUpdate", currentTime.toString());
+
       // Notify child for immediate update
-      localStorage.setItem("taskApproved", JSON.stringify({ taskId, childId: child?._id, timestamp: Date.now() }));
+      localStorage.setItem(
+        "taskApproved",
+        JSON.stringify({
+          taskId,
+          childId: child?._id,
+          timestamp: currentTime,
+        })
+      );
       window.dispatchEvent(new Event("storage"));
 
       // Also dispatch custom event for same-tab notification
       const customEvent = new CustomEvent("taskApproved", {
-        detail: { childId: child?._id, taskId, timestamp: Date.now() },
+        detail: { childId: child?._id, taskId, timestamp: currentTime },
       });
       window.dispatchEvent(customEvent);
 
       // Clear the localStorage item after a short delay to prevent accumulation
       setTimeout(() => {
         localStorage.removeItem("taskApproved");
-      }, 1000);
+      }, 2000);
 
       // Refresh child data to update coins display
       setTimeout(() => {
@@ -395,7 +514,6 @@ export default function ChildDetailPage() {
 
   const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
   const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
-  const incompleteTasks = tasks.filter((task: Task) => !task.completed).sort((a, b) => b._id.localeCompare(a._id));
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (approvedTasks.length / totalTasks) * 100 : 0;
 
