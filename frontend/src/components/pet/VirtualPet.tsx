@@ -103,7 +103,12 @@ function Benny() {
 }
 
 export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPlay = () => {}, onSleep = () => {}, onResetHunger, onResetHappiness, onResetEnergy, setAnimal: propSetAnimal }: VirtualPetProps) {
-  // Internal state management
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const childId = user?.id;
+  const token = localStorage.getItem("token") || "";
+
+  // Internal state management - ONLY ONE STATE FOR THE PET
   const [animal, setAnimal] = useState<Pet>({
     name: "Benny",
     type: "Cute Pet",
@@ -111,15 +116,24 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     xp: 0,
     stats: { hunger: 75, happiness: 75, energy: 75 },
     accessories: [],
+    scale: 0.7,
   });
 
   // Use prop animal if provided, otherwise use internal state
   const currentAnimal = propAnimal || animal;
   const currentSetAnimal = propSetAnimal || setAnimal;
 
-  // Load pet from localStorage on mount
+  // Track if we've loaded from localStorage to prevent overwriting
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+
+  // Load pet from localStorage on mount - ONLY ONCE
   useEffect(() => {
-    const savedPet = localStorage.getItem("pet");
+    if (!childId) return; // Don't load if no user is logged in
+
+    const petKey = `pet_${childId}`;
+    const savedPet = localStorage.getItem(petKey);
+    console.log("🦖 Loading pet from localStorage:", savedPet); // Debug log
+
     if (savedPet) {
       try {
         const parsedPet = JSON.parse(savedPet);
@@ -128,16 +142,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           ...parsedPet,
           scale: 0.7,
         };
-        setAnimal(petWithFixedScale);
+        console.log("🦖 Setting pet from localStorage:", petWithFixedScale); // Debug log
+        currentSetAnimal(petWithFixedScale);
+        setHasLoadedFromStorage(true);
       } catch (error) {
         console.error("Failed to parse saved pet:", error);
+        setHasLoadedFromStorage(true);
       }
+    } else {
+      console.log("🦖 No saved pet found, using default"); // Debug log
+      setHasLoadedFromStorage(true);
     }
-  }, []);
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const childId = user?.id;
-  const token = localStorage.getItem("token") || "";
+  }, [childId]); // Run when childId changes
+
+  // Save pet to localStorage whenever it changes - ONLY ONE PLACE TO SAVE
+  useEffect(() => {
+    if (currentAnimal && childId && hasLoadedFromStorage) {
+      const petKey = `pet_${childId}`;
+      localStorage.setItem(petKey, JSON.stringify(currentAnimal));
+      console.log("🦖 Saved pet to localStorage:", currentAnimal); // Debug log
+    } else if (!hasLoadedFromStorage) {
+      console.log("🦖 Not saving yet - still loading from storage");
+    }
+  }, [currentAnimal, childId, hasLoadedFromStorage]);
   const [timeAlive, setTimeAlive] = useState(0);
   const [isDead, setIsDead] = useState(false);
   const [isFeeding, setIsFeeding] = useState(false);
@@ -150,39 +177,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
-  const [localHunger, setLocalHunger] = useState(currentAnimal.stats.hunger);
-  const [localHappiness, setLocalHappiness] = useState(currentAnimal.stats.happiness);
-  const [localEnergy, setLocalEnergy] = useState(currentAnimal.stats.energy);
 
-  // Update local stats when animal stats change
-  useEffect(() => {
-    setLocalHunger(currentAnimal.stats.hunger);
-    setLocalHappiness(currentAnimal.stats.happiness);
-    setLocalEnergy(currentAnimal.stats.energy);
-  }, [currentAnimal.stats.hunger, currentAnimal.stats.happiness, currentAnimal.stats.energy]);
-
-  // Save animal stats to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem("pet", JSON.stringify(currentAnimal));
-  }, [currentAnimal]);
-
-  // Load pet from localStorage on component mount
-  useEffect(() => {
-    const savedPet = localStorage.getItem("pet");
-    if (savedPet) {
-      try {
-        const parsedPet = JSON.parse(savedPet);
-        // Ensure pet always has fixed scale
-        const petWithFixedScale = {
-          ...parsedPet,
-          scale: 0.7,
-        };
-        currentSetAnimal?.(petWithFixedScale);
-      } catch (error) {
-        console.error("Failed to parse saved pet:", error);
-      }
-    }
-  }, [currentSetAnimal]);
   const [flyingIcon, setFlyingIcon] = useState<null | {
     type: "donut" | "star" | "heart";
     src: string;
@@ -206,10 +201,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
-  const [localAnimal, setLocalAnimal] = useState(animal);
 
   const initialLastTaskTime = () => {
-    const stored = localStorage.getItem("lastTaskTime");
+    if (!childId) return Date.now();
+    const stored = localStorage.getItem(`lastTaskTime_${childId}`);
     return stored ? parseInt(stored) : Date.now();
   };
 
@@ -225,11 +220,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       const latestTask = uncompletedTasks.reduce((latest: Task, task: Task) => (task._id > latest._id ? task : latest));
 
       // check if the warning has been shown
-      const hasSeenWarning = localStorage.getItem("hasSeenInactivityWarning");
+      const hasSeenWarning = localStorage.getItem(`hasSeenInactivityWarning_${childId}`);
       if (hasSeenWarning) return;
 
       // mark that the warning has been shown
-      localStorage.setItem("hasSeenInactivityWarning", "true");
+      localStorage.setItem(`hasSeenInactivityWarning_${childId}`, "true");
 
       currentSetAnimal?.(prev => {
         const newStats = {
@@ -237,14 +232,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           happiness: Math.max(0, prev.stats.happiness - 10),
           energy: Math.max(0, prev.stats.energy - 10),
         };
-        setLocalHunger(newStats.hunger);
-        setLocalHappiness(newStats.happiness);
-        setLocalEnergy(newStats.energy);
         return { ...prev, stats: newStats };
       });
 
       setTimeoutMessage("Your pet's stats dropped because a task wasn't completed in time!");
       setShowTimeoutModal(true);
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
     } catch (error) {
       console.error("❌ Failed to check task time:", error);
     }
@@ -259,28 +252,48 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   }, []);
 
   useEffect(() => {
+    if (!childId) return;
+
     const interval = setInterval(() => {
-      const lastTimeStr = localStorage.getItem("lastTaskTime");
+      const lastTimeStr = localStorage.getItem(`lastTaskTime_${childId}`);
       const last = lastTimeStr ? parseInt(lastTimeStr) : Date.now();
       const now = Date.now();
       const diff = now - last;
 
       if (diff > 21600000) {
-        currentSetAnimal?.(prev => ({
-          ...prev,
-          stats: {
+        currentSetAnimal?.(prev => {
+          const newStats = {
             hunger: Math.max(0, prev.stats.hunger - 1),
             happiness: Math.max(0, prev.stats.happiness - 1),
             energy: Math.max(0, prev.stats.energy - 1),
-          },
-        }));
+          };
+          return {
+            ...prev,
+            stats: newStats,
+          };
+        });
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
     }, 60000); // check every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [childId]);
 
-  // Removed maxScale - pet stays at fixed size
+  // Load petScale from localStorage on mount
+  useEffect(() => {
+    if (!childId) return;
+    const savedScale = localStorage.getItem(`petScale_${childId}`);
+    if (savedScale) {
+      setPetScale(parseFloat(savedScale));
+    }
+  }, [childId]);
+
+  // Save petScale to localStorage when it changes
+  useEffect(() => {
+    if (childId) {
+      localStorage.setItem(`petScale_${childId}`, petScale.toString());
+    }
+  }, [petScale, childId]);
 
   useEffect(() => {
     // Initialize audio elements
@@ -329,19 +342,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   }, [currentAnimal.stats]);
 
   useEffect(() => {
-    setLocalHunger(currentAnimal.stats.hunger);
-    setLocalHappiness(currentAnimal.stats.happiness);
-    setLocalEnergy(currentAnimal.stats.energy);
-  }, [currentAnimal.stats.hunger, currentAnimal.stats.happiness, currentAnimal.stats.energy]);
+    if (!childId) return;
 
-  useEffect(() => {
-    localStorage.setItem("petScale", petScale.toString());
-  }, [petScale]);
-
-  useEffect(() => {
     // Load purchased items from localStorage
     const loadItems = () => {
-      const savedItems = JSON.parse(localStorage.getItem("purchasedItems") || "[]") as ShopItem[];
+      const itemsKey = `purchasedItems_${childId}`;
+      const savedItems = JSON.parse(localStorage.getItem(itemsKey) || "[]") as ShopItem[];
       console.log("Loaded items:", savedItems); // Debug log
       setPurchasedItems(savedItems);
     };
@@ -350,7 +356,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
     // Listen for storage changes to update inventory
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "purchasedItems") {
+      if (e.key === `purchasedItems_${childId}`) {
         loadItems();
       }
     };
@@ -367,7 +373,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("itemsUpdated", handleItemsUpdated);
     };
-  }, []);
+  }, [childId]);
 
   // Simple coin management - load from localStorage and update on events
   useEffect(() => {
@@ -461,9 +467,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setTimeout(() => setFlyingIcon(null), 700);
   };
 
-  const donutLevel = Math.max(1, Math.min(4, Math.ceil(localHunger / 25))) as unknown as keyof typeof IMAGES.donut;
-  const starLevel = Math.max(1, Math.min(4, Math.ceil(localHappiness / 25))) as unknown as keyof typeof IMAGES.star;
-  const heartLevel = Math.max(1, Math.min(4, Math.ceil(localEnergy / 25))) as unknown as keyof typeof IMAGES.heart;
+  // Use currentAnimal.stats directly - no local state needed
+  const donutLevel = Math.max(1, Math.min(4, Math.ceil(currentAnimal.stats.hunger / 25))) as unknown as keyof typeof IMAGES.donut;
+  const starLevel = Math.max(1, Math.min(4, Math.ceil(currentAnimal.stats.happiness / 25))) as unknown as keyof typeof IMAGES.star;
+  const heartLevel = Math.max(1, Math.min(4, Math.ceil(currentAnimal.stats.energy / 25))) as unknown as keyof typeof IMAGES.heart;
 
   useEffect(() => {
     const maxIcons = [donutLevel === 4, starLevel === 4, heartLevel === 4].filter(Boolean).length;
@@ -486,16 +493,20 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setPetScale(0.7);
 
     // Reset all stats to start new level
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      level: prev.level + 1,
-      scale: 0.7, // Fixed scale - smaller size
-      stats: {
-        hunger: 0,
-        happiness: 0,
-        energy: 0,
-      },
-    }));
+    currentSetAnimal?.(prev => {
+      const newPet = {
+        ...prev,
+        level: prev.level + 1,
+        scale: 0.7, // Fixed scale - smaller size
+        stats: {
+          hunger: 0,
+          happiness: 0,
+          energy: 0,
+        },
+      };
+      console.log("🦖 Level up! New level:", newPet.level, "New stats:", newPet.stats); // Debug log
+      return newPet;
+    });
 
     // Play a success sound
     audioRefs.current.laugh?.play().catch(() => {});
@@ -506,24 +517,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
     // Reset inactivity timer
     setLastTaskTime(Date.now());
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
   };
 
   const handleFeed = () => {
-    // Check if user has enough coins
     if (totalCoins < 5) {
       alert("You need 5 coins to feed your pet!");
       return;
     }
-
-    // Deduct coins
     const newCoins = totalCoins - 5;
     setTotalCoins(newCoins);
     localStorage.setItem("currentCoins", newCoins.toString());
-
-    // Update spent coins in localStorage
     const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
     localStorage.setItem("spentCoins", (spentCoins + 5).toString());
-
     setIsFeeding(true);
     onFeed();
     audioRefs.current.munch?.play().catch(() => {});
@@ -533,37 +541,33 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
     setLastTaskTime(Date.now());
-
-    // Update local stats
-    const newHunger = Math.min(100, localHunger + 25);
-    setLocalHunger(newHunger);
-
-    // Update animal stats
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        hunger: newHunger,
-      },
-    }));
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
+    // Update animal stats only
+    currentSetAnimal?.(prev => {
+      const newPet = {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          hunger: Math.min(100, prev.stats.hunger + 25),
+        },
+      };
+      console.log("🦖 Feeding pet - new stats:", newPet.stats); // Debug log
+      return newPet;
+    });
   };
 
   const handleDrink = () => {
-    // Check if user has enough coins
     if (totalCoins < 3) {
       alert("You need 3 coins to give your pet a drink!");
       return;
     }
-
-    // Deduct coins
     const newCoins = totalCoins - 3;
     setTotalCoins(newCoins);
     localStorage.setItem("currentCoins", newCoins.toString());
-
-    // Update spent coins in localStorage
     const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
     localStorage.setItem("spentCoins", (spentCoins + 3).toString());
-
     setIsFeeding(true);
     onFeed();
     audioRefs.current.slurp?.play().catch(() => {});
@@ -573,37 +577,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowAddedDonut(true);
     setTimeout(() => setShowAddedDonut(false), 700);
     setLastTaskTime(Date.now());
-
-    // Update local stats
-    const newHunger = Math.min(100, localHunger + 15);
-    setLocalHunger(newHunger);
-
-    // Update animal stats
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
+    // Update animal stats only
     currentSetAnimal?.(prev => ({
       ...prev,
       stats: {
         ...prev.stats,
-        hunger: newHunger,
+        hunger: Math.min(100, prev.stats.hunger + 15),
       },
     }));
   };
 
   const handleHeal = () => {
-    // Check if user has enough coins
     if (totalCoins < 6) {
       alert("You need 6 coins to give your pet energy!");
       return;
     }
-
-    // Deduct coins
     const newCoins = totalCoins - 6;
     setTotalCoins(newCoins);
     localStorage.setItem("currentCoins", newCoins.toString());
-
-    // Update spent coins in localStorage
     const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
     localStorage.setItem("spentCoins", (spentCoins + 6).toString());
-
     setIsHealing(true);
     onSleep();
     const pillAudio = audioRefs.current.pill;
@@ -617,37 +613,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowAddedHeart(true);
     setTimeout(() => setShowAddedHeart(false), 700);
     setLastTaskTime(Date.now());
-
-    // Update local stats
-    const newEnergy = Math.min(100, localEnergy + 25);
-    setLocalEnergy(newEnergy);
-
-    // Update animal stats
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
+    // Update animal stats only
     currentSetAnimal?.(prev => ({
       ...prev,
       stats: {
         ...prev.stats,
-        energy: newEnergy,
+        energy: Math.min(100, prev.stats.energy + 25),
       },
     }));
   };
 
   const handlePlay = () => {
-    // Check if user has enough coins
     if (totalCoins < 8) {
       alert("You need 8 coins to play with your pet!");
       return;
     }
-
-    // Deduct coins
     const newCoins = totalCoins - 8;
     setTotalCoins(newCoins);
     localStorage.setItem("currentCoins", newCoins.toString());
-
-    // Update spent coins in localStorage
     const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
     localStorage.setItem("spentCoins", (spentCoins + 8).toString());
-
     setIsPlaying(true);
     onPlay();
     const laughAudio = audioRefs.current.laugh;
@@ -661,23 +649,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowAddedStar(true);
     setTimeout(() => setShowAddedStar(false), 700);
     setLastTaskTime(Date.now());
-
-    // Update local stats
-    const newHappiness = Math.min(100, localHappiness + 25);
-    setLocalHappiness(newHappiness);
-
-    // Update animal stats
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
+    // Update animal stats only
     currentSetAnimal?.(prev => ({
       ...prev,
       stats: {
         ...prev.stats,
-        happiness: newHappiness,
+        happiness: Math.min(100, prev.stats.happiness + 25),
       },
     }));
   };
+
   const handleDismissWarning = () => {
     console.log("👋 Got it clicked");
-
     setShowTimeoutModal(false);
   };
 
@@ -686,33 +672,66 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setIsDead(false);
     audioRefs.current.hello?.play().catch(() => {});
     setLastTaskTime(Date.now()); // Reset inactivity timer
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
   };
 
   const handleResetHungerLocal = () => {
     if (onResetHunger) {
       onResetHunger();
     } else {
-      setLocalHunger(0);
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          hunger: 0,
+        },
+      }));
     }
     setLastTaskTime(Date.now()); // Reset inactivity timer
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
   };
 
   const handleResetHappinessLocal = () => {
     if (onResetHappiness) {
       onResetHappiness();
     } else {
-      setLocalHappiness(0);
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          happiness: 0,
+        },
+      }));
     }
     setLastTaskTime(Date.now()); // Reset inactivity timer
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
   };
 
   const handleResetEnergyLocal = () => {
     if (onResetEnergy) {
       onResetEnergy();
     } else {
-      setLocalEnergy(0);
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          energy: 0,
+        },
+      }));
     }
     setLastTaskTime(Date.now()); // Reset inactivity timer
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
   };
 
   const hungerPercent = Math.max(0, Math.min(100, (currentAnimal.stats.hunger / STATS.MAX) * 100));
@@ -721,24 +740,21 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     // Find the item in purchased items
     const itemIndex = purchasedItems.findIndex(i => i.id === item.id);
     if (itemIndex === -1) return;
-
     // Remove one item from inventory
     const updatedItems = [...purchasedItems];
     updatedItems.splice(itemIndex, 1);
     setPurchasedItems(updatedItems);
-    localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
-
-    // Handle the item based on its type
+    if (childId) {
+      localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItems));
+    }
     switch (item.type) {
       case "food":
-        // Use food item - increase hunger without spending coins
-        const newHunger = Math.min(100, localHunger + 25);
-        setLocalHunger(newHunger);
+        // Update animal stats only
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
             ...prev.stats,
-            hunger: newHunger,
+            hunger: Math.min(100, prev.stats.hunger + 25),
           },
         }));
         setIsFeeding(true);
@@ -748,16 +764,13 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         setShowAddedDonut(true);
         setTimeout(() => setShowAddedDonut(false), 700);
         break;
-
       case "toy":
-        // Use toy item - increase happiness without spending coins
-        const newHappiness = Math.min(100, localHappiness + 25);
-        setLocalHappiness(newHappiness);
+        // Update animal stats only
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
             ...prev.stats,
-            happiness: newHappiness,
+            happiness: Math.min(100, prev.stats.happiness + 25),
           },
         }));
         setIsPlaying(true);
@@ -767,16 +780,13 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         setShowAddedStar(true);
         setTimeout(() => setShowAddedStar(false), 700);
         break;
-
       case "energy":
-        // Use energy item - increase energy without spending coins
-        const newEnergy = Math.min(100, localEnergy + 25);
-        setLocalEnergy(newEnergy);
+        // Update animal stats only
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
             ...prev.stats,
-            energy: newEnergy,
+            energy: Math.min(100, prev.stats.energy + 25),
           },
         }));
         setIsHealing(true);
@@ -786,37 +796,30 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         setShowAddedHeart(true);
         setTimeout(() => setShowAddedHeart(false), 700);
         break;
-
       case "accessory":
-        // Toggle accessory
         const currentAccessories = currentAnimal.accessories || [];
         const isWearing = currentAccessories.some(acc => acc.id === item.id);
-
         let newAccessories;
         if (isWearing) {
-          // Remove accessory - add back to inventory
           newAccessories = currentAccessories.filter(acc => acc.id !== item.id);
           const updatedItemsWithAccessory = [...updatedItems, item];
           setPurchasedItems(updatedItemsWithAccessory);
-          localStorage.setItem("purchasedItems", JSON.stringify(updatedItemsWithAccessory));
+          if (childId) {
+            localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItemsWithAccessory));
+          }
         } else {
-          // Add accessory
           newAccessories = [...currentAccessories, item];
         }
-
-        // Update pet with new accessories
-        const updatedPet = {
-          ...currentAnimal,
+        currentSetAnimal?.(prev => ({
+          ...prev,
           accessories: newAccessories,
-        };
-        localStorage.setItem("pet", JSON.stringify(updatedPet));
-        currentSetAnimal?.(updatedPet);
+        }));
         break;
     }
-
     setLastTaskTime(Date.now()); // Reset inactivity timer
-
-    // Show success message
+    if (childId) {
+      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+    }
     const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
     alert(message);
   };
@@ -824,29 +827,20 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const handleRemoveAccessory = (accessory: ShopItem) => {
     // Remove accessory from pet
     const updatedAccessories = currentAnimal.accessories.filter(acc => acc.id !== accessory.id);
-    const updatedPet = {
-      ...currentAnimal,
-      accessories: updatedAccessories,
-    };
 
-    // Update localStorage
-    localStorage.setItem("pet", JSON.stringify(updatedPet));
-    currentSetAnimal?.(updatedPet);
+    // Update pet - this will automatically save to localStorage via useEffect
+    currentSetAnimal?.(prev => ({
+      ...prev,
+      accessories: updatedAccessories,
+    }));
 
     // Add item back to inventory
     const updatedItems = [...purchasedItems, accessory];
     setPurchasedItems(updatedItems);
-    localStorage.setItem("purchasedItems", JSON.stringify(updatedItems));
-  };
-
-  const itemCounts: { [id: string]: number } = {};
-  purchasedItems.forEach(item => {
-    if (!itemCounts[item.id]) {
-      itemCounts[item.id] = 1;
-    } else {
-      itemCounts[item.id]++;
+    if (childId) {
+      localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItems));
     }
-  });
+  };
 
   const handleRefreshCoins = async () => {
     try {
@@ -860,6 +854,15 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       console.error("Failed to manually refresh coins:", error);
     }
   };
+
+  const itemCounts: { [id: string]: number } = {};
+  purchasedItems.forEach(item => {
+    if (!itemCounts[item.id]) {
+      itemCounts[item.id] = 1;
+    } else {
+      itemCounts[item.id]++;
+    }
+  });
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] flex flex-col items-center justify-start relative overflow-hidden'>
