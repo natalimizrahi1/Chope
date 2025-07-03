@@ -52,6 +52,8 @@ export interface ShopItem {
   name: string;
   image: string;
   type: "food" | "toy" | "energy" | "accessory";
+  slot?: "head" | "body" | "eyes" ;
+
   price: number;
   category?: string;
   description?: string;
