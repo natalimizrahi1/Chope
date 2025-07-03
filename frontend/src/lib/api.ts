@@ -257,6 +257,58 @@ export const buyItemsFromShop = async (token: string, childId: string, items: an
   return result;
 };
 
+// Get child's purchased items
+export const getChildItems = async (token: string, childId: string) => {
+  console.log("=== API: GETTING CHILD ITEMS ===");
+  console.log("Child ID:", childId);
+
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/items`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
+// Use an item from inventory
+export const useChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/use-item`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ itemId }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
+// Remove an item from inventory
+export const removeChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/items/${itemId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
 // Animal API functions
 export const getAnimals = async (token: string) => {
   const response = await fetch(`${API_BASE_URL}/animals`, {

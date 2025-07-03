@@ -1,51 +1,86 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const childSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   email: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
   },
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 6,
   },
   parent: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Parent',
-    required: true
+    ref: "Parent",
+    required: true,
   },
   coins: {
     type: Number,
-    default: 0
+    default: 0,
   },
   animal: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Animal'
+    ref: "Animal",
   },
-  tasks: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Task'
-  }],
+  tasks: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+    },
+  ],
+  purchasedItems: [
+    {
+      id: {
+        type: String,
+        required: true,
+      },
+      name: {
+        type: String,
+        required: true,
+      },
+      image: {
+        type: String,
+        required: true,
+      },
+      type: {
+        type: String,
+        required: true,
+        enum: ["food", "toy", "energy", "accessory"],
+      },
+      price: {
+        type: Number,
+        required: true,
+      },
+      quantity: {
+        type: Number,
+        default: 1,
+      },
+      purchasedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Hash password before saving
-childSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+childSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -55,11 +90,43 @@ childSchema.pre('save', async function(next) {
   }
 });
 
+// Method to add items to inventory
+childSchema.methods.addItems = function (items) {
+  items.forEach(item => {
+    const existingItem = this.purchasedItems.find(purchased => purchased.id === item.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      this.purchasedItems.push({
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        type: item.type,
+        price: item.price,
+        quantity: 1,
+      });
+    }
+  });
+};
+
+// Method to use an item
+childSchema.methods.useItem = function (itemId) {
+  const item = this.purchasedItems.find(purchased => purchased.id === itemId);
+  if (item && item.quantity > 0) {
+    item.quantity -= 1;
+    if (item.quantity === 0) {
+      this.purchasedItems = this.purchasedItems.filter(purchased => purchased.id !== itemId);
+    }
+    return true;
+  }
+  return false;
+};
+
 // Method to compare password
-childSchema.methods.comparePassword = async function(candidatePassword) {
+childSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const Child = mongoose.model('Child', childSchema);
+const Child = mongoose.model("Child", childSchema);
 
-export default Child; 
+export default Child;

@@ -1,27 +1,14 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { getTasks, getChildCoins, buyItemsFromShop } from "../../lib/api";
-import { Task } from "../../lib/types";
+import { getTasks, getChildCoins, buyItemsFromShop, getChildItems } from "../../lib/api";
+import { Task, ShopItem, PurchasedItem } from "../../lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-
-export type ShopItem = {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  type: "food" | "toy" | "energy" | "accessory";
-  description?: string;
-};
-
-export type PurchasedItem = ShopItem & {
-  quantity: number;
-};
 
 export default function PetShop() {
   const navigate = useNavigate();
@@ -53,26 +40,31 @@ export default function PetShop() {
       }
     };
 
-    loadCoins();
+    const loadItems = async () => {
+      try {
+        if (token && childId) {
+          console.log("Loading items for child:", childId);
+          const itemsData = await getChildItems(token, childId);
+          console.log("Items loaded from server:", itemsData);
+          setPurchasedItems(itemsData.purchasedItems || []);
+          console.log("Purchased items set to:", itemsData.purchasedItems || []);
+        }
+      } catch (error) {
+        console.error("Failed to load items:", error);
+      }
+    };
 
-    // Set up interval to check for coin updates
-    const coinCheckInterval = setInterval(() => {
+    loadCoins();
+    loadItems();
+
+    // Set up interval to check for updates
+    const updateInterval = setInterval(() => {
       loadCoins();
+      loadItems();
     }, 3000);
 
-    // Load purchased items from localStorage
-    const savedItems = localStorage.getItem("purchasedItems");
-    if (savedItems) {
-      try {
-        const parsedItems = JSON.parse(savedItems) as PurchasedItem[];
-        setPurchasedItems(parsedItems);
-      } catch (error) {
-        console.error("Failed to load purchased items:", error);
-      }
-    }
-
     return () => {
-      clearInterval(coinCheckInterval);
+      clearInterval(updateInterval);
     };
   }, [token, childId]);
 
@@ -87,6 +79,18 @@ export default function PetShop() {
         }
       } catch (error) {
         console.error("Failed to reload coins:", error);
+      }
+    };
+
+    const handleItemsUpdated = async () => {
+      // Reload items from server
+      try {
+        if (token && childId) {
+          const itemsData = await getChildItems(token, childId);
+          setPurchasedItems(itemsData.purchasedItems || []);
+        }
+      } catch (error) {
+        console.error("Failed to reload items:", error);
       }
     };
 
@@ -122,12 +126,14 @@ export default function PetShop() {
     };
 
     window.addEventListener("taskCompleted", handleTaskCompleted);
+    window.addEventListener("itemsUpdated", handleItemsUpdated);
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("coinsUpdated", handleCustomEvent);
     window.addEventListener("coinsUpdated", handleCoinUpdate);
 
     return () => {
       window.removeEventListener("taskCompleted", handleTaskCompleted);
+      window.removeEventListener("itemsUpdated", handleItemsUpdated);
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("coinsUpdated", handleCustomEvent);
       window.removeEventListener("coinsUpdated", handleCoinUpdate);
@@ -240,31 +246,14 @@ export default function PetShop() {
         })
         .filter(Boolean);
 
+      console.log("Sending purchase request with items:", selectedItemsData);
       const result = await buyItemsFromShop(token, childId, selectedItemsData, totalCost);
+      console.log("Purchase result from server:", result);
 
       // Update local state
       setCoins(result.coins);
+      setPurchasedItems(result.purchasedItems || []);
       localStorage.setItem("currentCoins", result.coins.toString());
-
-      // Update purchased items
-      const currentPurchased = [...purchasedItems];
-      selectedItems.forEach(itemId => {
-        const item = items.find(shopItem => shopItem.id === itemId);
-        if (item) {
-          const existingItem = currentPurchased.find(purchased => purchased.id === itemId);
-          if (existingItem) {
-            existingItem.quantity += 1;
-          } else {
-            currentPurchased.push({
-              ...item,
-              quantity: 1,
-            });
-          }
-        }
-      });
-
-      setPurchasedItems(currentPurchased);
-      localStorage.setItem("purchasedItems", JSON.stringify(currentPurchased));
       setSelectedItems([]);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
@@ -272,6 +261,8 @@ export default function PetShop() {
       // Notify other components
       window.dispatchEvent(new CustomEvent("coinsUpdated"));
       window.dispatchEvent(new CustomEvent("itemsUpdated"));
+
+      console.log("Purchase successful! New purchasedItems:", result.purchasedItems);
     } catch (error) {
       console.error("Failed to purchase items:", error);
       alert("Failed to purchase items. Please try again.");

@@ -74,6 +74,18 @@ router.get("/child/:childId/coins", auth, async (req, res) => {
   }
 });
 
+// Get child's purchased items
+router.get("/child/:childId/items", auth, async (req, res) => {
+  try {
+    const child = await Child.findById(req.params.childId);
+    if (!child) return res.status(404).json({ error: "Child not found" });
+    res.json({ purchasedItems: child.purchasedItems });
+  } catch (err) {
+    console.error("Error getting child items:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Update child's coins (for spending on pet care, items, etc.)
 router.patch("/child/:childId/coins", auth, async (req, res) => {
   try {
@@ -161,13 +173,22 @@ router.post("/child/:childId/buy-items", auth, async (req, res) => {
 
     // Deduct coins
     child.coins -= totalCost;
+
+    // Add items to purchasedItems array using the model method
+    console.log("Adding items to inventory:", items);
+    console.log("Current purchasedItems:", child.purchasedItems);
+
+    // Use the model method to add items
+    child.addItems(items);
+
     await child.save();
 
+    console.log("After adding items:", child.purchasedItems);
     console.log(`Items purchased for ${totalCost} coins. New balance: ${child.coins}`);
 
     res.json({
       coins: child.coins,
-      items,
+      purchasedItems: child.purchasedItems,
       totalCost,
       message: "Items purchased successfully",
     });

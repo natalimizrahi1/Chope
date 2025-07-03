@@ -1,11 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Play, Coins, Store, Target, ShoppingBag, LogOut } from "lucide-react";
 import garden from "../../assets/garden.png";
-import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks, getChildCoins, spendCoinsOnPetCare } from "../../lib/api";
-import { Task } from "../../lib/types";
+import { getTasks, getChildCoins, spendCoinsOnPetCare, getChildItems, useChildItem, removeChildItem } from "../../lib/api";
+import { Task, ShopItem, PurchasedItem } from "../../lib/types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -74,7 +73,7 @@ export interface Pet {
     happiness: number;
     energy: number;
   };
-  accessories: ShopItem[];
+  accessories: PurchasedItem[];
   scale?: number;
 }
 
@@ -197,7 +196,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const [petScale, setPetScale] = useState(0.7);
 
   const [displayedProgress, setDisplayedProgress] = useState(0);
-  const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
+  const [purchasedItems, setPurchasedItems] = useState<PurchasedItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
 
@@ -335,20 +334,19 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     }
   }, [currentAnimal.stats]);
 
+  // Load purchased items from database
   useEffect(() => {
-    if (!childId) return;
-
-    // Load purchased items from localStorage
-    const loadItems = () => {
-      const itemsKey = `purchasedItems_${childId}`;
-      const savedItems = JSON.parse(localStorage.getItem(itemsKey) || "[]") as ShopItem[];
-      console.log("Loaded items:", savedItems); // Debug log
-      setPurchasedItems(savedItems);
+    const loadItems = async () => {
+      try {
+        if (token && childId) {
+          const itemsData = await getChildItems(token, childId);
+          setPurchasedItems(itemsData.purchasedItems || []);
+        }
+      } catch (error) {
+        console.error("Failed to load items:", error);
+      }
     };
 
-    loadItems();
-
-    // Listen for storage changes to update inventory
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === `purchasedItems_${childId}`) {
         loadItems();
@@ -360,6 +358,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       loadItems();
     };
 
+    loadItems();
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("itemsUpdated", handleItemsUpdated);
 
@@ -367,7 +367,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("itemsUpdated", handleItemsUpdated);
     };
-  }, [childId]);
+  }, [token, childId]);
 
   // Simple coin management - load from database and update on events
   useEffect(() => {
@@ -780,115 +780,106 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowTimeoutModal(false);
   };
 
-  const handleUseItem = (item: ShopItem) => {
-    // Find the item in purchased items
-    const itemIndex = purchasedItems.findIndex(i => i.id === item.id);
-    if (itemIndex === -1) return;
-    const updatedItems = [...purchasedItems];
-    updatedItems.splice(itemIndex, 1);
-    setPurchasedItems(updatedItems);
-    if (childId) {
-      localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItems));
-    }
-    switch (item.type) {
-      case "food":
-        currentSetAnimal?.(prev => ({
-          ...prev,
-          stats: {
-            ...prev.stats,
-            hunger: Math.min(100, prev.stats.hunger + 25),
-          },
-        }));
-        setIsFeeding(true);
-        audioRefs.current.munch?.play().catch(() => {});
-        setTimeout(() => setIsFeeding(false), 1000);
-        flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
-        setShowAddedDonut(true);
-        setTimeout(() => setShowAddedDonut(false), 700);
-        break;
-      case "toy":
-        currentSetAnimal?.(prev => ({
-          ...prev,
-          stats: {
-            ...prev.stats,
-            happiness: Math.min(100, prev.stats.happiness + 25),
-          },
-        }));
-        setIsPlaying(true);
-        audioRefs.current.laugh?.play().catch(() => {});
-        setTimeout(() => setIsPlaying(false), 1000);
-        flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
-        setShowAddedStar(true);
-        setTimeout(() => setShowAddedStar(false), 700);
-        break;
-      case "energy":
-        // Update animal stats only
-        currentSetAnimal?.(prev => ({
-          ...prev,
-          stats: {
-            ...prev.stats,
-            energy: Math.min(100, prev.stats.energy + 25),
-          },
-        }));
-        setIsHealing(true);
-        audioRefs.current.pill?.play().catch(() => {});
-        setTimeout(() => setIsHealing(false), 1000);
-        flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
-        setShowAddedHeart(true);
-        setTimeout(() => setShowAddedHeart(false), 700);
-        break;
-      case "accessory":
-        const currentAccessories = currentAnimal.accessories || [];
-        const isWearing = currentAccessories.some(acc => acc.id === item.id);
-        let newAccessories;
-        if (isWearing) {
-          newAccessories = currentAccessories.filter(acc => acc.id !== item.id);
-          const updatedItemsWithAccessory = [...updatedItems, item];
-          setPurchasedItems(updatedItemsWithAccessory);
-          if (childId) {
-            localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItemsWithAccessory));
-          }
-        } else {
-          newAccessories = [...currentAccessories, item];
-        }
-        currentSetAnimal?.(prev => ({
-          ...prev,
-          accessories: newAccessories,
-        }));
-        break;
-    }
-    setLastTaskTime(Date.now());
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-    const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
-    alert(message);
-  };
+  const handleUseItem = async (item: PurchasedItem) => {
+    try {
+      // Use item through API
+      const result = await useChildItem(token, childId, item.id);
 
-  const handleRemoveAccessory = (accessory: ShopItem) => {
-    // Remove accessory from pet
-    const updatedAccessories = currentAnimal.accessories.filter(acc => acc.id !== accessory.id);
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      accessories: updatedAccessories,
-    }));
+      // Update local state
+      setPurchasedItems(result.purchasedItems);
 
-    // Add item back to inventory
-    const updatedItems = [...purchasedItems, accessory];
-    setPurchasedItems(updatedItems);
-    if (childId) {
-      localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItems));
+      // Update localStorage as backup
+      if (childId) {
+        localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(result.purchasedItems));
+      }
+
+      // Apply item effects based on type
+      switch (item.type) {
+        case "food":
+          currentSetAnimal?.(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              hunger: Math.min(100, prev.stats.hunger + 30),
+            },
+          }));
+          break;
+        case "toy":
+          currentSetAnimal?.(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              happiness: Math.min(100, prev.stats.happiness + 30),
+            },
+          }));
+          break;
+        case "energy":
+          currentSetAnimal?.(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              energy: Math.min(100, prev.stats.energy + 30),
+            },
+          }));
+          break;
+        case "accessory":
+          // Add accessory to pet
+          const currentAccessories = currentAnimal.accessories || [];
+          const newAccessories = [...currentAccessories, item];
+          currentSetAnimal?.(prev => ({
+            ...prev,
+            accessories: newAccessories,
+          }));
+          break;
+      }
+
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+
+      const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
+      alert(message);
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
+    } catch (error) {
+      console.error("Failed to use item:", error);
+      alert("Failed to use item. Please try again.");
     }
   };
 
-  const itemCounts: { [id: string]: number } = {};
-  purchasedItems.forEach(item => {
-    if (!itemCounts[item.id]) {
-      itemCounts[item.id] = 1;
-    } else {
-      itemCounts[item.id]++;
+  const handleRemoveAccessory = async (accessory: PurchasedItem) => {
+    try {
+      // Remove accessory from pet
+      const updatedAccessories = currentAnimal.accessories.filter(acc => acc.name !== accessory.name);
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        accessories: updatedAccessories,
+      }));
+
+      // Remove item from database
+      await removeChildItem(token, childId, accessory.id);
+
+      // Reload items from database
+      const itemsData = await getChildItems(token, childId);
+      setPurchasedItems(itemsData.purchasedItems || []);
+
+      // Update localStorage as backup
+      if (childId) {
+        localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(itemsData.purchasedItems || []));
+      }
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
+    } catch (error) {
+      console.error("Failed to remove accessory:", error);
+      alert("Failed to remove accessory. Please try again.");
     }
-  });
+  };
+
+  // Calculate total items count for display
+  const totalItemsCount = purchasedItems.reduce((sum, item) => sum + item.quantity, 0);
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -941,7 +932,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             <PopoverTrigger asChild>
               <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:bg-white transition-colors relative' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Store className='w-5 h-5 text-gray-600' />
-                {Object.keys(itemCounts).length > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>{Object.values(itemCounts).reduce((sum, count) => sum + count, 0)}</span>}
+                {totalItemsCount > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>{totalItemsCount}</span>}
               </motion.button>
             </PopoverTrigger>
             <PopoverContent className='w-80 bg-white border border-gray-200 shadow-lg'>
@@ -951,10 +942,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                     <Store className='h-5 w-5' />
                     My Inventory
                   </h3>
-                  <span className='text-sm text-gray-500'>{Object.values(itemCounts).reduce((sum, count) => sum + count, 0)} items</span>
+                  <span className='text-sm text-gray-500'>{totalItemsCount} items</span>
                 </div>
 
-                {Object.keys(itemCounts).length === 0 ? (
+                {totalItemsCount === 0 ? (
                   <div className='text-center py-8 text-gray-500'>
                     <div className='text-4xl mb-2'>📦</div>
                     <p>Your inventory is empty</p>
@@ -962,33 +953,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                   </div>
                 ) : (
                   <div className='space-y-3 max-h-60 overflow-y-auto'>
-                    {Object.entries(itemCounts).map(([id, count]) => {
-                      const item = purchasedItems.find(i => i.id === id);
-                      if (!item) return null;
-                      return (
-                        <div key={item.id} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
-                          <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
-                            <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{count}</span>
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className='w-8 h-8 object-contain'
-                              onError={e => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = "https://via.placeholder.com/32?text=Item";
-                              }}
-                            />
-                          </div>
-                          <div className='flex-1'>
-                            <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
-                            <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
-                          </div>
-                          <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
-                            Use
-                          </button>
+                    {purchasedItems.map(item => (
+                      <div key={item.name} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                        <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
+                          <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{item.quantity}</span>
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className='w-8 h-8 object-contain'
+                            onError={e => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://via.placeholder.com/32?text=Item";
+                            }}
+                          />
                         </div>
-                      );
-                    })}
+                        <div className='flex-1'>
+                          <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
+                          <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
+                        </div>
+                        <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
+                          Use
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1060,7 +1047,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                 {/* Display accessories */}
                 {currentAnimal.accessories &&
                   currentAnimal.accessories.map(accessory => (
-                    <div key={accessory.id} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
+                    <div key={accessory.name} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
                       <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
                     </div>
                   ))}
