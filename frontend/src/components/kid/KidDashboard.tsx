@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getTasks, completeTask, undoTask, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Toaster } from "../ui/toaster";
-import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut, Clock } from "lucide-react";
+import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut, Clock, Trash2, Shirt, Sun, Dog, Droplets, Feather, Flower2, Brush, Store, Star, ListTodo, BookOpen, Utensils, Heart, Dumbbell, Palette, Music, Leaf } from "lucide-react";
 import Notifications from "../notifications/Notifications";
 import { useToast } from "../ui/use-toast";
 
@@ -105,7 +105,7 @@ const KidDashboard = () => {
   }, [token]);
 
   useEffect(() => {
-    loadTasks(true); // Show loading on initial load
+    loadTasks(true);
   }, [loadTasks]);
 
   // Enhanced auto-refresh system with polling
@@ -296,6 +296,35 @@ const KidDashboard = () => {
   // Debug: Log task categories
   useEffect(() => {}, [tasks, incompleteTasks, pendingApprovalTasks, approvedTasks]);
 
+  // Function that returns an icon, color and text based on the category/task name
+  function getTaskVisualData(task: Task) {
+    const lowerTitle = task.title?.toLowerCase() || "";
+    if (task.category === "household") {
+      if (lowerTitle.includes("window")) return { icon: <Sun className='w-10 h-10 text-yellow-400' />, bg: "bg-yellow-50", label: "Wash Windows" };
+      if (lowerTitle.includes("clothes")) return { icon: <Shirt className='w-10 h-10 text-blue-400' />, bg: "bg-blue-50", label: "Put Away Clothes" };
+      if (lowerTitle.includes("trash")) return { icon: <Trash2 className='w-10 h-10 text-orange-400' />, bg: "bg-orange-50", label: "Take Out Trash" };
+      if (lowerTitle.includes("water plant")) return { icon: <Droplets className='w-10 h-10 text-green-400' />, bg: "bg-green-50", label: "Water Plants" };
+      if (lowerTitle.includes("feed dog")) return { icon: <Dog className='w-10 h-10 text-yellow-600' />, bg: "bg-yellow-50", label: "Feed Dog" };
+      if (lowerTitle.includes("dust")) return { icon: <Feather className='w-10 h-10 text-gray-400' />, bg: "bg-gray-50", label: "Dust" };
+      if (lowerTitle.includes("weed")) return { icon: <Flower2 className='w-10 h-10 text-green-600' />, bg: "bg-green-50", label: "Pull Weeds" };
+      if (lowerTitle.includes("sweep")) return { icon: <Brush className='w-10 h-10 text-pink-400' />, bg: "bg-pink-50", label: "Sweep Floors" };
+      if (lowerTitle.includes("stove")) return { icon: <Store className='w-10 h-10 text-gray-700' />, bg: "bg-gray-100", label: "Clean Stovetop" };
+    }
+    // General categories
+    const categoryMap: Record<string, { icon: React.ReactNode; bg: string; label: string }> = {
+      household: { icon: <Brush className='w-10 h-10 text-pink-400' />, bg: "bg-pink-50", label: "Household" },
+      education: { icon: <BookOpen className='w-10 h-10 text-green-500' />, bg: "bg-green-50", label: "Education" },
+      kitchen: { icon: <Utensils className='w-10 h-10 text-orange-500' />, bg: "bg-orange-50", label: "Kitchen" },
+      health: { icon: <Heart className='w-10 h-10 text-red-400' />, bg: "bg-red-50", label: "Health" },
+      fitness: { icon: <Dumbbell className='w-10 h-10 text-purple-400' />, bg: "bg-purple-50", label: "Fitness" },
+      creative: { icon: <Palette className='w-10 h-10 text-pink-400' />, bg: "bg-pink-50", label: "Creative" },
+      music: { icon: <Music className='w-10 h-10 text-indigo-400' />, bg: "bg-indigo-50", label: "Music" },
+      nature: { icon: <Leaf className='w-10 h-10 text-emerald-400' />, bg: "bg-emerald-50", label: "Nature" },
+      custom: { icon: <Star className='w-10 h-10 text-yellow-400' />, bg: "bg-yellow-50", label: "Custom" },
+    };
+    return categoryMap[task.category] || { icon: <ListTodo className='w-10 h-10 text-gray-400' />, bg: "bg-gray-50", label: "Task" };
+  }
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] relative overflow-hidden'>
       {/* Background decorations */}
@@ -395,7 +424,6 @@ const KidDashboard = () => {
       </motion.div>
 
       {/* Main content */}
-      {/* AnimatePresence and tab content are now outside the px-6 pb-6 container */}
       <AnimatePresence mode='wait'>
         <motion.div key='tasks' initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.4 }} className='relative z-0 px-6 pb-6 space-y-6'>
           {/* Stats cards */}
@@ -501,31 +529,32 @@ const KidDashboard = () => {
                 <p className='text-gray-600'>Complete some tasks to see them here!</p>
               </div>
             ) : (
-              <div className='space-y-4'>
-                {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => (
-                  <motion.div key={task._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className={`bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] rounded-xl p-4 border-l-4 transition-all ${activeTaskTab === "incomplete" ? "border-[#87d4ee] hover:shadow-md" : activeTaskTab === "pending" ? "border-yellow-400 hover:shadow-md" : "border-[#f9a8d4] hover:shadow-md"}`}>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex-1'>
-                        <h3 className='font-semibold text-gray-800 mb-1'>{task.title}</h3>
-                        {task.description && <p className='text-sm text-gray-600'>{task.description}</p>}
-                        <div className='flex items-center gap-2 mt-2'>
-                          <Coins className='w-4 h-4 text-yellow-500' />
-                          <span className='text-sm font-medium text-gray-700'>{task.reward} coins</span>
-                        </div>
+              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+                {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => {
+                  const visual = getTaskVisualData(task);
+                  return (
+                    <div key={task._id} className={`rounded-2xl shadow-lg p-4 flex flex-col items-center ${visual.bg} transition-all hover:scale-105`}>
+                      <div className='mb-2'>{visual.icon}</div>
+                      <h3 className='font-bold text-lg text-center mb-1'>{task.title}</h3>
+                      <p className='text-sm text-gray-600 text-center mb-2 line-clamp-2'>{task.description}</p>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <Coins className='w-5 h-5 text-yellow-500' />
+                        <span className='font-bold text-yellow-700'>{task.reward}</span>
                       </div>
+                      <span className='text-xs rounded-full px-3 py-1 bg-white/70 text-gray-700 mb-2 border border-gray-200'>{visual.label}</span>
                       {activeTaskTab === "incomplete" && (
-                        <motion.button onClick={() => handleCompleteTask(task._id)} className='bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button onClick={() => handleCompleteTask(task._id)} className='mt-2 bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all'>
                           Complete! ✨
-                        </motion.button>
+                        </button>
                       )}
                       {activeTaskTab === "pending" && (
-                        <motion.button onClick={() => handleUndoTask(task._id)} className='bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button onClick={() => handleUndoTask(task._id)} className='mt-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all'>
                           Undo
-                        </motion.button>
+                        </button>
                       )}
                     </div>
-                  </motion.div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
