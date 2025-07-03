@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { getChildren, getTasks } from "../../lib/api";
 import type { Animal } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
@@ -11,7 +11,6 @@ import { SiteHeader } from "../ui/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconUsers } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import Notifications from "../notifications/Notifications";
 
 import data from "../../app/dashboard/data.json";
 
@@ -26,7 +25,6 @@ type Child = {
 export default function ParentDashboard() {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
-  const [token] = useState(localStorage.getItem("token") || "");
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [chartData, setChartData] = useState([
     { name: "Tasks Sent", value: 0, color: "#3B82F6" },
@@ -38,12 +36,10 @@ export default function ParentDashboard() {
     { name: "Total Children Coins", value: 0, color: "#4ECDC4" },
   ]);
   const { toast } = useToast();
-  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    // Check if user is logged in and is a parent
+    const token = localStorage.getItem("token") || "";
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-
     if (!token || user.role !== "parent") {
       toast({
         title: "Access denied",
@@ -53,219 +49,81 @@ export default function ParentDashboard() {
       navigate("/login/parent");
       return;
     }
-
-    const loadChildren = async (showLoading = true) => {
-      try {
-        const childrenData = await getChildren(token);
-        if (isMountedRef.current) {
-          setChildren(childrenData);
-        }
-      } catch (error) {
+    getChildren(token)
+      .then(childrenData => {
+        setChildren(childrenData);
+      })
+      .catch(error => {
         console.error("Failed to load children:", error);
         if (error instanceof Error && error.message.includes("401")) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           navigate("/login/parent");
         }
-      }
-    };
+      });
+  }, [navigate, toast]);
 
+  // Check for pending approval tasks and update chart/coins data
+  useEffect(() => {
+    const token = localStorage.getItem("token") || "";
     const checkPendingTasks = async () => {
       try {
-        const currentChildren = children; // Use current children state
-        if (currentChildren.length === 0) return;
-
-        const pendingTasksPromises = currentChildren.map(async child => {
+        if (children.length === 0) return;
+        const pendingTasksPromises = children.map(async child => {
           const tasks = await getTasks(token, child._id);
           const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-          return { childId: child._id, childName: child.name, pendingCount };
+          const approvedCount = tasks.filter((task: any) => task.completed && task.approved).length;
+          const totalTasks = tasks.length;
+          return {
+            childId: child._id,
+            childName: child.name,
+            pendingCount,
+            approvedCount,
+            totalTasks,
+            coins: child.coins,
+          };
         });
-
         const pendingResults = await Promise.all(pendingTasksPromises);
         const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
-
-        if (totalPending > 0) {
-          console.log(`Found ${totalPending} pending tasks across all children`);
+        const totalApproved = pendingResults.reduce((sum, result) => sum + result.approvedCount, 0);
+        const totalTasksSent = pendingResults.reduce((sum, result) => sum + result.totalTasks, 0);
+        const totalChildrenCoins = pendingResults.reduce((sum, result) => sum + result.coins, 0);
+        setPendingTasksCount(totalPending);
+        // Update chart data only on initial load
+        const isInitialLoad = chartData[0].value === 0 && chartData[1].value === 0 && chartData[2].value === 0;
+        if (isInitialLoad) {
+          setChartData([
+            { name: "Tasks Sent", value: totalTasksSent, color: "#3B82F6" },
+            { name: "Pending Approval", value: totalPending, color: "#FFBB28" },
+            { name: "Approved Tasks", value: totalApproved, color: "#00C49F" },
+          ]);
+          setCoinsData([
+            { name: "Coins Given by Parent", value: totalApproved * 10, color: "#FFD700" },
+            { name: "Total Children Coins", value: totalChildrenCoins, color: "#4ECDC4" },
+          ]);
         }
-
-        if (isMountedRef.current) {
-          setPendingTasksCount(totalPending);
-        }
-        return pendingResults;
       } catch (error) {
         console.error("Failed to check pending tasks:", error);
-        return [];
       }
     };
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isMountedRef.current) {
-        loadChildren(false); // Silent refresh when returning to page
-        checkPendingTasks();
-      }
-    };
-
-    // Silent auto-refresh system
-    const autoRefresh = async () => {
-      try {
-        // Check for new tasks or updates
-        const lastUpdate = localStorage.getItem("lastTaskUpdate");
-        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
-        const currentTime = Date.now();
-
-        // If more than 10 seconds have passed since last update, refresh silently
-        if (currentTime - lastUpdateTime > 10000) {
-          console.log("Auto-refreshing parent dashboard silently...");
-          await loadChildren(false);
-          await checkPendingTasks();
-        }
-      } catch (error) {
-        console.error("Error in auto-refresh:", error);
-      }
-    };
-
-    loadChildren(true); // Show loading on initial load
-    checkPendingTasks();
-
-    // Set up auto-refresh every 10 seconds
-    // const interval = setInterval(autoRefresh, 10000);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Listen for storage events (when tasks are created or approved)
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === "lastTaskUpdate" && isMountedRef.current) {
-        console.log("Storage event: Task update detected, silently refreshing parent dashboard...");
-        loadChildren(false);
-        checkPendingTasks();
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-    // Set up interval to refresh children data only (not chart data)
-    const interval = setInterval(() => {
-      if (isMountedRef.current) {
-        getChildren(token)
-          .then(childrenData => {
-            if (isMountedRef.current) {
-              setChildren(childrenData);
-              // Only update pending count, not chart data
-              updatePendingCountOnly();
-            }
-          })
-          .catch(error => {
-            console.error("Failed to refresh children:", error);
-          });
-      }
-    }, 30000);
-
-    return () => {
-      isMountedRef.current = false;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
-    };
-  }, [token, navigate, toast]); // Removed 'children' from dependencies
-
-  // Load initial chart data when children are loaded (only once)
-  useEffect(() => {
-    if (children.length > 0 && token) {
+    if (children.length > 0) {
       checkPendingTasks();
     }
-  }, [children, token]); // Keep this one as it only runs when children change
+  }, [children]);
 
-  // Map children to the format required by AppSidebar/NavDocuments
+  // Build childrenList for sidebar
   const childrenList = children.map(child => ({
     name: child.name,
-    url: child._id, // Use _id for navigation
+    url: child._id,
     icon: IconUsers,
   }));
 
-  // Update pending count only (without updating chart data)
-  const updatePendingCountOnly = async () => {
-    try {
-      const pendingTasksPromises = children.map(async child => {
-        const tasks = await getTasks(token, child._id);
-        const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-        return { pendingCount };
-      });
-
-      const pendingResults = await Promise.all(pendingTasksPromises);
-      const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
-      setPendingTasksCount(totalPending);
-    } catch (error) {
-      console.error("Failed to update pending count:", error);
-    }
-  };
-
-  // Check for pending approval tasks and update chart data
-  const checkPendingTasks = async () => {
-    try {
-      const pendingTasksPromises = children.map(async child => {
-        const tasks = await getTasks(token, child._id);
-        const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-        const approvedCount = tasks.filter((task: any) => task.completed && task.approved).length;
-        const totalTasks = tasks.length;
-        return {
-          childId: child._id,
-          childName: child.name,
-          pendingCount,
-          approvedCount,
-          totalTasks,
-          coins: child.coins,
-        };
-      });
-
-      const pendingResults = await Promise.all(pendingTasksPromises);
-      const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
-      const totalApproved = pendingResults.reduce((sum, result) => sum + result.approvedCount, 0);
-      const totalTasksSent = pendingResults.reduce((sum, result) => sum + result.totalTasks, 0);
-      const totalChildrenCoins = pendingResults.reduce((sum, result) => sum + result.coins, 0);
-
-      if (totalPending > 0) {
-        console.log(`Found ${totalPending} pending tasks across all children`);
-      }
-
-      setPendingTasksCount(totalPending);
-
-      // Calculate total coins given by parent (assuming 10 coins per approved task)
-      const totalCoinsGiven = totalApproved * 10;
-
-      // Only update chart data if it's the initial load
-      const isInitialLoad = chartData[0].value === 0 && chartData[1].value === 0 && chartData[2].value === 0;
-
-      if (isInitialLoad) {
-        // Update tasks chart data
-        const newChartData = [
-          { name: "Tasks Sent", value: totalTasksSent, color: "#3B82F6" },
-          { name: "Pending Approval", value: totalPending, color: "#FFBB28" },
-          { name: "Approved Tasks", value: totalApproved, color: "#00C49F" },
-        ];
-
-        console.log("Initial tasks chart data load:", newChartData);
-        setChartData(newChartData);
-
-        // Update coins chart data
-        const newCoinsData = [
-          { name: "Coins Given by Parent", value: totalCoinsGiven, color: "#FFD700" },
-          { name: "Total Children Coins", value: totalChildrenCoins, color: "#4ECDC4" },
-        ];
-
-        console.log("Initial coins data load:", newCoinsData);
-        setCoinsData(newCoinsData);
-      } else {
-        console.log("Chart data already loaded, skipping update");
-      }
-
-      return pendingResults;
-    } catch (error) {
-      console.error("Failed to check pending tasks:", error);
-      return [];
-    }
-  };
   // Handler for navigating to child detail page
   const handleChildSelect = (id: string) => {
     navigate(`/parent/child/${id}`);
   };
+
+  console.log("[ParentDashboard] render, children:", children);
 
   return (
     <SidebarProvider

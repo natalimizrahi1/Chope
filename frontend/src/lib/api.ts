@@ -26,14 +26,17 @@ export const login = async (email: string, password: string, role: string) => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ email, password }),
   });
 
   return handleResponse(response);
 };
 
 export const register = async (userData: any) => {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const role = userData.role;
+  const endpoint = role === "parent" ? "register/parent" : "register/child";
+
+  const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

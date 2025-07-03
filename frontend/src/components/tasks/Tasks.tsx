@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Moon, Bell, Home, Users, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, Target, Filter } from "lucide-react";
+import { Home, User, BookOpen, Play, FileText, CreditCard, Library, TrendingUp, Clock, CheckCircle, Target, Filter } from "lucide-react";
 import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -92,7 +92,6 @@ const Tasks = () => {
   });
 
   const incompleteTasks = filteredTasks.filter((task: Task) => !task.completed);
-  const completedTasksArr = filteredTasks.filter((task: Task) => task.completed);
   const pendingApprovalTasks = filteredTasks.filter((task: Task) => task.completed && !task.approved);
   const approvedTasks = filteredTasks.filter((task: Task) => task.completed && task.approved);
 

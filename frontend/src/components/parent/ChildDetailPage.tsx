@@ -45,7 +45,7 @@ export default function ChildDetailPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [token] = useState(localStorage.getItem("token") || "");
-  const [newTask, setNewTask] = useState({ title: "", description: "", reward: 0 });
+  const [newTask, setNewTask] = useState<{ title: string; description: string; reward: number; category?: string }>({ title: "", description: "", reward: 0, category: undefined });
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -248,7 +248,7 @@ export default function ChildDetailPage() {
         category: "custom",
       });
 
-      setNewTask({ title: "", description: "", reward: 0 });
+      setNewTask({ title: "", description: "", reward: 0, category: undefined });
       setShowCategorySelector(false);
 
       await loadTasks();
@@ -312,85 +312,17 @@ export default function ChildDetailPage() {
       title: taskTemplate.title,
       description: taskTemplate.description,
       reward: taskTemplate.reward,
+      category: taskTemplate.category,
     });
     setShowCategorySelector(false);
-
-    // Create task immediately with the selected template
-    if (childId) {
-      createTask(token, {
-        title: taskTemplate.title,
-        description: taskTemplate.description,
-        reward: taskTemplate.reward,
-        child: childId,
-        category: taskTemplate.category,
-      })
-        .then(() => {
-          toast({
-            title: "Task created",
-            description: "New task has been created successfully.",
-          });
-          loadTasks();
-
-          // Notify child for immediate update
-          localStorage.setItem("newTaskCreated", JSON.stringify({ childId, timestamp: Date.now() }));
-          window.dispatchEvent(new Event("storage"));
-
-          // Also dispatch custom event for same-tab notification
-          const customEvent = new CustomEvent("taskCreated", {
-            detail: { childId, timestamp: Date.now() },
-          });
-          window.dispatchEvent(customEvent);
-        })
-        .catch(error => {
-          console.error("Failed to create task:", error);
-          toast({
-            title: "Error",
-            description: "Failed to create task. Please try again.",
-            variant: "destructive",
-          });
-        });
-    }
   };
 
   const handleCustomTask = (customTask: { title: string; description: string; reward: number }) => {
-    setNewTask(customTask);
+    setNewTask({
+      ...customTask,
+      category: "custom",
+    });
     setShowCategorySelector(false);
-
-    // Create task immediately with custom category
-    if (childId) {
-      createTask(token, {
-        title: customTask.title,
-        description: customTask.description,
-        reward: customTask.reward,
-        child: childId,
-        category: "custom",
-      })
-        .then(() => {
-          toast({
-            title: "Task created",
-            description: "New custom task has been created successfully.",
-          });
-          loadTasks();
-
-          // Notify child for immediate update
-          localStorage.setItem("newTaskCreated", JSON.stringify({ childId, timestamp: Date.now() }));
-          window.dispatchEvent(new Event("storage"));
-
-          // Also dispatch custom event for same-tab notification
-          const customEvent = new CustomEvent("taskCreated", {
-            detail: { childId, timestamp: Date.now() },
-          });
-          window.dispatchEvent(customEvent);
-        })
-        .catch(error => {
-          console.error("Failed to create task:", error);
-          toast({
-            title: "Error",
-            description: "Failed to create task. Please try again.",
-            variant: "destructive",
-          });
-        });
-    }
   };
 
   // Map children to the format required by AppSidebar/NavDocuments
