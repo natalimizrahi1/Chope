@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Play, Coins, Store, Target, ShoppingBag } from "lucide-react";
+import { Play, Coins, Store, Target, ShoppingBag, LogOut } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
@@ -863,6 +863,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       itemCounts[item.id]++;
     }
   });
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  };
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] flex flex-col items-center justify-start relative overflow-hidden'>
@@ -963,6 +968,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
               </div>
             </PopoverContent>
           </Popover>
+
+          <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <LogOut className='w-5 h-5 text-gray-600' />
+          </motion.button>
         </div>
       </div>
 

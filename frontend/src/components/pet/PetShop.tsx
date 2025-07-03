@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getTasks } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play } from "lucide-react";
+import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export type ShopItem = {
@@ -247,6 +247,12 @@ export default function PetShopInline() {
     });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] relative overflow-hidden'>
       {/* Background decorations */}
@@ -376,6 +382,10 @@ export default function PetShopInline() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <LogOut className='w-5 h-5 text-gray-600' />
+            </motion.button>
           </div>
         </div>
       </motion.div>

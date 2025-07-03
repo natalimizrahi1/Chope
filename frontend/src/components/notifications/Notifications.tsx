@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Bell, X, CheckCircle, AlertCircle, Info, Coins, Check, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Bell, Check, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { getTasks, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Notification {
@@ -29,11 +27,9 @@ interface NotificationsProps {
 const Notifications = ({ childId, token, userRole }: NotificationsProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [showBadge, setShowBadge] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Check if notifications were cleared
   const areNotificationsCleared = useCallback(() => {
@@ -593,22 +589,6 @@ const Notifications = ({ childId, token, userRole }: NotificationsProps) => {
       description: "All notifications have been marked as read.",
       duration: 3000,
     });
-  };
-
-  // Get notification icon based on type
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "new_task":
-        return "🔔";
-      case "task_approved":
-        return "✅";
-      case "task_completed":
-        return "🎯";
-      case "task_pending_approval":
-        return "⏳";
-      default:
-        return "🔔";
-    }
   };
 
   // Get notification color based on type

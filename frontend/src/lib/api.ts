@@ -20,7 +20,7 @@ const handleResponse = async (response: Response) => {
 };
 
 // Auth API functions
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, role: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
@@ -33,7 +33,10 @@ export const login = async (email: string, password: string) => {
 };
 
 export const register = async (userData: any) => {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const role = userData.role;
+  const endpoint = role === "parent" ? "register/parent" : "register/child";
+
+  const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -128,6 +131,19 @@ export const unapproveTask = async (token: string, taskId: string) => {
   return handleResponse(response);
 };
 
+export const deleteTask = async (token: string, taskId: string) => {
+  const response = await fetch(`${API_BASE_URL}/task/${taskId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
 // Parent API functions
 export const getChildren = async (token: string) => {
   const response = await fetch(`${API_BASE_URL}/parent/children`, {
@@ -213,7 +229,7 @@ export async function getChildProgress(token: string, childId: string) {
   return res.json();
 }
 
-export async function createTask(token: string, data: { title: string; description: string; reward: number; child: string }) {
+export async function createTask(token: string, data: { title: string; description: string; reward: number; child: string; category?: string }) {
   console.log("=== API: CREATING TASK ===");
   console.log("Task data:", data);
   console.log("Token:", token ? "Present" : "Missing");
