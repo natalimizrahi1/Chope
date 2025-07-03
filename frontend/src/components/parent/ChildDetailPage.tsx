@@ -245,7 +245,7 @@ export default function ChildDetailPage() {
       const createdTask = await createTask(token, {
         ...newTask,
         child: child._id,
-        category: "custom",
+        category: newTask.category || "custom",
       });
 
       setNewTask({ title: "", description: "", reward: 0, category: undefined });
@@ -747,6 +747,77 @@ export default function ChildDetailPage() {
                           <div className='grid gap-2'>
                             <Label htmlFor='description'>Description</Label>
                             <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
+                          </div>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='category'>Category</Label>
+                            <div className='flex items-center gap-2'>
+                              <Select value={newTask.category || "custom"} onValueChange={value => setNewTask({ ...newTask, category: value })}>
+                                <SelectTrigger className='flex-1'>
+                                  <SelectValue placeholder='Select category' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value='custom'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-gray-400'></div>
+                                      Custom Task
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='household'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-blue-400'></div>
+                                      Household Chores
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='education'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-green-400'></div>
+                                      Education & Learning
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='kitchen'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-orange-400'></div>
+                                      Kitchen & Cooking
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='health'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-red-400'></div>
+                                      Health & Hygiene
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='fitness'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-purple-400'></div>
+                                      Sports & Fitness
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='creative'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-pink-400'></div>
+                                      Creative Activities
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='music'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-indigo-400'></div>
+                                      Music & Entertainment
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value='nature'>
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-3 h-3 rounded-full bg-emerald-400'></div>
+                                      Nature & Outdoors
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {newTask.category && newTask.category !== "custom" && (
+                                <Badge variant='outline' className='text-xs'>
+                                  {getCategoryBadge(newTask.category)}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div className='grid gap-2'>
                             <Label htmlFor='reward'>Reward (coins)</Label>
