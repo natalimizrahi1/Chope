@@ -370,10 +370,10 @@ const KidDashboard = () => {
       </div>
 
       {/* Modern Header */}
-      <motion.div className='relative z-10 p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-        <div className='flex items-center justify-between'>
+      <motion.div className='relative z-10 p-4 sm:p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <div className='flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8'>
           {/* User info */}
-          <div className='flex items-center gap-4'>
+          <div className='flex items-center gap-4 mb-2 sm:mb-0'>
             <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg' whileHover={{ scale: 1.05 }}>
               <Avatar className='w-12 h-12'>
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} />
@@ -381,41 +381,37 @@ const KidDashboard = () => {
               </Avatar>
             </motion.div>
             <div>
-              <h1 className='text-2xl font-bold text-white drop-shadow-lg'>Hello {userName}! 👋</h1>
-              <p className='text-white/90 text-sm'>Let's play and progress! 🎮</p>
+              <h1 className='text-xl sm:text-2xl font-bold text-white drop-shadow-lg break-words'>Hello {userName}! 👋</h1>
+              <p className='text-white/90 text-sm sm:text-base'>Let's play and progress! 🎮</p>
             </div>
           </div>
-
           {/* Coins, navigation and logout */}
-          <div className='flex items-center gap-4'>
+          <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto'>
             {/* Navigation tabs */}
-            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
-              <div className='flex gap-2'>
-                <motion.button className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Target className='w-4 h-4' />
+            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg w-full sm:w-auto'>
+              <div className='flex flex-col sm:flex-row gap-2 w-full'>
+                <motion.button className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Target className='w-5 h-5 sm:w-4 sm:h-4' />
                   Tasks
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/virtualpet")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Play className='w-4 h-4' />
+                <motion.button onClick={() => navigate("/kid/virtualpet")} className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Play className='w-5 h-5 sm:w-4 sm:h-4' />
                   My Pet
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/shop")} className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <ShoppingBag className='w-4 h-4' />
+                <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <ShoppingBag className='w-5 h-5 sm:w-4 sm:h-4' />
                   Shop
                 </motion.button>
               </div>
             </div>
-
             <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2' whileHover={{ scale: 1.05 }}>
               <Coins className='w-5 h-5 text-yellow-500' />
               <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
             </motion.div>
-
             {/* Notifications */}
             <div className='relative z-50'>
               <Notifications childId={userId} token={token} userRole='child' />
             </div>
-
             <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <LogOut className='w-5 h-5 text-gray-600' />
             </motion.button>
@@ -487,14 +483,14 @@ const KidDashboard = () => {
             </div>
 
             {/* Task tabs */}
-            <div className='flex gap-2 mb-6'>
-              <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <div className='flex flex-col sm:flex-row gap-2 mb-6'>
+              <motion.button onClick={() => setActiveTaskTab("incomplete")} className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm ${activeTaskTab === "incomplete" ? "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 Remaining ({incompleteTasks.length})
               </motion.button>
-              <motion.button onClick={() => setActiveTaskTab("pending")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "pending" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.button onClick={() => setActiveTaskTab("pending")} className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm ${activeTaskTab === "pending" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 Pending ({pendingApprovalTasks.length})
               </motion.button>
-              <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.button onClick={() => setActiveTaskTab("completed")} className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm ${activeTaskTab === "completed" ? "bg-gradient-to-r from-[#f9a8d4] to-[#ffbacc] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 Completed ({approvedTasks.length})
               </motion.button>
             </div>
@@ -529,26 +525,26 @@ const KidDashboard = () => {
                 <p className='text-gray-600'>Complete some tasks to see them here!</p>
               </div>
             ) : (
-              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pb-24 sm:pb-12'>
                 {(activeTaskTab === "incomplete" ? incompleteTasks : activeTaskTab === "pending" ? pendingApprovalTasks : approvedTasks).map((task, index) => {
                   const visual = getTaskVisualData(task);
                   return (
-                    <div key={task._id} className={`rounded-2xl shadow-lg p-4 flex flex-col items-center ${visual.bg} transition-all hover:scale-105`}>
-                      <div className='mb-2'>{visual.icon}</div>
-                      <h3 className='font-bold text-lg text-center mb-1'>{task.title}</h3>
-                      <p className='text-sm text-gray-600 text-center mb-2 line-clamp-2'>{task.description}</p>
+                    <div key={task._id} className={`rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col items-center ${visual.bg} transition-all hover:scale-105`}>
+                      <div className='mb-2 flex justify-center w-full'>{visual.icon}</div>
+                      <h3 className='font-bold text-lg sm:text-xl text-center mb-1 break-words'>{task.title}</h3>
+                      <p className='text-sm sm:text-base text-gray-600 text-center mb-2 break-words'>{task.description}</p>
                       <div className='flex items-center gap-2 mb-2'>
-                        <Coins className='w-5 h-5 text-yellow-500' />
-                        <span className='font-bold text-yellow-700'>{task.reward}</span>
+                        <Coins className='w-5 h-5 sm:w-6 sm:h-6 text-yellow-500' />
+                        <span className='font-bold text-yellow-700 text-base sm:text-lg'>{task.reward}</span>
                       </div>
-                      <span className='text-xs rounded-full px-3 py-1 bg-white/70 text-gray-700 mb-2 border border-gray-200'>{visual.label}</span>
+                      <span className='text-xs sm:text-sm rounded-full px-3 py-1 bg-white/70 text-gray-700 mb-2 border border-gray-200'>{visual.label}</span>
                       {activeTaskTab === "incomplete" && (
-                        <button onClick={() => handleCompleteTask(task._id)} className='mt-2 bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all'>
+                        <button onClick={() => handleCompleteTask(task._id)} className='mt-2 w-full py-2 sm:py-3 rounded-xl font-semibold bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7] text-white text-base sm:text-lg hover:shadow-lg transition-all'>
                           Complete! ✨
                         </button>
                       )}
                       {activeTaskTab === "pending" && (
-                        <button onClick={() => handleUndoTask(task._id)} className='mt-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg transition-all'>
+                        <button onClick={() => handleUndoTask(task._id)} className='mt-2 w-full py-2 sm:py-3 rounded-xl font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-base sm:text-lg hover:shadow-lg transition-all'>
                           Undo
                         </button>
                       )}
