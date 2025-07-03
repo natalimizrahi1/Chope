@@ -4,14 +4,13 @@ import type { Animal } from "../../lib/types";
 import { useToast } from "../ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { AppSidebar } from "../ui/app-sidebar";
-import { ChartAreaInteractive } from "../ui/chart-area-interactive";
+import { ChartPieInteractive } from "../ui/chart-pie-interactive";
 import { DataTable } from "../ui/data-table";
 import { SectionCards } from "../ui/section-cards";
 import { SiteHeader } from "../ui/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconUsers } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import Notifications from "../notifications/Notifications";
 
 import data from "../../app/dashboard/data.json";
 
@@ -26,14 +25,21 @@ type Child = {
 export default function ParentDashboard() {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
-  const [token] = useState(localStorage.getItem("token") || "");
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
+  const [chartData, setChartData] = useState([
+    { name: "Tasks Sent", value: 0, color: "#3B82F6" },
+    { name: "Pending Approval", value: 0, color: "#FFBB28" },
+    { name: "Approved Tasks", value: 0, color: "#00C49F" },
+  ]);
+  const [coinsData, setCoinsData] = useState([
+    { name: "Coins Given by Parent", value: 0, color: "#FFD700" },
+    { name: "Total Children Coins", value: 0, color: "#4ECDC4" },
+  ]);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is logged in and is a parent
+    const token = localStorage.getItem("token") || "";
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-
     if (!token || user.role !== "parent") {
       toast({
         title: "Access denied",
@@ -43,99 +49,72 @@ export default function ParentDashboard() {
       navigate("/login/parent");
       return;
     }
-
-    const loadChildren = async (showLoading = true) => {
-      try {
-        const childrenData = await getChildren(token);
+    getChildren(token)
+      .then(childrenData => {
         setChildren(childrenData);
-      } catch (error) {
+      })
+      .catch(error => {
         console.error("Failed to load children:", error);
         if (error instanceof Error && error.message.includes("401")) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           navigate("/login/parent");
         }
-      }
-    };
+      });
+  }, [navigate, toast]);
 
+  // Check for pending approval tasks and update chart/coins data
+  useEffect(() => {
+    const token = localStorage.getItem("token") || "";
     const checkPendingTasks = async () => {
       try {
+        if (children.length === 0) return;
         const pendingTasksPromises = children.map(async child => {
           const tasks = await getTasks(token, child._id);
           const pendingCount = tasks.filter((task: any) => task.completed && !task.approved).length;
-          return { childId: child._id, childName: child.name, pendingCount };
+          const approvedCount = tasks.filter((task: any) => task.completed && task.approved).length;
+          const totalTasks = tasks.length;
+          return {
+            childId: child._id,
+            childName: child.name,
+            pendingCount,
+            approvedCount,
+            totalTasks,
+            coins: child.coins,
+          };
         });
-
         const pendingResults = await Promise.all(pendingTasksPromises);
         const totalPending = pendingResults.reduce((sum, result) => sum + result.pendingCount, 0);
-
-        if (totalPending > 0) {
-          console.log(`Found ${totalPending} pending tasks across all children`);
-        }
-
+        const totalApproved = pendingResults.reduce((sum, result) => sum + result.approvedCount, 0);
+        const totalTasksSent = pendingResults.reduce((sum, result) => sum + result.totalTasks, 0);
+        const totalChildrenCoins = pendingResults.reduce((sum, result) => sum + result.coins, 0);
         setPendingTasksCount(totalPending);
-        return pendingResults;
+        // Update chart data only on initial load
+        const isInitialLoad = chartData[0].value === 0 && chartData[1].value === 0 && chartData[2].value === 0;
+        if (isInitialLoad) {
+          setChartData([
+            { name: "Tasks Sent", value: totalTasksSent, color: "#3B82F6" },
+            { name: "Pending Approval", value: totalPending, color: "#FFBB28" },
+            { name: "Approved Tasks", value: totalApproved, color: "#00C49F" },
+          ]);
+          setCoinsData([
+            { name: "Coins Given by Parent", value: totalApproved * 10, color: "#FFD700" },
+            { name: "Total Children Coins", value: totalChildrenCoins, color: "#4ECDC4" },
+          ]);
+        }
       } catch (error) {
         console.error("Failed to check pending tasks:", error);
-        return [];
       }
     };
+    if (children.length > 0) {
+      checkPendingTasks();
+    }
+  }, [children]);
 
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadChildren(false); // Silent refresh when returning to page
-        checkPendingTasks();
-      }
-    };
-
-    // Silent auto-refresh system
-    const autoRefresh = async () => {
-      try {
-        // Check for new tasks or updates
-        const lastUpdate = localStorage.getItem("lastTaskUpdate");
-        const lastUpdateTime = lastUpdate ? parseInt(lastUpdate) : 0;
-        const currentTime = Date.now();
-
-        // If more than 10 seconds have passed since last update, refresh silently
-        if (currentTime - lastUpdateTime > 10000) {
-          console.log("Auto-refreshing parent dashboard silently...");
-          await loadChildren(false);
-          await checkPendingTasks();
-        }
-      } catch (error) {
-        console.error("Error in auto-refresh:", error);
-      }
-    };
-
-    loadChildren(true); // Show loading on initial load
-    checkPendingTasks();
-
-    // Set up auto-refresh every 10 seconds
-    const interval = setInterval(autoRefresh, 10000);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Listen for storage events (when tasks are created or approved)
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === "lastTaskUpdate") {
-        console.log("Storage event: Task update detected, silently refreshing parent dashboard...");
-        loadChildren(false);
-        checkPendingTasks();
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
-    };
-  }, [token, navigate, toast, children]);
-
-  // Map children to the format required by AppSidebar/NavDocuments
+  // Build childrenList for sidebar
   const childrenList = children.map(child => ({
     name: child.name,
-    url: child._id, // Use _id for navigation
+    url: child._id,
     icon: IconUsers,
   }));
 
@@ -143,6 +122,8 @@ export default function ParentDashboard() {
   const handleChildSelect = (id: string) => {
     navigate(`/parent/child/${id}`);
   };
+
+  console.log("[ParentDashboard] render, children:", children);
 
   return (
     <SidebarProvider
@@ -159,12 +140,7 @@ export default function ParentDashboard() {
           <div className='@container/main flex flex-1 flex-col gap-2'>
             <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
               {/* Notifications for Parent */}
-              {children.length > 0 && (
-                <div className='px-4 lg:px-6 flex justify-end'>
-                  <Notifications childId={children[0]._id} token={token} userRole='parent' />
-                </div>
-              )}
-
+              {/* REMOVED: Notifications panel for parent */}
               {/* Pending Tasks Notification */}
               {pendingTasksCount > 0 && (
                 <div className='px-4 lg:px-6'>
@@ -197,7 +173,7 @@ export default function ParentDashboard() {
               )}
               <SectionCards />
               <div className='px-4 lg:px-6'>
-                <ChartAreaInteractive />
+                <ChartPieInteractive data={chartData} rightData={coinsData} title='Task Distribution' description="Overview of all children's task status" rightTitle='Coins Overview' rightDescription="Coins given by parent vs children's total coins" />
               </div>
               <DataTable data={data} />
             </div>

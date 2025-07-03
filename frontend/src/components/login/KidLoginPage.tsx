@@ -23,7 +23,7 @@ export default function KidLoginPage() {
     console.log("Submitting login form with data:", formData);
 
     try {
-      const response = await login(formData.email, formData.password);
+      const response = await login(formData.email, formData.password, "child");
       console.log("Login response:", response);
 
       // Store token in localStorage
