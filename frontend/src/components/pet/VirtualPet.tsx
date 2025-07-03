@@ -38,7 +38,6 @@ const IMAGES = {
   drink: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857689/virtual%20pet/red-smoothie.png",
   food: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857661/virtual%20pet/sandwich.png",
   benny: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png",
-  sleep: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857719/virtual%20pet/sleep.png",
 } as const;
 
 const SOUNDS = {
@@ -81,7 +80,6 @@ interface VirtualPetProps {
   animal?: Pet;
   onFeed?: () => void;
   onPlay?: () => void;
-  onSleep?: () => void;
   onResetHunger?: () => void;
   onResetHappiness?: () => void;
   onResetEnergy?: () => void;
@@ -102,7 +100,7 @@ function Benny() {
   );
 }
 
-export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPlay = () => {}, onSleep = () => {}, onResetHunger, onResetHappiness, onResetEnergy, setAnimal: propSetAnimal }: VirtualPetProps) {
+export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPlay = () => {}, onResetHunger, onResetHappiness, onResetEnergy, setAnimal: propSetAnimal }: VirtualPetProps) {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
@@ -186,7 +184,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const feedBtnRef = useRef<HTMLButtonElement | null>(null);
   const playBtnRef = useRef<HTMLButtonElement | null>(null);
   const healBtnRef = useRef<HTMLButtonElement | null>(null);
-  const sleepBtnRef = useRef<HTMLButtonElement | null>(null);
+
   const donutStatRef = useRef<HTMLDivElement | null>(null);
   const starStatRef = useRef<HTMLDivElement | null>(null);
   const heartStatRef = useRef<HTMLDivElement | null>(null);
@@ -611,7 +609,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       window.dispatchEvent(new CustomEvent("coinsUpdated"));
 
       setIsHealing(true);
-      onSleep();
       const pillAudio = audioRefs.current.pill;
       if (pillAudio) {
         pillAudio.currentTime = 0;
@@ -682,51 +679,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     } catch (error) {
       console.error("Failed to spend coins on playing:", error);
       alert("Failed to play with pet. Please try again.");
-    }
-  };
-
-  const handleSleep = async () => {
-    if (totalCoins < 6) {
-      alert("You need 6 coins to let your pet sleep!");
-      return;
-    }
-
-    try {
-      // Spend coins through API
-      const result = await spendCoinsOnPetCare(token, childId, "sleeping", 6);
-      setTotalCoins(result.coins);
-      localStorage.setItem("currentCoins", result.coins.toString());
-
-      // Notify other components
-      window.dispatchEvent(new CustomEvent("coinsUpdated"));
-
-      setIsHealing(true);
-      onSleep();
-      const sleepAudio = audioRefs.current.sleep;
-      if (sleepAudio) {
-        sleepAudio.currentTime = 0;
-        sleepAudio.play().catch(() => {});
-      }
-      setTimeout(() => setIsHealing(false), 1000);
-      setIsMenuOpen(false);
-      flyToStat(sleepBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
-      setShowAddedHeart(true);
-      setTimeout(() => setShowAddedHeart(false), 700);
-      setLastTaskTime(Date.now());
-      if (childId) {
-        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-      }
-      // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          energy: Math.min(100, prev.stats.energy + 25),
-        },
-      }));
-    } catch (error) {
-      console.error("Failed to spend coins on sleeping:", error);
-      alert("Failed to let pet sleep. Please try again.");
     }
   };
 
@@ -1074,12 +1026,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                 <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>3</span>
-              </button>
-
-              <button ref={sleepBtnRef} onClick={handleSleep} disabled={totalCoins < 6} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins to sleep!" : "שינה"}>
-                <img src={IMAGES.sleep} alt='sleep' className='w-12 h-12 sm:w-16 sm:h-16' />
-                <span className='text-xs sm:text-sm font-medium text-gray-700'>Sleep</span>
-                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>6</span>
               </button>
 
               <button ref={healBtnRef} onClick={handleHeal} disabled={totalCoins < 6} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins for energy!" : "תרופה"}>
