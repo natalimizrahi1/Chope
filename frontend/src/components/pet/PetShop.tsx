@@ -20,7 +20,7 @@ export type PurchasedItem = ShopItem & {
   quantity: number;
 };
 
-export default function PetShopInline() {
+export default function PetShop() {
   const navigate = useNavigate();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);

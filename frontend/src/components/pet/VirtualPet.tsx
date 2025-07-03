@@ -114,7 +114,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     type: "Cute Pet",
     level: 1,
     xp: 0,
-    stats: { hunger: 75, happiness: 75, energy: 75 },
+    stats: { hunger: 0, happiness: 0, energy: 0 },
     accessories: [],
     scale: 0.7,
   });
@@ -192,12 +192,9 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const [showAddedDonut, setShowAddedDonut] = useState(false);
   const [showAddedStar, setShowAddedStar] = useState(false);
   const [showAddedHeart, setShowAddedHeart] = useState(false);
-  const addedTimeouts = useRef<{ donut?: NodeJS.Timeout; star?: NodeJS.Timeout; heart?: NodeJS.Timeout }>({});
-  const isAllStatsEmpty = currentAnimal.stats.hunger <= 0 && currentAnimal.stats.happiness <= 0 && currentAnimal.stats.energy <= 0;
-  const [petScale, setPetScale] = useState(0.7); // Fixed size - smaller to avoid overlapping buttons
+  const [petScale, setPetScale] = useState(0.7);
 
   const [displayedProgress, setDisplayedProgress] = useState(0);
-  const [filledCount, setFilledCount] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<ShopItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
@@ -216,8 +213,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       const tasks = await getTasks(token, childId);
       const uncompletedTasks = tasks.filter((task: Task) => !task.completed);
       if (uncompletedTasks.length === 0) return;
-
-      const latestTask = uncompletedTasks.reduce((latest: Task, task: Task) => (task._id > latest._id ? task : latest));
 
       // check if the warning has been shown
       const hasSeenWarning = localStorage.getItem(`hasSeenInactivityWarning_${childId}`);
@@ -246,9 +241,9 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   useEffect(() => {
     const interval = setInterval(() => {
       checkTaskTimeout();
-    }, 30000); // every 30 seconds
+    }, 30000);
 
-    return () => clearInterval(interval); // cleanup
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -274,7 +269,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         });
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
-    }, 60000); // check every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [childId]);
@@ -296,19 +291,16 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   }, [petScale, childId]);
 
   useEffect(() => {
-    // Initialize audio elements
     const audioElements: Record<string, HTMLAudioElement> = {};
     Object.entries(SOUNDS).forEach(([key, url]) => {
-      audioElements[key] = new Audio(url); // initialize audio elements
+      audioElements[key] = new Audio(url);
     });
     audioRefs.current = audioElements;
 
-    // play hello sound after 4 seconds
+    // play hello sound after 3 seconds
     const greeting = setTimeout(() => {
-      audioRefs.current.hello?.play().catch(() => {
-        // Handle audio play error silently
-      });
-    }, 4000);
+      audioRefs.current.hello?.play().catch(() => {});
+    }, 3000);
 
     return () => {
       clearTimeout(greeting);
@@ -497,7 +489,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       const newPet = {
         ...prev,
         level: prev.level + 1,
-        scale: 0.7, // Fixed scale - smaller size
+        scale: 0.7,
         stats: {
           hunger: 0,
           happiness: 0,
@@ -667,80 +659,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setShowTimeoutModal(false);
   };
 
-  const handleRestart = () => {
-    setTimeAlive(0);
-    setIsDead(false);
-    audioRefs.current.hello?.play().catch(() => {});
-    setLastTaskTime(Date.now()); // Reset inactivity timer
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-  };
-
-  const handleResetHungerLocal = () => {
-    if (onResetHunger) {
-      onResetHunger();
-    } else {
-      // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          hunger: 0,
-        },
-      }));
-    }
-    setLastTaskTime(Date.now()); // Reset inactivity timer
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-  };
-
-  const handleResetHappinessLocal = () => {
-    if (onResetHappiness) {
-      onResetHappiness();
-    } else {
-      // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          happiness: 0,
-        },
-      }));
-    }
-    setLastTaskTime(Date.now()); // Reset inactivity timer
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-  };
-
-  const handleResetEnergyLocal = () => {
-    if (onResetEnergy) {
-      onResetEnergy();
-    } else {
-      // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          energy: 0,
-        },
-      }));
-    }
-    setLastTaskTime(Date.now()); // Reset inactivity timer
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-  };
-
-  const hungerPercent = Math.max(0, Math.min(100, (currentAnimal.stats.hunger / STATS.MAX) * 100));
-
   const handleUseItem = (item: ShopItem) => {
     // Find the item in purchased items
     const itemIndex = purchasedItems.findIndex(i => i.id === item.id);
     if (itemIndex === -1) return;
-    // Remove one item from inventory
     const updatedItems = [...purchasedItems];
     updatedItems.splice(itemIndex, 1);
     setPurchasedItems(updatedItems);
@@ -749,7 +671,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     }
     switch (item.type) {
       case "food":
-        // Update animal stats only
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
@@ -765,7 +686,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         setTimeout(() => setShowAddedDonut(false), 700);
         break;
       case "toy":
-        // Update animal stats only
         currentSetAnimal?.(prev => ({
           ...prev,
           stats: {
@@ -816,7 +736,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         }));
         break;
     }
-    setLastTaskTime(Date.now()); // Reset inactivity timer
+    setLastTaskTime(Date.now());
     if (childId) {
       localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
     }
@@ -827,8 +747,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const handleRemoveAccessory = (accessory: ShopItem) => {
     // Remove accessory from pet
     const updatedAccessories = currentAnimal.accessories.filter(acc => acc.id !== accessory.id);
-
-    // Update pet - this will automatically save to localStorage via useEffect
     currentSetAnimal?.(prev => ({
       ...prev,
       accessories: updatedAccessories,
@@ -839,19 +757,6 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     setPurchasedItems(updatedItems);
     if (childId) {
       localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(updatedItems));
-    }
-  };
-
-  const handleRefreshCoins = async () => {
-    try {
-      if (token && childId) {
-        const coinsData = await getChildCoins(token, childId);
-        console.log("🪙 VirtualPet - manually refreshed coins:", coinsData.coins);
-        setTotalCoins(coinsData.coins);
-        localStorage.setItem("currentCoins", coinsData.coins.toString());
-      }
-    } catch (error) {
-      console.error("Failed to manually refresh coins:", error);
     }
   };
 
@@ -1007,8 +912,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             {/* Static stats bar */}
             <div
               className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
-                            bg-blue-100 border-4 border-amber-700 rounded-xl 
-                            shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
+                              bg-blue-100 border-4 border-amber-700 rounded-xl 
+                              shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
             >
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />

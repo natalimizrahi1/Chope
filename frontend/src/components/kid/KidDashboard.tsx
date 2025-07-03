@@ -35,8 +35,8 @@ const KidDashboard = () => {
     name: "Buddy",
     type: "dog",
     level: 1,
-    xp: 50,
-    stats: { hunger: 30, happiness: 80, energy: 60 },
+    xp: 0,
+    stats: { hunger: 0, happiness: 0, energy: 0 },
     accessories: [],
   });
 
