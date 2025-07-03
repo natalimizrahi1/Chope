@@ -4,7 +4,7 @@ import garden from "../../assets/garden.png";
 import { ShopItem } from "./PetShop";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks, getChildCoins } from "../../lib/api";
+import { getTasks, getChildCoins, spendCoinsOnPetCare } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -39,6 +39,7 @@ const IMAGES = {
   drink: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857689/virtual%20pet/red-smoothie.png",
   food: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857661/virtual%20pet/sandwich.png",
   benny: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png",
+  sleep: "https://res.cloudinary.com/dytmcam8b/image/upload/v1561857719/virtual%20pet/sleep.png",
 } as const;
 
 const SOUNDS = {
@@ -186,6 +187,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const feedBtnRef = useRef<HTMLButtonElement | null>(null);
   const playBtnRef = useRef<HTMLButtonElement | null>(null);
   const healBtnRef = useRef<HTMLButtonElement | null>(null);
+  const sleepBtnRef = useRef<HTMLButtonElement | null>(null);
   const donutStatRef = useRef<HTMLDivElement | null>(null);
   const starStatRef = useRef<HTMLDivElement | null>(null);
   const heartStatRef = useRef<HTMLDivElement | null>(null);
@@ -367,7 +369,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     };
   }, [childId]);
 
-  // Simple coin management - load from localStorage and update on events
+  // Simple coin management - load from database and update on events
   useEffect(() => {
     const loadCoins = async () => {
       // Get coins directly from server
@@ -379,18 +381,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           localStorage.setItem("currentCoins", coinsData.coins.toString());
         }
       } catch (serverError) {
-        console.error("Failed to get coins from server, falling back to calculation:", serverError);
-        // Fallback to old calculation method
-        try {
-          const tasks = await getTasks(token, childId);
-          const totalCoins = tasks.filter((task: Task) => task.approved).reduce((sum: number, task: Task) => sum + task.reward, 0);
-          const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-          const availableCoins = totalCoins - spentCoins;
-          setTotalCoins(availableCoins);
-          localStorage.setItem("currentCoins", availableCoins.toString());
-          console.log("🪙 VirtualPet - Calculated coins (fallback):", availableCoins);
-        } catch (error) {
-          console.error("Failed to calculate coins:", error);
+        console.error("Failed to get coins from server:", serverError);
+        // Fallback to localStorage if server fails
+        const savedCoins = localStorage.getItem("currentCoins");
+        if (savedCoins) {
+          setTotalCoins(parseInt(savedCoins));
         }
       }
     };
@@ -514,144 +509,270 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     }
   };
 
-  const handleFeed = () => {
+  const handleFeed = async () => {
     if (totalCoins < 5) {
       alert("You need 5 coins to feed your pet!");
       return;
     }
-    const newCoins = totalCoins - 5;
-    setTotalCoins(newCoins);
-    localStorage.setItem("currentCoins", newCoins.toString());
-    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-    localStorage.setItem("spentCoins", (spentCoins + 5).toString());
-    setIsFeeding(true);
-    onFeed();
-    audioRefs.current.munch?.play().catch(() => {});
-    setTimeout(() => setIsFeeding(false), 1000);
-    setIsMenuOpen(false);
-    flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
-    setShowAddedDonut(true);
-    setTimeout(() => setShowAddedDonut(false), 700);
-    setLastTaskTime(Date.now());
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "feeding", 5);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsFeeding(true);
+      onFeed();
+      audioRefs.current.munch?.play().catch(() => {});
+      setTimeout(() => setIsFeeding(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
+      setShowAddedDonut(true);
+      setTimeout(() => setShowAddedDonut(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            hunger: Math.min(100, prev.stats.hunger + 25),
+          },
+        };
+        console.log("🦖 Feeding pet - new stats:", newPet.stats); // Debug log
+        return newPet;
+      });
+    } catch (error) {
+      console.error("Failed to spend coins on feeding:", error);
+      alert("Failed to feed pet. Please try again.");
     }
-    // Update animal stats only
-    currentSetAnimal?.(prev => {
-      const newPet = {
-        ...prev,
-        stats: {
-          ...prev.stats,
-          hunger: Math.min(100, prev.stats.hunger + 25),
-        },
-      };
-      console.log("🦖 Feeding pet - new stats:", newPet.stats); // Debug log
-      return newPet;
-    });
   };
 
-  const handleDrink = () => {
+  const handleDrink = async () => {
     if (totalCoins < 3) {
       alert("You need 3 coins to give your pet a drink!");
       return;
     }
-    const newCoins = totalCoins - 3;
-    setTotalCoins(newCoins);
-    localStorage.setItem("currentCoins", newCoins.toString());
-    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-    localStorage.setItem("spentCoins", (spentCoins + 3).toString());
-    setIsFeeding(true);
-    onFeed();
-    audioRefs.current.slurp?.play().catch(() => {});
-    setTimeout(() => setIsFeeding(false), 1000);
-    setIsMenuOpen(false);
-    flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
-    setShowAddedDonut(true);
-    setTimeout(() => setShowAddedDonut(false), 700);
-    setLastTaskTime(Date.now());
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "drinking", 3);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsFeeding(true);
+      onFeed();
+      audioRefs.current.slurp?.play().catch(() => {});
+      setTimeout(() => setIsFeeding(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(feedBtnRef, donutStatRef, "donut", IMAGES.donut[donutLevel]);
+      setShowAddedDonut(true);
+      setTimeout(() => setShowAddedDonut(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          hunger: Math.min(100, prev.stats.hunger + 15),
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to spend coins on drinking:", error);
+      alert("Failed to give pet a drink. Please try again.");
     }
-    // Update animal stats only
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        hunger: Math.min(100, prev.stats.hunger + 15),
-      },
-    }));
   };
 
-  const handleHeal = () => {
+  const handleHeal = async () => {
     if (totalCoins < 6) {
       alert("You need 6 coins to give your pet energy!");
       return;
     }
-    const newCoins = totalCoins - 6;
-    setTotalCoins(newCoins);
-    localStorage.setItem("currentCoins", newCoins.toString());
-    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-    localStorage.setItem("spentCoins", (spentCoins + 6).toString());
-    setIsHealing(true);
-    onSleep();
-    const pillAudio = audioRefs.current.pill;
-    if (pillAudio) {
-      pillAudio.currentTime = 0;
-      pillAudio.play().catch(() => {});
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "healing", 6);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsHealing(true);
+      onSleep();
+      const pillAudio = audioRefs.current.pill;
+      if (pillAudio) {
+        pillAudio.currentTime = 0;
+        pillAudio.play().catch(() => {});
+      }
+      setTimeout(() => setIsHealing(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
+      setShowAddedHeart(true);
+      setTimeout(() => setShowAddedHeart(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          energy: Math.min(100, prev.stats.energy + 25),
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to spend coins on healing:", error);
+      alert("Failed to give pet energy. Please try again.");
     }
-    setTimeout(() => setIsHealing(false), 1000);
-    setIsMenuOpen(false);
-    flyToStat(healBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
-    setShowAddedHeart(true);
-    setTimeout(() => setShowAddedHeart(false), 700);
-    setLastTaskTime(Date.now());
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
-    }
-    // Update animal stats only
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        energy: Math.min(100, prev.stats.energy + 25),
-      },
-    }));
   };
 
-  const handlePlay = () => {
-    if (totalCoins < 8) {
-      alert("You need 8 coins to play with your pet!");
+  const handlePlay = async () => {
+    if (totalCoins < 3) {
+      alert("You need 3 coins to play with your pet!");
       return;
     }
-    const newCoins = totalCoins - 8;
-    setTotalCoins(newCoins);
-    localStorage.setItem("currentCoins", newCoins.toString());
-    const spentCoins = parseInt(localStorage.getItem("spentCoins") || "0");
-    localStorage.setItem("spentCoins", (spentCoins + 8).toString());
-    setIsPlaying(true);
-    onPlay();
-    const laughAudio = audioRefs.current.laugh;
-    if (laughAudio) {
-      laughAudio.currentTime = 0;
-      laughAudio.play().catch(() => {});
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "playing", 3);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsFeeding(true);
+      onPlay();
+      const laughAudio = audioRefs.current.laugh;
+      if (laughAudio) {
+        laughAudio.currentTime = 0;
+        laughAudio.play().catch(() => {});
+      }
+      setTimeout(() => setIsFeeding(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
+      setShowAddedStar(true);
+      setTimeout(() => setShowAddedStar(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          happiness: Math.min(100, prev.stats.happiness + 25),
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to spend coins on playing:", error);
+      alert("Failed to play with pet. Please try again.");
     }
-    setTimeout(() => setIsPlaying(false), 1000);
-    setIsMenuOpen(false);
-    flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
-    setShowAddedStar(true);
-    setTimeout(() => setShowAddedStar(false), 700);
-    setLastTaskTime(Date.now());
-    if (childId) {
-      localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+  };
+
+  const handleSleep = async () => {
+    if (totalCoins < 6) {
+      alert("You need 6 coins to let your pet sleep!");
+      return;
     }
-    // Update animal stats only
-    currentSetAnimal?.(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        happiness: Math.min(100, prev.stats.happiness + 25),
-      },
-    }));
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "sleeping", 6);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsHealing(true);
+      onSleep();
+      const sleepAudio = audioRefs.current.sleep;
+      if (sleepAudio) {
+        sleepAudio.currentTime = 0;
+        sleepAudio.play().catch(() => {});
+      }
+      setTimeout(() => setIsHealing(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(sleepBtnRef, heartStatRef, "heart", IMAGES.heart[heartLevel]);
+      setShowAddedHeart(true);
+      setTimeout(() => setShowAddedHeart(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          energy: Math.min(100, prev.stats.energy + 25),
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to spend coins on sleeping:", error);
+      alert("Failed to let pet sleep. Please try again.");
+    }
+  };
+
+  const handlePlayWithToy = async () => {
+    if (totalCoins < 8) {
+      alert("You need 8 coins to play with toys!");
+      return;
+    }
+
+    try {
+      // Spend coins through API
+      const result = await spendCoinsOnPetCare(token, childId, "playing_with_toy", 8);
+      setTotalCoins(result.coins);
+      localStorage.setItem("currentCoins", result.coins.toString());
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent("coinsUpdated"));
+
+      setIsPlaying(true);
+      onPlay();
+      const laughAudio = audioRefs.current.laugh;
+      if (laughAudio) {
+        laughAudio.currentTime = 0;
+        laughAudio.play().catch(() => {});
+      }
+      setTimeout(() => setIsPlaying(false), 1000);
+      setIsMenuOpen(false);
+      flyToStat(playBtnRef, starStatRef, "star", IMAGES.star[starLevel]);
+      setShowAddedStar(true);
+      setTimeout(() => setShowAddedStar(false), 700);
+      setLastTaskTime(Date.now());
+      if (childId) {
+        localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
+      }
+      // Update animal stats only
+      currentSetAnimal?.(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          happiness: Math.min(100, prev.stats.happiness + 25),
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to spend coins on playing with toy:", error);
+      alert("Failed to play with toy. Please try again.");
+    }
   };
 
   const handleDismissWarning = () => {
@@ -950,10 +1071,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           {/* Buttons row */}
           <div className='bg-transparent border-gray-200 p-0 z-0'>
             <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
-              <button ref={playBtnRef} onClick={handlePlay} disabled={totalCoins < 8} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 8 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 8 ? "Need 8 coins to play!" : "משחק"}>
+              <button ref={playBtnRef} onClick={handlePlay} disabled={totalCoins < 3} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 3 ? "Need 3 coins to play!" : "משחק"}>
                 <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Game</span>
-                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>8</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>3</span>
               </button>
 
               <button ref={feedBtnRef} onClick={handleFeed} disabled={totalCoins < 5} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 5 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 5 ? "Need 5 coins to feed!" : "אוכל"}>
@@ -966,6 +1087,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                 <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
                 <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>3</span>
+              </button>
+
+              <button ref={sleepBtnRef} onClick={handleSleep} disabled={totalCoins < 6} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins to sleep!" : "שינה"}>
+                <img src={IMAGES.sleep} alt='sleep' className='w-12 h-12 sm:w-16 sm:h-16' />
+                <span className='text-xs sm:text-sm font-medium text-gray-700'>Sleep</span>
+                <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>6</span>
               </button>
 
               <button ref={healBtnRef} onClick={handleHeal} disabled={totalCoins < 6} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins for energy!" : "תרופה"}>

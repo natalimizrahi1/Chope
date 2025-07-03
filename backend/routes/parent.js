@@ -74,4 +74,107 @@ router.get("/child/:childId/coins", auth, async (req, res) => {
   }
 });
 
+// Update child's coins (for spending on pet care, items, etc.)
+router.patch("/child/:childId/coins", auth, async (req, res) => {
+  try {
+    const { amount, action, description } = req.body;
+    const child = await Child.findById(req.params.childId);
+
+    if (!child) {
+      return res.status(404).json({ error: "Child not found" });
+    }
+
+    // Check if child has enough coins for spending
+    if (amount < 0 && Math.abs(amount) > child.coins) {
+      return res.status(400).json({ error: "Not enough coins" });
+    }
+
+    // Update coins
+    child.coins += amount;
+
+    // Ensure coins don't go below 0
+    if (child.coins < 0) {
+      child.coins = 0;
+    }
+
+    await child.save();
+
+    console.log(`Coins updated for child ${child.name}: ${amount} (${action}) - New balance: ${child.coins}`);
+
+    res.json({
+      coins: child.coins,
+      action,
+      description,
+      message: amount > 0 ? "Coins added successfully" : "Coins spent successfully",
+    });
+  } catch (err) {
+    console.error("Error updating child coins:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Spend coins on pet care (feeding, playing, sleeping)
+router.post("/child/:childId/pet-care", auth, async (req, res) => {
+  try {
+    const { action, cost } = req.body;
+    const child = await Child.findById(req.params.childId);
+
+    if (!child) {
+      return res.status(404).json({ error: "Child not found" });
+    }
+
+    if (child.coins < cost) {
+      return res.status(400).json({ error: "Not enough coins for this action" });
+    }
+
+    // Deduct coins
+    child.coins -= cost;
+    await child.save();
+
+    console.log(`Pet care action performed: ${action} for ${cost} coins. New balance: ${child.coins}`);
+
+    res.json({
+      coins: child.coins,
+      action,
+      cost,
+      message: `${action} completed successfully`,
+    });
+  } catch (err) {
+    console.error("Error performing pet care:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Buy items from shop
+router.post("/child/:childId/buy-items", auth, async (req, res) => {
+  try {
+    const { items, totalCost } = req.body;
+    const child = await Child.findById(req.params.childId);
+
+    if (!child) {
+      return res.status(404).json({ error: "Child not found" });
+    }
+
+    if (child.coins < totalCost) {
+      return res.status(400).json({ error: "Not enough coins to buy these items" });
+    }
+
+    // Deduct coins
+    child.coins -= totalCost;
+    await child.save();
+
+    console.log(`Items purchased for ${totalCost} coins. New balance: ${child.coins}`);
+
+    res.json({
+      coins: child.coins,
+      items,
+      totalCost,
+      message: "Items purchased successfully",
+    });
+  } catch (err) {
+    console.error("Error buying items:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;
