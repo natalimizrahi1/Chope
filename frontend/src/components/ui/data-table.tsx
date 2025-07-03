@@ -48,7 +48,7 @@ export function DataTable({ data, onApproveTask, onReloadTasks, onViewDetails }:
               </td>
               <td className='p-3'>{row.reviewer}</td>
               <td className='p-3 text-right space-x-1'>
-                {row.status !== "Approved" && (
+                {row.status === "Completed" && (
                   <Button size='sm' variant='default' onClick={() => onApproveTask(row.taskId)}>
                     Approve
                   </Button>
