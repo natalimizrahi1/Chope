@@ -7,12 +7,13 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, CheckCircle, XCircle, Clock, Grid, List, Filter, Copy, LogOut, ArrowLeft } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Clock, Grid, List, Filter, Copy, LogOut, ArrowLeft, Menu } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 
 type Child = {
   _id: string;
@@ -55,6 +56,7 @@ export default function ChildDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
   const { toast } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Debug: Log filter changes
   useEffect(() => {}, [selectedCategory, selectedStatus, selectedTime, tasks.length]);
@@ -597,7 +599,7 @@ export default function ChildDetailPage() {
 
   return (
     <div className='flex h-screen bg-[#f3f3f3] font-sans'>
-      {/* Sidebar (copied from ParentDashboard) */}
+      {/* Sidebar Desktop */}
       <aside className='hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col'>
         {/* Logo */}
         <div className='border-b border-gray-200'>
@@ -645,12 +647,69 @@ export default function ChildDetailPage() {
           </Button>
         </div>
       </aside>
-      {/* Main Content Area (remove Back to Dashboard button) */}
+      {/* Sidebar Mobile (Sheet) */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetTrigger asChild>
+          <button className='lg:hidden fixed top-4 left-4 z-30 bg-white rounded-full p-2 shadow border border-gray-200'>
+            <Menu className='w-6 h-6 text-gray-700' />
+          </button>
+        </SheetTrigger>
+        <SheetContent side='left' className='w-64 p-0 bg-white border-r border-gray-200 shadow-lg'>
+          <div className='flex flex-col h-full'>
+            {/* Logo */}
+            <div className='border-b border-gray-200'>
+              <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+            </div>
+            {/* Navigation */}
+            <nav className='px-6 pt-4 pb-2'>
+              <button className='w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 font-semibold mb-4 cursor-pointer text-sm hover:bg-gray-50' onClick={() => navigate("/parent/dashboard")}>
+                <svg className='w-5 h-5 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6' />
+                </svg>
+                Dashboard
+              </button>
+            </nav>
+            {/* Children List */}
+            <div className='flex-1 px-6 pb-6 overflow-y-auto'>
+              <h3 className='text-sm font-semibold text-gray-700 mb-4 text-left'>Your Children</h3>
+              <div className='space-y-3'>
+                {children.map(child => (
+                  <button key={child._id} onClick={() => handleChildSelect(child._id)} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${child._id === childId ? "bg-indigo-100 border border-indigo-300" : "hover:bg-gray-50"}`}>
+                    <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
+                      <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
+                      <p className='text-xs text-gray-500'>{child.coins} coins</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Logout Button */}
+            <div className='p-6 border-t border-gray-200'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  localStorage.removeItem("user");
+                  localStorage.removeItem("token");
+                  navigate("/login/parent");
+                }}
+                className='w-full flex items-center gap-2'>
+                <LogOut className='w-4 h-4' />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* Main Content Area */}
       <div className='flex-1 flex flex-col overflow-hidden'>
-        <main className='flex-1 overflow-y-auto p-6 space-y-6'>
-          <div className='container mx-auto flex-1 flex-col gap-4 px-2 sm:px-6 py-6'>
-            {/* Cards*/}
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+        <main className='flex-1 overflow-y-auto p-2 sm:p-4 md:p-6 space-y-6'>
+          <div className='container mx-auto flex-1 flex-col gap-4 px-0 sm:px-2 md:px-6 py-4'>
+            {/* Cards grid responsive */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6'>
               <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
                 <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Total Tasks</CardTitle>
                 <div className='text-3xl font-bold text-blue-500'>{totalTasks}</div>
@@ -673,19 +732,19 @@ export default function ChildDetailPage() {
                 <div className='text-sm text-gray-500'>Approved</div>
               </Card>
             </div>
-            {/* Craete a new task*/}
-            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8 bg-white'>
+            {/* Create Task card: make form fields and buttons full width on mobile */}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-4 sm:p-6 mb-6 bg-white'>
               <CardHeader>
-                <div className='flex items-center justify-between'>
+                <div className='flex flex-col sm:flex-row items-center justify-between gap-2 w-full'>
                   <div>
                     <CardTitle className='text-lg font-bold text-gray-900'>Create New Task</CardTitle>
                     <CardDescription className='text-gray-500'>Add a new task for {child.name}</CardDescription>
                   </div>
-                  <div className='flex gap-2'>
-                    <Button variant={showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold' onClick={() => setShowCategorySelector(!showCategorySelector)}>
+                  <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                    <Button variant={showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold w-full sm:w-auto' onClick={() => setShowCategorySelector(!showCategorySelector)}>
                       <Grid className='w-4 h-4 mr-2' /> Task Categories
                     </Button>
-                    <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold' onClick={() => setShowCategorySelector(false)}>
+                    <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold w-full sm:w-auto' onClick={() => setShowCategorySelector(false)}>
                       <List className='w-4 h-4 mr-2' /> Quick Create
                     </Button>
                   </div>
@@ -711,7 +770,7 @@ export default function ChildDetailPage() {
                           <SelectTrigger className='flex-1 rounded-lg border-gray-300'>
                             <SelectValue placeholder='Select category' />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className='bg-white border border-gray-200 shadow-lg'>
                             <SelectItem value='custom'>
                               <div className='flex items-center gap-2'>
                                 <div className='w-3 h-3 rounded-full bg-gray-400'></div>
@@ -786,8 +845,8 @@ export default function ChildDetailPage() {
                 )}
               </CardContent>
             </Card>
-            {/* Tasks List*/}
-            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8 bg-white'>
+            {/* Tasks List: add overflow-x-auto for mobile */}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-4 sm:p-6 mb-6 bg-white'>
               <CardHeader>
                 <CardTitle className='text-lg font-bold text-gray-900'>Tasks</CardTitle>
               </CardHeader>
@@ -798,12 +857,12 @@ export default function ChildDetailPage() {
                     <SelectTrigger className='w-40 rounded-lg border-gray-300'>
                       <SelectValue placeholder='Category' />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
                       {taskCategories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <div className='flex items-center gap-2'>
-                            <div className={`w-3 h-3 rounded-full ${category.color.replace("bg-", "bg-").replace(" text-", "")}`}></div>
-                            {category.name}
+                        <SelectItem key={category.id} value={category.id} className='!p-0'>
+                          <div className='flex items-center gap-3 px-3 py-3 rounded-lg transition-colors hover:bg-gray-50 cursor-pointer'>
+                            <div className={`w-4 h-4 rounded-full ${category.color.split(" ")[0]}`}></div>
+                            <span className='text-sm font-medium text-gray-800 text-left flex-1'>{category.name}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -813,7 +872,7 @@ export default function ChildDetailPage() {
                     <SelectTrigger className='w-36 rounded-lg border-gray-300'>
                       <SelectValue placeholder='Status' />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
                       <SelectItem value='all'>All Status</SelectItem>
                       <SelectItem value='incomplete'>Incomplete</SelectItem>
                       <SelectItem value='completed'>Pending Approval</SelectItem>
@@ -824,7 +883,7 @@ export default function ChildDetailPage() {
                     <SelectTrigger className='w-36 rounded-lg border-gray-300'>
                       <SelectValue placeholder='Time' />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
                       <SelectItem value='all'>All Time</SelectItem>
                       <SelectItem value='today'>Today</SelectItem>
                       <SelectItem value='week'>Last Week</SelectItem>
@@ -846,49 +905,51 @@ export default function ChildDetailPage() {
                     </Button>
                   )}
                 </div>
-                <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-                  {filteredTasks.map(task => (
-                    <Card key={task._id} className='rounded-xl border border-gray-200 shadow p-4 flex flex-col gap-2'>
-                      <CardHeader className='flex flex-row items-center justify-between pb-2'>
-                        <div className='flex items-center gap-2'>
-                          {!task.completed && (
-                            <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
-                              <XCircle className='w-4 h-4' />
-                            </Button>
+                <div className='overflow-x-auto'>
+                  <div className='grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'>
+                    {filteredTasks.map(task => (
+                      <Card key={task._id} className='rounded-xl border border-gray-200 shadow p-4 flex flex-col w-full'>
+                        <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                          <div className='flex items-center gap-2'>
+                            {!task.completed && (
+                              <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
+                                <XCircle className='w-4 h-4' />
+                              </Button>
+                            )}
+                            <CardTitle className='text-base font-semibold'>{task.title}</CardTitle>
+                          </div>
+                          {getTaskStatusIcon(task)}
+                        </CardHeader>
+                        <CardContent className='pb-2'>
+                          <CardDescription className='text-gray-600 mb-2'>{task.description}</CardDescription>
+                          <div className='flex flex-col sm:flex-row items-center gap-2 text-yellow-600 font-semibold'>
+                            <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                            {getCategoryBadge(task.category || "custom")}
+                            {getTaskStatusBadge(task)}
+                          </div>
+                          <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
+                        </CardContent>
+                        <CardContent className='pt-0'>
+                          {task.completed && !task.approved && (
+                            <div className='flex gap-2'>
+                              <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700 rounded-full text-white text-base py-2' onClick={() => handleApproveTask(task._id)}>
+                                <CheckCircle className='w-4 h-4 mr-1' /> Approve
+                              </Button>
+                              <Button size='sm' variant='destructive' className='flex-1 rounded-full text-base py-2' onClick={() => handleRejectTask(task._id)}>
+                                <XCircle className='w-4 h-4 mr-1' /> Reject
+                              </Button>
+                            </div>
                           )}
-                          <CardTitle className='text-base font-semibold'>{task.title}</CardTitle>
-                        </div>
-                        {getTaskStatusIcon(task)}
-                      </CardHeader>
-                      <CardContent className='pb-2'>
-                        <CardDescription className='text-gray-600 mb-2'>{task.description}</CardDescription>
-                        <div className='flex items-center gap-2 mb-2'>
-                          <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                          {getCategoryBadge(task.category || "custom")}
-                          {getTaskStatusBadge(task)}
-                        </div>
-                        <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
-                      </CardContent>
-                      <CardContent className='pt-0'>
-                        {task.completed && !task.approved && (
-                          <div className='flex gap-2'>
-                            <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700 rounded-full text-white text-base py-2' onClick={() => handleApproveTask(task._id)}>
-                              <CheckCircle className='w-4 h-4 mr-1' /> Approve
-                            </Button>
-                            <Button size='sm' variant='destructive' className='flex-1 rounded-full text-base py-2' onClick={() => handleRejectTask(task._id)}>
-                              <XCircle className='w-4 h-4 mr-1' /> Reject
-                            </Button>
-                          </div>
-                        )}
-                        {task.approved && (
-                          <div className='flex gap-2'>
-                            <div className='flex-1 text-center text-green-600 font-semibold text-base'>✓ Coins awarded!</div>
-                          </div>
-                        )}
-                        {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
-                      </CardContent>
-                    </Card>
-                  ))}
+                          {task.approved && (
+                            <div className='flex gap-2'>
+                              <div className='flex-1 text-center text-green-600 font-semibold text-base'>✓ Coins awarded!</div>
+                            </div>
+                          )}
+                          {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
