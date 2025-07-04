@@ -45,6 +45,14 @@ type TaskTableData = {
   reviewer: string;
 };
 
+const childColors = ["bg-blue-50", "bg-indigo-50", "bg-purple-50", "bg-teal-50", "bg-yellow-50", "bg-orange-50", "bg-pink-50", "bg-green-50"];
+
+function getChildColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return childColors[Math.abs(hash) % childColors.length];
+}
+
 export default function ParentDashboard() {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
@@ -284,16 +292,24 @@ export default function ParentDashboard() {
             </svg>
           </div>
         </div>
-
+        {/* Navigation */}
+        <nav className='px-6 pt-4 pb-2'>
+          <button className='w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 font-semibold mb-4 cursor-default'>
+            <svg className='w-5 h-5 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6' />
+            </svg>
+            Dashboard
+          </button>
+        </nav>
         {/* Children List */}
-        <div className='flex-1 p-6'>
+        <div className='flex-1 px-6 pb-6 overflow-y-auto'>
           <h3 className='text-sm font-semibold text-gray-700 mb-4'>Your Children</h3>
           <div className='space-y-3'>
             {children.map(child => (
               <button key={child._id} onClick={() => handleChildSelect(child._id)} className='w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left'>
-                <Avatar className='h-8 w-8'>
+                <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
-                  <AvatarFallback className='bg-blue-100 text-blue-600 font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className='flex-1 min-w-0'>
                   <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
@@ -303,7 +319,6 @@ export default function ParentDashboard() {
             ))}
           </div>
         </div>
-
         {/* Logout Button */}
         <div className='p-6 border-t border-gray-200'>
           <Button variant='outline' onClick={handleLogout} className='w-full flex items-center gap-2'>
@@ -356,9 +371,9 @@ export default function ParentDashboard() {
                               setIsMobileMenuOpen(false);
                             }}
                             className='w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left'>
-                            <Avatar className='h-8 w-8'>
+                            <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
                               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
-                              <AvatarFallback className='bg-blue-100 text-blue-600 font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                              <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className='flex-1 min-w-0'>
                               <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
