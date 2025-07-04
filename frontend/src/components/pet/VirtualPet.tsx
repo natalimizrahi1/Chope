@@ -1131,6 +1131,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                         return { top: "-69.5%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
+                      // Special case for hair3 - move it up a bit
+                      if (accessory.id === "hair3") {
+                        return { top: "-76%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                      }
+
                       switch (slot) {
                         case "head":
                           return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
