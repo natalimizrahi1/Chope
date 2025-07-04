@@ -1132,7 +1132,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                     const getSlotPosition = (slot: string) => {
                       // Special case for accessory3 - move it down a bit
                       if (accessory.id === "accessory3") {
-                        return { top: "-45%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
+                        return { top: "-45%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
                       }
 
                       // Special case for suit - move it down a bit
@@ -1167,11 +1167,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
                       switch (slot) {
                         case "head":
-                          return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
+                          return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
                         case "hair":
                           return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                         case "eyes":
-                          return { top: "-40%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
+                          return { top: "-40%", left: "50%", transform: "translateX(-50%)", zIndex: 5 };
                         case "body":
                         default:
                           return { top: "-35%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
