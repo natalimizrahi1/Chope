@@ -260,11 +260,11 @@ export default function ParentDashboard() {
 
   return (
     <div className='flex h-screen bg-[#f3f3f3] font-sans'>
-      {/* Sidebar */}
+      {/* Sidebar Desktop */}
       <aside className='hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col'>
         {/* Logo */}
         <div className='border-b border-gray-200'>
-          <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+          <img src='/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
         </div>
         {/* Navigation */}
         <nav className='px-6 pt-4 pb-2'>
@@ -301,80 +301,16 @@ export default function ParentDashboard() {
           </Button>
         </div>
       </aside>
-
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className='flex-1 flex flex-col overflow-hidden'>
         {/* Header */}
-        <header className='bg-[#f3f3f3] px-6 py-0 pt-10'>
+        <header className='bg-[#f3f3f3] px-2 sm:px-6 py-0 pt-10'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-4'>
-              {/* Mobile Menu Button */}
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant='ghost' size='sm' className='lg:hidden'>
-                    <Menu className='w-5 h-5' />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side='left' className='w-64 p-0'>
-                  <div className='flex flex-col h-full'>
-                    {/* Logo */}
-                    <div className='p-6 border-b border-gray-200'>
-                      <div className='flex items-center justify-center'>
-                        <svg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 375 374.999991'>
-                          <g style={{ fill: "#23326a", fillOpacity: 1 }}>
-                            <g transform='translate(65.662515, 235.67957)'>
-                              <path
-                                style={{ stroke: "none" }}
-                                d='M 33.203125 0.484375 C 29.898438 1.347656 26.515625 1.617188 23.046875 1.296875 C 19.585938 0.972656 16.34375 0.0390625 13.3125 -1.5 C 10.28125 -3.039062 7.765625 -5.140625 5.765625 -7.796875 C 4.035156 -10.171875 2.695312 -12.914062 1.75 -16.03125 C 0.800781 -19.144531 0.242188 -22.429688 0.078125 -25.890625 C -0.078125 -29.359375 0.0820312 -32.769531 0.5625 -36.125 C 1.488281 -41.757812 3.410156 -46.523438 6.328125 -50.421875 C 9.253906 -54.316406 12.910156 -57.019531 17.296875 -58.53125 C 21.679688 -60.050781 26.523438 -60.050781 31.828125 -58.53125 C 35.347656 -57.613281 38.09375 -56.257812 40.0625 -54.46875 C 42.039062 -52.6875 43.460938 -50.6875 44.328125 -48.46875 C 45.191406 -46.25 45.703125 -44.003906 45.859375 -41.734375 C 46.023438 -39.460938 46.054688 -37.378906 45.953125 -35.484375 C 45.898438 -33.859375 44.925781 -32.910156 43.03125 -32.640625 L 31.5 -32.3125 C 30.632812 -32.207031 29.875 -32.4375 29.21875 -33 C 28.570312 -33.570312 28.222656 -34.289062 28.171875 -35.15625 C 28.171875 -35.476562 28.128906 -36.054688 28.046875 -36.890625 C 27.960938 -37.734375 27.785156 -38.585938 27.515625 -39.453125 C 27.242188 -40.316406 26.8125 -40.914062 26.21875 -41.25 C 24.488281 -42 23.175781 -41.847656 22.28125 -40.796875 C 21.394531 -39.742188 20.785156 -38.078125 20.453125 -35.796875 C 20.128906 -33.523438 19.96875 -30.929688 19.96875 -28.015625 L 19.96875 -27.609375 C 20.019531 -23.328125 20.664062 -20.1875 21.90625 -18.1875 C 23.15625 -16.1875 25.054688 -15.726562 27.609375 -16.8125 C 28.203125 -17.132812 28.617188 -17.710938 28.859375 -18.546875 C 29.109375 -19.390625 29.269531 -20.242188 29.34375 -21.109375 C 29.425781 -21.972656 29.46875 -22.59375 29.46875 -22.96875 C 29.519531 -23.78125 29.867188 -24.472656 30.515625 -25.046875 C 31.171875 -25.617188 31.929688 -25.847656 32.796875 -25.734375 L 44.328125 -25.40625 C 46.273438 -25.132812 47.273438 -24.160156 47.328125 -22.484375 C 47.441406 -20.648438 47.398438 -18.609375 47.203125 -16.359375 C 47.015625 -14.109375 46.488281 -11.875 45.625 -9.65625 C 44.757812 -7.4375 43.351562 -5.429688 41.40625 -3.640625 C 39.457031 -1.859375 36.722656 -0.484375 33.203125 0.484375 Z M 33.203125 0.484375 '
-                              />
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Children List */}
-                    <div className='flex-1 p-6'>
-                      <h3 className='text-sm font-semibold text-gray-700 mb-4'>Your Children</h3>
-                      <div className='space-y-3'>
-                        {children.map(child => (
-                          <button
-                            key={child._id}
-                            onClick={() => {
-                              handleChildSelect(child._id);
-                              setIsMobileMenuOpen(false);
-                            }}
-                            className='w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left'>
-                            <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
-                              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
-                              <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className='flex-1 min-w-0'>
-                              <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
-                              <p className='text-xs text-gray-500'>{child.coins} coins</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Logout Button */}
-                    <div className='p-6 border-t border-gray-200'>
-                      <Button
-                        variant='outline'
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className='w-full flex items-center gap-2'>
-                        <LogOut className='w-4 h-4' />
-                        Logout
-                      </Button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
+              {/* Mobile Menu Button (outside Sheet) */}
+              <button onClick={() => setIsMobileMenuOpen(true)} className='lg:hidden bg-white rounded-full p-2 shadow border border-gray-200'>
+                <Menu className='w-5 h-5 text-gray-700' />
+              </button>
               <h1 className='text-2xl font-bold text-gray-900'>Dashboard</h1>
               <div className='hidden md:flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2'>
                 <span className='text-sm text-gray-600'>Parent ID:</span>
@@ -409,9 +345,57 @@ export default function ParentDashboard() {
             </div>
           </div>
         </header>
+        {/* Sheet Sidebar for Mobile */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetContent side='left' className='w-64 p-0 bg-white border-r border-gray-200 shadow-lg'>
+            <div className='flex flex-col h-full'>
+              {/* Logo */}
+              <div className='border-b border-gray-200'>
+                <img src='/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+              </div>
+              {/* Children List */}
+              <div className='flex-1 p-6'>
+                <h3 className='text-sm font-semibold text-gray-700 mb-4'>Your Children</h3>
+                <div className='space-y-3'>
+                  {children.map(child => (
+                    <button
+                      key={child._id}
+                      onClick={() => {
+                        handleChildSelect(child._id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className='w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left'>
+                      <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
+                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
+                        <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className='flex-1 min-w-0'>
+                        <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
+                        <p className='text-xs text-gray-500'>{child.coins} coins</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
+              {/* Logout Button */}
+              <div className='p-6 border-t border-gray-200'>
+                <Button
+                  variant='outline'
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className='w-full flex items-center gap-2'>
+                  <LogOut className='w-4 h-4' />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
         {/* Main Content Area */}
-        <main className='flex-1 overflow-y-auto p-6 space-y-6'>
+        <main className='flex-1 overflow-y-auto p-2 sm:p-6 space-y-6'>
           {/* Welcome Message */}
           <div className='bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4'>
             <div className='flex items-center gap-6'>
@@ -426,8 +410,8 @@ export default function ParentDashboard() {
               </div>
             </div>
           </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
+          {/* Responsive grid for cards and charts */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
             {/* Statistics Cards */}
             <div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4'>
               <SectionCards childrenCount={children.length} totalTasks={allTasks.length} pendingTasks={pendingTasksCount} totalCoinsGiven={allTasks.filter(task => task.completed && task.approved).reduce((sum, task) => sum + task.reward, 0)} />
@@ -442,9 +426,8 @@ export default function ParentDashboard() {
               <ChartPieInteractive data={coinsData} title='Coins Overview' description='Coins given vs coins held' />
             </div>
           </div>
-
-          {/* Category Chart + Tips + Tasks Table Row */}
-          <div className='flex flex-row items-start'>
+          {/* Category Chart + Tasks Table Row */}
+          <div className='flex flex-col lg:flex-row items-start gap-4'>
             {/* Left Column: Category Chart + Tips Carousel */}
             <div className='flex flex-col gap-4 max-w-sm w-full flex-shrink-0'>
               {/* Category Chart */}
@@ -605,7 +588,7 @@ export default function ParentDashboard() {
             </div>
             {/* Right Column: Tasks Table */}
             {taskTableData.length > 0 && (
-              <div className='flex-1 ml-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-4'>
+              <div className='flex-1 ml-0 lg:ml-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-4 overflow-x-auto'>
                 <div className='flex items-center justify-between mb-4'>
                   <div>
                     <h3 className='text-base font-bold text-gray-900 text-left'>Recent Tasks</h3>
