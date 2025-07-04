@@ -1154,7 +1154,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                           position: "absolute",
                           ...position,
                           transformOrigin: "center center",
-                          transform: `${position.transform} scale(2.5)`,
+                          transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : "2.5"})`,
                         }}
                         onClick={() => handleRemoveAccessory(accessory)}
                         title={`Click to remove ${accessory.name} (Slot: ${slot})`}
