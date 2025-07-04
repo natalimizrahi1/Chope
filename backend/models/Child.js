@@ -63,17 +63,45 @@ const childSchema = new mongoose.Schema({
         default: 0,
       },
     },
-    accessories: [
-      {
-        id: String,
-        name: String,
-        image: String,
-        type: String,
-        price: Number,
-        quantity: Number,
-        slot: String,
-      },
-    ],
+    accessories: {
+      type: [
+        {
+          id: {
+            type: String,
+            required: true,
+          },
+          name: {
+            type: String,
+            required: true,
+          },
+          image: {
+            type: String,
+            required: true,
+          },
+          type: {
+            type: String,
+            required: true,
+          },
+          price: {
+            type: Number,
+            default: 0,
+          },
+          quantity: {
+            type: Number,
+            default: 1,
+          },
+          slot: {
+            type: String,
+            default: "body",
+          },
+          purchasedAt: {
+            type: mongoose.Schema.Types.Mixed, // Allow both Date and String
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
     scale: {
       type: Number,
       default: 0.7,
@@ -168,6 +196,7 @@ childSchema.methods.useItem = function (itemId) {
 
   item.quantity -= 1;
 
+  // Keep accessories with quantity 0 in inventory for later return
   if (item.quantity === 0 && item.type !== "accessory") {
     this.purchasedItems = this.purchasedItems.filter(purchased => purchased.id !== itemId);
   }
@@ -201,17 +230,110 @@ childSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 // Method to update pet state
-childSchema.methods.updatePetState = function (newPetState) {
-  this.petState = {
-    ...this.petState,
-    ...newPetState,
-  };
-  return this.save();
+childSchema.methods.updatePetState = async function (newPetState) {
+  try {
+    const processedAccessories = Array.isArray(newPetState.accessories)
+      ? newPetState.accessories.map(accessory => {
+          // Safely handle purchasedAt field
+          let purchasedAtDate;
+          try {
+            if (accessory.purchasedAt) {
+              if (typeof accessory.purchasedAt === "string") {
+                purchasedAtDate = new Date(accessory.purchasedAt);
+              } else if (accessory.purchasedAt instanceof Date) {
+                purchasedAtDate = accessory.purchasedAt;
+              } else {
+                // Fallback to current date
+                purchasedAtDate = new Date();
+              }
+            } else {
+              purchasedAtDate = new Date();
+            }
+          } catch (error) {
+            console.error("Error processing purchasedAt in updatePetState:", error);
+            purchasedAtDate = new Date();
+          }
+
+          return {
+            id: accessory.id || "",
+            name: accessory.name || "",
+            image: accessory.imageUrl || accessory.image || "",
+            type: accessory.type || "accessory",
+            price: accessory.price || 0,
+            quantity: accessory.quantity || 1,
+            slot: accessory.slot || "body",
+            purchasedAt: purchasedAtDate,
+          };
+        })
+      : [];
+
+    this.petState = {
+      name: newPetState.name || this.petState.name,
+      type: newPetState.type || this.petState.type,
+      level: newPetState.level || this.petState.level,
+      xp: newPetState.xp || this.petState.xp,
+      stats: newPetState.stats || this.petState.stats,
+      accessories: processedAccessories,
+      scale: newPetState.scale || this.petState.scale,
+    };
+
+    return await this.save();
+  } catch (err) {
+    console.error("❌ Error in updatePetState:", err);
+    throw err; // מועבר לרספונס מהראוטר
+  }
 };
 
 // Method to get pet state
 childSchema.methods.getPetState = function () {
-  return this.petState;
+  // Ensure accessories is always an array of objects
+  const processedAccessories = Array.isArray(this.petState.accessories)
+    ? this.petState.accessories.map(accessory => {
+        // Safely handle purchasedAt field
+        let purchasedAtString;
+        try {
+          if (accessory.purchasedAt) {
+            if (typeof accessory.purchasedAt === "string") {
+              purchasedAtString = accessory.purchasedAt;
+            } else if (accessory.purchasedAt instanceof Date) {
+              purchasedAtString = accessory.purchasedAt.toISOString();
+            } else if (accessory.purchasedAt.toISOString) {
+              // Handle case where it might be a Date-like object
+              purchasedAtString = accessory.purchasedAt.toISOString();
+            } else {
+              // Fallback to current date
+              purchasedAtString = new Date().toISOString();
+            }
+          } else {
+            purchasedAtString = new Date().toISOString();
+          }
+        } catch (error) {
+          console.error("Error processing purchasedAt:", error);
+          purchasedAtString = new Date().toISOString();
+        }
+
+        return {
+          id: accessory.id || "",
+          name: accessory.name || "",
+          image: accessory.image || "",
+          type: accessory.type || "accessory",
+          price: accessory.price || 0,
+          quantity: accessory.quantity || 1,
+          slot: accessory.slot || "body",
+          purchasedAt: purchasedAtString,
+        };
+      })
+    : [];
+
+  return {
+    name: this.petState.name || "Benny",
+    type: this.petState.type || "Cute Pet",
+    level: this.petState.level || 1,
+    xp: this.petState.xp || 0,
+    stats: this.petState.stats || { hunger: 0, happiness: 0, energy: 0 },
+    accessories: processedAccessories,
+    scale: this.petState.scale || 0.7,
+  };
 };
 
 const Child = mongoose.model("Child", childSchema);

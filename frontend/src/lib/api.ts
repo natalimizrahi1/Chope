@@ -277,6 +277,11 @@ export const getChildItems = async (token: string, childId: string) => {
 
 // Use an item from inventory
 export const useChildItem = async (token: string, childId: string, itemId: string) => {
+  console.log("=== API: USING CHILD ITEM ===");
+  console.log("Child ID:", childId);
+  console.log("Item ID:", itemId);
+  console.log("Token:", token ? "Present" : "Missing");
+
   const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/use-item`, {
     method: "POST",
     headers: {
@@ -289,6 +294,8 @@ export const useChildItem = async (token: string, childId: string, itemId: strin
   console.log("API response status:", response.status);
 
   const result = await handleResponse(response);
+  console.log("API: Item used successfully:", result);
+  console.log("=== API: USING CHILD ITEM COMPLETE ===");
 
   return result;
 };
@@ -486,25 +493,42 @@ export const getPetState = async (token: string) => {
 };
 
 export const updatePetState = async (token: string, petState: any) => {
-  console.log("=== API: UPDATING PET STATE ===");
-  console.log("Pet State:", petState);
-  console.log("Token:", token ? "Present" : "Missing");
+  try {
+    console.log("=== API: UPDATING PET STATE ===");
+    console.log("Pet state to save:", petState);
+    console.log("Token:", token ? "Present" : "Missing");
 
-  const response = await fetch(`${API_BASE_URL}/pet/state`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ petState }),
-  });
+    const response = await fetch(`${API_BASE_URL}/pet/state`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ petState }),
+    });
 
-  console.log("API response status:", response.status);
+    console.log("API response status:", response.status);
 
-  const result = await handleResponse(response);
-  console.log("API: Pet state updated successfully:", result);
-  console.log("=== API: UPDATING PET STATE COMPLETE ===");
-  return result;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error ${response.status}:`, errorText);
+
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
+      } catch (parseError) {
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+    }
+
+    const result = await response.json();
+    console.log("API: Pet state updated successfully:", result);
+    console.log("=== API: UPDATING PET STATE COMPLETE ===");
+    return result;
+  } catch (error) {
+    console.error("Failed to update pet state:", error);
+    throw error;
+  }
 };
 
 export const updatePetStats = async (token: string, stats: any) => {
@@ -534,19 +558,36 @@ export const updatePetAccessories = async (token: string, accessories: any[]) =>
   console.log("Accessories:", accessories);
   console.log("Token:", token ? "Present" : "Missing");
 
-  const response = await fetch(`${API_BASE_URL}/pet/accessories`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ accessories }),
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/pet/accessories`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ accessories }),
+    });
 
-  console.log("API response status:", response.status);
+    console.log("API response status:", response.status);
 
-  const result = await handleResponse(response);
-  console.log("API: Pet accessories updated successfully:", result);
-  console.log("=== API: UPDATING PET ACCESSORIES COMPLETE ===");
-  return result;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error ${response.status}:`, errorText);
+
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: ${errorText}`);
+      } catch {
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+    }
+
+    const result = await response.json();
+    console.log("API: Pet accessories updated successfully:", result);
+    console.log("=== API: UPDATING PET ACCESSORIES COMPLETE ===");
+    return result;
+  } catch (error) {
+    console.error("Failed to update pet accessories:", error);
+    throw error;
+  }
 };

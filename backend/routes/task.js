@@ -123,41 +123,21 @@ router.patch("/:taskId/reject", protect, async (req, res) => {
 // Undo task completion (child can undo before parent approves)
 router.patch("/:taskId/undo", protect, async (req, res) => {
   try {
-    console.log("Backend: Undo task request received");
-    console.log("Backend: Task ID:", req.params.taskId);
-    console.log("Backend: User ID from token:", req.user.id);
-
     const task = await Task.findById(req.params.taskId);
-    console.log("Backend: Task found:", !!task);
 
     if (!task) {
-      console.log("Backend: Task not found");
       return res.status(404).json({ error: "Task not found" });
     }
 
-    console.log("Backend: Task state before undo:", {
-      completed: task.completed,
-      approved: task.approved,
-      child: task.child,
-      title: task.title,
-    });
-
     if (!task.completed) {
-      console.log("Backend: Task is not completed, cannot undo");
       return res.status(400).json({ error: "Task is not completed" });
     }
 
     // If task was previously approved, subtract coins
     if (task.approved) {
-      console.log("Backend: Task was approved, subtracting coins");
       const child = await Child.findById(task.child);
-      console.log("Backend: Child found:", !!child);
-      console.log("Backend: Child coins before:", child.coins);
-      console.log("Backend: Task reward:", task.reward);
-
       child.coins = Math.max(0, child.coins - task.reward); // Ensure coins don't go below 0
       await child.save();
-      console.log("Backend: Child coins after:", child.coins);
     }
 
     task.completed = false;
@@ -166,16 +146,9 @@ router.patch("/:taskId/undo", protect, async (req, res) => {
     task.approvedAt = null;
     await task.save();
 
-    console.log("Backend: Task updated successfully");
-    console.log("Backend: Task state after undo:", {
-      completed: task.completed,
-      approved: task.approved,
-    });
-
     res.json(task);
   } catch (error) {
-    console.error("Backend: Error in undo task:", error);
-    console.error("Backend: Error stack:", error.stack);
+    console.error("Error in undo task:", error);
     res.status(400).json({ error: error.message });
   }
 });

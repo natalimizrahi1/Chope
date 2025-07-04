@@ -128,52 +128,99 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
   // Load pet from database on mount - ONLY ONCE
   useEffect(() => {
-    if (!childId || !token) return; // Don't load if no user is logged in
+    console.log("🦖 Loading pet from database - hasLoadedFromStorage:", hasLoadedFromStorage);
+    if (!childId || !token) {
+      console.log("🦖 No childId or token, setting hasLoadedFromStorage to true");
+      setHasLoadedFromStorage(true); // Mark as loaded even if no user
+      return;
+    }
 
     const loadPetFromDatabase = async () => {
       try {
-        console.log("🦖 Loading pet from database...");
         const response = await getPetState(token);
-        console.log("🦖 Database response:", response);
 
         if (response.petState) {
-          // Ensure pet always has fixed scale
-          const petWithFixedScale = {
+          // Process accessories to ensure they have all required fields
+          const validAccessories = (response.petState.accessories || [])
+            .filter((acc: any) => {
+              const isValid = acc && acc.id && acc.name && acc.image && acc.type;
+              if (!isValid) {
+                console.log("🦖 Filtering out invalid accessory:", acc);
+              }
+              return isValid;
+            }) // Only keep valid accessories
+            .map((acc: any) => ({
+              ...acc,
+              slot:
+                (acc as any).slot ||
+                (() => {
+                  // Determine slot based on item ID if not set
+                  if (acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4") {
+                    return "head";
+                  } else if (acc.id === "hair" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5") {
+                    return "hair";
+                  } else {
+                    return "body";
+                  }
+                })(),
+              purchasedAt: acc.purchasedAt || new Date().toISOString(),
+            }));
+
+          const petFromDatabase = {
             ...response.petState,
-            scale: 0.7,
+            accessories: validAccessories,
           };
-          console.log("🦖 Setting pet from database:", petWithFixedScale);
-          currentSetAnimal(petWithFixedScale);
+
+          currentSetAnimal(petFromDatabase);
+          console.log("✅ Pet loaded from database:", petFromDatabase);
         } else {
-          console.log("🦖 No pet state in database, using default");
+          console.log("No pet state found in database, using default");
         }
-        setHasLoadedFromStorage(true);
+        setHasLoadedFromStorage(true); // Mark that we've loaded from storage
       } catch (error) {
         console.error("Failed to load pet from database:", error);
-        setHasLoadedFromStorage(true);
+        setHasLoadedFromStorage(true); // Mark as loaded even on error to prevent infinite loading
       }
     };
 
     loadPetFromDatabase();
-  }, [childId, token]); // Run when childId or token changes
+  }, [childId, token]);
 
   // Save pet to database whenever it changes - ONLY ONE PLACE TO SAVE
   useEffect(() => {
+    console.log("🦖 Save effect triggered - hasLoadedFromStorage:", hasLoadedFromStorage, "currentAnimal:", !!currentAnimal, "childId:", !!childId, "token:", !!token);
     if (currentAnimal && childId && token && hasLoadedFromStorage) {
+      console.log("🦖 All conditions met, saving pet state");
       const savePetToDatabase = async () => {
         try {
-          // Ensure accessories have slot information when saving
+          // Filter out invalid accessories and ensure all required fields when saving
+          const validAccessories = (currentAnimal.accessories || [])
+            .filter((acc: any) => {
+              const isValid = acc && acc.id && acc.name && acc.image && acc.type;
+              if (!isValid) {
+                console.warn("🦖 Filtering out invalid accessory:", acc);
+              }
+              return isValid;
+            })
+            .map((acc: any) => ({
+              id: acc.id,
+              name: acc.name,
+              image: acc.image,
+              type: acc.type,
+              price: acc.price ?? 0,
+              quantity: acc.quantity ?? 1,
+              slot: (acc as any).slot || "body",
+              purchasedAt: acc.purchasedAt || new Date().toISOString(),
+            }));
+
           const petToSave = {
             ...currentAnimal,
-            accessories: currentAnimal.accessories.map(acc => ({
-              ...acc,
-              slot: (acc as any).slot || "body",
-            })),
+            accessories: validAccessories,
           };
 
-          console.log("🦖 Saving pet to database:", petToSave);
+          console.log("🦖 Saving pet state to database:", petToSave);
           await updatePetState(token, petToSave);
-          console.log("🦖 Pet saved to database successfully");
+          console.log("✅ Pet state saved successfully");
         } catch (error) {
           console.error("Failed to save pet to database:", error);
         }
@@ -825,8 +872,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
   const handleUseItem = async (item: PurchasedItem) => {
     try {
+      console.log("🎯 Using item:", item);
+      console.log("🎯 Current pet accessories:", currentAnimal.accessories);
+
       // Use item through API
       const result = await useChildItem(token, childId, item.id);
+      console.log("🎯 Item used successfully:", result);
 
       // Update local state with slot information
       const itemsWithSlots = result.purchasedItems.map((item: any) => {
@@ -844,104 +895,133 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         };
       });
       setPurchasedItems(itemsWithSlots);
+      console.log("🎯 Updated purchased items:", itemsWithSlots);
 
       // Apply item effects based on type
-      switch (item.type) {
-        case "food":
-          currentSetAnimal?.(prev => ({
-            ...prev,
-            stats: {
-              ...prev.stats,
-              hunger: Math.min(100, prev.stats.hunger + 30),
-            },
-          }));
-          break;
-        case "toy":
-          currentSetAnimal?.(prev => ({
-            ...prev,
-            stats: {
-              ...prev.stats,
-              happiness: Math.min(100, prev.stats.happiness + 30),
-            },
-          }));
-          break;
-        case "energy":
-          currentSetAnimal?.(prev => ({
-            ...prev,
-            stats: {
-              ...prev.stats,
-              energy: Math.min(100, prev.stats.energy + 30),
-            },
-          }));
-          break;
-        case "accessory":
-          // Add accessory to pet with slot information based on item ID
-          const currentAccessories = currentAnimal.accessories || [];
+      if ((item.type as any) === "clothes" || (item.type as any) === "accessories" || (item.type as any) === "accessory") {
+        console.log("🎯 Processing accessory item:", item.type);
+        const currentAccessories = currentAnimal.accessories || [];
+        console.log("🎯 Current accessories before adding:", currentAccessories);
 
-          // Determine slot based on item ID
-          let slot: "head" | "body" | "eyes" | "hair" = "body"; // default
-          if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
-            slot = "head";
-          } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
-            slot = "hair";
-          } else if (item.id === "accessory1" || item.id === "accessory5") {
-            slot = "body";
+        // Determine slot based on item ID
+        let slot: "head" | "body" | "eyes" | "hair" = "body"; // default
+        if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
+          slot = "head";
+        } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
+          slot = "hair";
+        } else if (item.id === "accessory1" || item.id === "accessory5") {
+          slot = "body";
+        }
+
+        const accessoryWithSlot = {
+          id: item.id,
+          name: item.name,
+          image: item.image,
+          type: item.type,
+          price: item.price,
+          quantity: item.quantity,
+          slot: slot,
+          purchasedAt: new Date().toISOString(),
+        };
+
+        console.log("🎯 Accessory with slot:", accessoryWithSlot);
+
+        // Special handling for head accessories - replace existing head accessory
+        let newAccessories;
+        if (slot === "head") {
+          const oldHat = currentAccessories.find(acc => (acc.slot || "body") === "head" && (acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4"));
+          if (oldHat && oldHat.id !== item.id) {
+            // Return the old hat to inventory
+            await returnChildItem(token, childId, oldHat.id);
           }
+          // Remove any existing head accessories (accessory2, accessory3, accessory4)
+          const filteredAccessories = currentAccessories.filter(acc => {
+            const accSlot = (acc as any).slot || "body";
+            if (accSlot === "head") {
+              // Determine if this is a head accessory based on ID
+              const isHeadAccessory = acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4";
+              return !isHeadAccessory;
+            }
+            return true;
+          });
+          newAccessories = [...filteredAccessories, accessoryWithSlot];
+          console.log("🎯 Head accessory - filtered accessories:", filteredAccessories);
+          console.log("🎯 Head accessory - new accessories:", newAccessories);
+        } else if (slot === "hair") {
+          // Special handling for hair accessories - replace existing hair accessory
+          const oldHair = currentAccessories.find(acc => (acc.slot || "body") === "hair" && (acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5"));
+          if (oldHair && oldHair.id !== item.id) {
+            // Return the old hair to inventory
+            await returnChildItem(token, childId, oldHair.id);
+          }
+          // Remove any existing hair accessories
+          const filteredAccessories = currentAccessories.filter(acc => {
+            const accSlot = (acc as any).slot || "body";
+            if (accSlot === "hair") {
+              // Determine if this is a hair accessory based on ID
+              const isHairAccessory = acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5";
+              return !isHairAccessory;
+            }
+            return true;
+          });
+          newAccessories = [...filteredAccessories, accessoryWithSlot];
+          console.log("🎯 Hair accessory - filtered accessories:", filteredAccessories);
+          console.log("🎯 Hair accessory - new accessories:", newAccessories);
+        } else {
+          newAccessories = [...currentAccessories, accessoryWithSlot];
+          console.log("🎯 Body accessory - new accessories:", newAccessories);
+        }
 
-          const accessoryWithSlot = {
-            ...item,
-            slot: slot,
+        // Update local state
+        currentSetAnimal?.(prev => {
+          console.log("🎯 Updating pet state from:", prev);
+
+          const newPet = {
+            ...prev,
+            accessories: newAccessories
+              .filter((acc: any) => acc && acc.id && acc.name && acc.image && acc.type)
+              .map((acc: any) => ({
+                ...acc,
+                purchasedAt: acc.purchasedAt || new Date().toISOString(),
+              })), // Only keep valid accessories
           };
 
-          // Special handling for head accessories - replace existing head accessory
-          let newAccessories;
-          if (slot === "head") {
-            // If there is already a head accessory, return it to inventory before equipping the new one
-            const oldHat = currentAccessories.find(acc => (acc.slot || "body") === "head" && (acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4"));
-            if (oldHat && oldHat.id !== item.id) {
-              // Return the old hat to inventory
-              await returnChildItem(token, childId, oldHat.id);
-              console.log(`Returned previous hat (${oldHat.name}, ${oldHat.id}) to inventory before equipping new hat.`);
-            }
-            // Remove any existing head accessories (accessory2, accessory3, accessory4)
-            const filteredAccessories = currentAccessories.filter(acc => {
-              const accSlot = (acc as any).slot || "body";
-              if (accSlot === "head") {
-                // Determine if this is a head accessory based on ID
-                const isHeadAccessory = acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4";
-                return !isHeadAccessory;
-              }
-              return true;
-            });
-            newAccessories = [...filteredAccessories, accessoryWithSlot];
-          } else if (slot === "hair") {
-            // Special handling for hair accessories - replace existing hair accessory
-            const oldHair = currentAccessories.find(acc => (acc.slot || "body") === "hair" && (acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5"));
-            if (oldHair && oldHair.id !== item.id) {
-              // Return the old hair to inventory
-              await returnChildItem(token, childId, oldHair.id);
-              console.log(`Returned previous hair (${oldHair.name}, ${oldHair.id}) to inventory before equipping new hair.`);
-            }
-            // Remove any existing hair accessories
-            const filteredAccessories = currentAccessories.filter(acc => {
-              const accSlot = (acc as any).slot || "body";
-              if (accSlot === "hair") {
-                // Determine if this is a hair accessory based on ID
-                const isHairAccessory = acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5";
-                return !isHairAccessory;
-              }
-              return true;
-            });
-            newAccessories = [...filteredAccessories, accessoryWithSlot];
-          } else {
-            newAccessories = [...currentAccessories, accessoryWithSlot];
-          }
+          console.log("🦖 Adding accessory to pet:", accessoryWithSlot);
+          console.log("🦖 New pet state:", newPet);
 
-          currentSetAnimal?.(prev => ({
-            ...prev,
-            accessories: newAccessories,
-          }));
-          break;
+          // Save to database immediately and wait for completion
+          updatePetState(token, newPet)
+            .then(() => {
+              console.log("✅ Pet state saved successfully after adding accessory");
+            })
+            .catch(error => {
+              console.error("Failed to save pet state after adding accessory:", error);
+            });
+
+          return newPet;
+        });
+
+        // Force immediate save to ensure it's saved
+        setTimeout(async () => {
+          try {
+            const currentPet = currentAnimal;
+            const updatedPet = {
+              ...currentPet,
+              accessories: newAccessories
+                .filter((acc: any) => acc && acc.id && acc.name && acc.image && acc.type)
+                .map((acc: any) => ({
+                  ...acc,
+                  purchasedAt: acc.purchasedAt || new Date().toISOString(),
+                })),
+            };
+
+            console.log("🦖 Force saving pet state:", updatedPet);
+            await updatePetState(token, updatedPet);
+            console.log("✅ Pet state force saved successfully");
+          } catch (saveError) {
+            console.error("Failed to force save pet state:", saveError);
+          }
+        }, 100);
       }
 
       setLastTaskTime(Date.now());
@@ -949,20 +1029,26 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
 
-      const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
+      const message = item.type === "clothes" || item.type === "accessories" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
 
       // Show success message with better UX
-      if (item.type === "accessory") {
+      if (item.type === "clothes" || item.type === "accessories") {
         setShowAccessoryApplied(true);
         setPetAnimation(true);
         setTimeout(() => setShowAccessoryApplied(false), 3000);
         setTimeout(() => setPetAnimation(false), 1000);
       } else {
-        alert(message);
+        // Show modal instead of alert
+        setShowAccessoryApplied(true);
+        setPetAnimation(true);
+        setTimeout(() => setShowAccessoryApplied(false), 3000);
+        setTimeout(() => setPetAnimation(false), 1000);
       }
 
       // Notify other components
       window.dispatchEvent(new CustomEvent("itemsUpdated"));
+
+      console.log("🎯 Item use completed successfully");
     } catch (error) {
       console.error("Failed to use item:", error);
       alert("Failed to use item. Please try again.");
@@ -972,12 +1058,43 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const handleRemoveAccessory = async (accessory: PurchasedItem) => {
     try {
       console.log(`🗑️ Removing accessory:`, accessory);
-      // Remove accessory from pet
-      const updatedAccessories = currentAnimal.accessories.filter(acc => acc.name !== accessory.name);
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        accessories: updatedAccessories,
-      }));
+      console.log(`🗑️ Current accessories before removal:`, currentAnimal.accessories);
+
+      // Remove accessory from pet by ID instead of name to avoid conflicts
+      const updatedAccessories = currentAnimal.accessories.filter(acc => acc.id !== accessory.id);
+      console.log(`🗑️ Accessories after removal:`, updatedAccessories);
+
+      // Update local state and save to database
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          accessories: updatedAccessories
+            .filter((acc: any) => acc && acc.id && acc.name && acc.image && acc.type)
+            .map((acc: any) => ({
+              id: acc.id,
+              name: acc.name,
+              image: acc.image,
+              type: acc.type,
+              price: acc.price ?? 0,
+              quantity: acc.quantity ?? 1,
+              slot: (acc as any).slot || "body",
+              purchasedAt: acc.purchasedAt || new Date().toISOString(),
+            })), // Only keep valid accessories
+        };
+
+        console.log(`🗑️ Saving pet state after removal...`);
+
+        // Save to database immediately
+        updatePetState(token, newPet)
+          .then(() => {
+            console.log(`🗑️ Pet state saved successfully after removal`);
+          })
+          .catch(error => {
+            console.error("Failed to save pet state after removing accessory:", error);
+          });
+
+        return newPet;
+      });
 
       // Return item to inventory (increase quantity)
       console.log(`🔄 Returning accessory ${accessory.name} (${accessory.id}) to inventory`);
@@ -1156,7 +1273,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             <div
               className='absolute left-1/2 top-4 sm:top-8 -translate-x-1/2 z-10 
                               bg-blue-100 border-2 sm:border-4 border-amber-700 rounded-xl 
-                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'>
+                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'
+            >
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
                 {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
@@ -1195,80 +1313,68 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                       }
                     }
 
-                    console.log(`🎯 Final slot for ${accessory.name}: ${slot}`);
-
                     // Define positioning based on slot
                     const getSlotPosition = (slot: string) => {
-                      // Special case for accessory3 - move it down a bit
                       if (accessory.id === "accessory3") {
-                        return { top: "-45%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
+                        return { top: "1%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
                       }
 
-                      // Special case for suit - move it down a bit
                       if (accessory.name && accessory.name.toLowerCase().includes("suit")) {
-                        return { top: "-25%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
+                        return { top: "60%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
                       }
 
-                      // Special case for hair - move it up a bit
                       if (accessory.id === "hair") {
-                        return { top: "-70%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                        return { top: "2%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
-                      // Special case for hair2 - move it up a bit
                       if (accessory.id === "hair2") {
-                        return { top: "-69.5%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                        return { top: "3%", left: "42%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
-                      // Special case for hair3 - move it up a bit
                       if (accessory.id === "hair3") {
-                        return { top: "-76%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                        return { top: "-8%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
-                      // Special case for hair4 - move it up a bit
                       if (accessory.id === "hair4") {
-                        return { top: "-72%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                        return { top: "-1%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
-                      // Special case for hair5 - move it down a bit
                       if (accessory.id === "hair5") {
-                        return { top: "-50%", left: "47%", transform: "translateX(-50%)", zIndex: 3 };
+                        return { top: "20%", left: "47%", transform: "translateX(-50%)", zIndex: 3 };
                       }
 
                       switch (slot) {
                         case "head":
-                          return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
+                          return { top: "-15%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
                         case "hair":
                           return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
                         case "eyes":
                           return { top: "-40%", left: "50%", transform: "translateX(-50%)", zIndex: 5 };
                         case "body":
                         default:
-                          return { top: "-35%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
+                          return { top: "55%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
                       }
                     };
 
                     const position = getSlotPosition(slot);
 
-                    console.log(`📍 Position for ${accessory.name} (${slot}):`, position);
-
                     // Define size based on slot
                     const getSlotSize = (slot: string) => {
                       switch (slot) {
                         case "head":
-                          return { width: "540px", height: "540px" };
+                          return { width: "540px", height: "fit-content" };
                         case "hair":
-                          return { width: "720px", height: "720px" };
+                          return { width: "720px", height: "fit-content" };
                         case "eyes":
-                          return { width: "200px", height: "200px" };
+                          return { width: "200px", height: "fit-content" };
                         case "body":
                         default:
-                          return { width: "900px", height: "900px" };
+                          return { width: "900px", height: "fit-content" };
                       }
                     };
 
                     const size = getSlotSize(slot);
 
-                    console.log(`Accessory: ${accessory.name}, Slot: ${slot}, ID: ${accessory.id}`);
                     return (
                       <div
                         key={`${accessory.id}-${accessory.name}`}
@@ -1280,7 +1386,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                           transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name && (accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") || accessory.name.toLowerCase().includes("suit")) ? "3.0" : "2.5"})`,
                         }}
                         onClick={() => handleRemoveAccessory(accessory)}
-                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}>
+                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}
+                      >
                         <img src={accessory.image} alt={accessory.name} className='object-contain' style={size} />
                       </div>
                     );
@@ -1390,6 +1497,28 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         }
         .animate-scale-in {
           animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Remove red background from accessory images */
+        .accessory-float img {
+          background: transparent !important;
+          background-color: transparent !important;
+        }
+        
+        /* Ensure accessory images don't have any background */
+        .accessory-float img[src*="accessory"] {
+          background: transparent !important;
+          background-color: transparent !important;
+        }
+        
+        /* Additional rules to remove any red background */
+        .accessory-float img[src*="accessory"],
+        .accessory-float img[src*="hair"],
+        .accessory-float img[src*="clothes"] {
+          background: transparent !important;
+          background-color: transparent !important;
+          mix-blend-mode: normal;
+          filter: brightness(1) contrast(1);
         }
       `}</style>
     </div>

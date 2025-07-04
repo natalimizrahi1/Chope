@@ -23,6 +23,11 @@ router.get("/state", auth, async (req, res) => {
 router.put("/state", auth, async (req, res) => {
   try {
     const { petState } = req.body;
+
+    if (!petState) {
+      return res.status(400).json({ message: "Pet state is required" });
+    }
+
     const child = await Child.findById(req.user.id);
 
     if (!child) {
@@ -33,7 +38,18 @@ router.put("/state", auth, async (req, res) => {
     res.json({ message: "Pet state updated successfully", petState: child.getPetState() });
   } catch (error) {
     console.error("Error updating pet state:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error stack:", error.stack);
+
+    // Provide more specific error messages
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Invalid pet state data", error: error.message });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid data format", error: error.message });
+    }
+
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -64,6 +80,11 @@ router.put("/stats", auth, async (req, res) => {
 router.put("/accessories", auth, async (req, res) => {
   try {
     const { accessories } = req.body;
+
+    if (!accessories || !Array.isArray(accessories)) {
+      return res.status(400).json({ message: "Accessories must be an array" });
+    }
+
     const child = await Child.findById(req.user.id);
 
     if (!child) {
@@ -76,7 +97,18 @@ router.put("/accessories", auth, async (req, res) => {
     res.json({ message: "Pet accessories updated successfully", accessories: child.petState.accessories });
   } catch (error) {
     console.error("Error updating pet accessories:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error stack:", error.stack);
+
+    // Provide more specific error messages
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Invalid accessories data", error: error.message });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid data format", error: error.message });
+    }
+
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
