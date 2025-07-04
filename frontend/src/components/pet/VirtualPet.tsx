@@ -86,21 +86,23 @@ interface VirtualPetProps {
   setAnimal?: Dispatch<SetStateAction<Pet>>;
 }
 
-function Benny() {
+function Benny({ isHappy = false, isSick = false }: { isHappy?: boolean; isSick?: boolean }) {
   return (
     <div
       style={{
         width: 329,
         height: 447,
-        background: "url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0",
+        background: isHappy ? "url(/images/petanimation/happy.png) 0 0" : isSick ? "url(/images/petanimation/sick.png) 0 0" : "url(https://res.cloudinary.com/dytmcam8b/image/upload/v1561677299/virtual%20pet/Sheet.png) 0 0",
         zIndex: 2000,
-        animation: "moveX 1.5s steps(10) infinite",
+        animation: isHappy || isSick ? "none" : "moveX 1.5s steps(10) infinite",
       }}
     />
   );
 }
 
 export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPlay = () => {}, onResetHunger, onResetHappiness, onResetEnergy, setAnimal: propSetAnimal }: VirtualPetProps) {
+  const [isHappy, setIsHappy] = useState(false);
+  const [isSick, setIsSick] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
@@ -280,6 +282,20 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
     return () => clearInterval(interval);
   }, [childId]);
+
+  // Check if pet is sick (only when ALL icon stats are at 0)
+  useEffect(() => {
+    const checkIfSick = () => {
+      const { hunger, happiness, energy } = currentAnimal.stats;
+      // Only show sick when ALL icon stats (donut, star, heart) are at 0
+      const isPetSick = hunger === 0 && happiness === 0 && energy === 0;
+      console.log(`🏥 Pet stats - Hunger: ${hunger}, Happiness: ${happiness}, Energy: ${energy}`);
+      console.log(`🏥 Is pet sick: ${isPetSick}`);
+      setIsSick(isPetSick);
+    };
+
+    checkIfSick();
+  }, [currentAnimal.stats]);
 
   // Load petScale from localStorage on mount
   useEffect(() => {
@@ -675,6 +691,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
       setIsFeeding(true);
       onPlay();
+
+      // Show happy animation
+      setIsHappy(true);
+      setTimeout(() => setIsHappy(false), 2000);
+
       const laughAudio = audioRefs.current.laugh;
       if (laughAudio) {
         laughAudio.currentTime = 0;
@@ -1108,7 +1129,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             {/* Pet in the center */}
             <div className={`absolute left-1/2 top-25 -translate-x-1/2 z-10 ${petAnimation ? "animate-bounce" : ""}`} style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
               <div className='relative'>
-                <Benny />
+                <Benny isHappy={isHappy} isSick={isSick} />
 
                 {/* Display accessories based on slot */}
                 {currentAnimal.accessories &&
