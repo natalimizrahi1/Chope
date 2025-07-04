@@ -1111,6 +1111,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
                     // Define positioning based on slot
                     const getSlotPosition = (slot: string) => {
+                      // Special case for accessory3 - move it down a bit
+                      if (accessory.id === "accessory3") {
+                        return { top: "-45%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
+                      }
+
                       switch (slot) {
                         case "head":
                           return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
