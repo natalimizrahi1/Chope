@@ -198,4 +198,63 @@ router.post("/child/:childId/buy-items", auth, async (req, res) => {
   }
 });
 
+// Use an item
+router.post("/child/:childId/use-item", auth, async (req, res) => {
+  try {
+    const { itemId } = req.body;
+    const child = await Child.findById(req.params.childId);
+
+    if (!child) {
+      return res.status(404).json({ error: "Child not found" });
+    }
+
+    const result = child.useItem(itemId);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+
+    await child.save();
+
+    res.json({
+      success: true,
+      message: result.message,
+      purchasedItems: child.purchasedItems,
+      animal: child.animal,
+    });
+  } catch (err) {
+    console.error("Error using item:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Remove an item
+router.delete("/child/:childId/remove-item", auth, async (req, res) => {
+  try {
+    const { itemId } = req.body;
+    const child = await Child.findById(req.params.childId);
+
+    if (!child) {
+      return res.status(404).json({ error: "Child not found" });
+    }
+
+    const result = child.removeItem(itemId);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+
+    await child.save();
+
+    res.json({
+      success: true,
+      message: result.message,
+      purchasedItems: child.purchasedItems,
+    });
+  } catch (err) {
+    console.error("Error removing item:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;

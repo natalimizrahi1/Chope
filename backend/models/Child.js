@@ -112,14 +112,32 @@ childSchema.methods.addItems = function (items) {
 // Method to use an item
 childSchema.methods.useItem = function (itemId) {
   const item = this.purchasedItems.find(purchased => purchased.id === itemId);
-  if (item && item.quantity > 0) {
-    item.quantity -= 1;
-    if (item.quantity === 0) {
-      this.purchasedItems = this.purchasedItems.filter(purchased => purchased.id !== itemId);
-    }
-    return true;
+  if (!item) {
+    return { success: false, message: "Item not found in inventory" };
   }
-  return false;
+  if (item.quantity <= 0) {
+    return { success: false, message: "No more of this item available" };
+  }
+
+  item.quantity -= 1;
+  if (item.quantity === 0) {
+    this.purchasedItems = this.purchasedItems.filter(purchased => purchased.id !== itemId);
+  }
+
+  return { success: true, message: `${item.name} used successfully` };
+};
+
+// Method to remove an item
+childSchema.methods.removeItem = function (itemId) {
+  const itemIndex = this.purchasedItems.findIndex(purchased => purchased.id === itemId);
+  if (itemIndex === -1) {
+    return { success: false, message: "Item not found in inventory" };
+  }
+
+  const item = this.purchasedItems[itemIndex];
+  this.purchasedItems.splice(itemIndex, 1);
+
+  return { success: true, message: `${item.name} removed from inventory` };
 };
 
 // Method to compare password
