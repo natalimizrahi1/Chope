@@ -1023,79 +1023,79 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     <div className='min-h-screen bg-gradient-to-br from-[#87d4ee] via-[#f9a8d4] to-[#ffd986] flex flex-col items-center justify-start relative overflow-hidden'>
       {/* Background decorations */}
       <div className='absolute inset-0 overflow-hidden pointer-events-none'>
-        <motion.div className='absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full' animate={{ y: [0, -20, 0], rotate: [0, 180, 360] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
-        <motion.div className='absolute top-40 right-20 w-16 h-16 bg-white/20 rounded-full' animate={{ y: [0, 15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }} />
-        <motion.div className='absolute bottom-20 left-1/4 w-24 h-24 bg-white/20 rounded-full' animate={{ y: [0, -10, 0], rotate: [0, -180, -360] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }} />
+        <motion.div className='absolute top-4 left-4 sm:top-10 sm:left-10 w-12 h-12 sm:w-20 sm:h-20 bg-white/20 rounded-full' animate={{ y: [0, -20, 0], rotate: [0, 180, 360] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+        <motion.div className='absolute top-20 right-4 sm:top-40 sm:right-20 w-10 h-10 sm:w-16 sm:h-16 bg-white/20 rounded-full' animate={{ y: [0, 15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }} />
+        <motion.div className='absolute bottom-10 left-1/4 sm:bottom-20 w-16 h-16 sm:w-24 sm:h-24 bg-white/20 rounded-full' animate={{ y: [0, -10, 0], rotate: [0, -180, -360] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }} />
       </div>
 
       {/* Header */}
-      <div className='w-full flex items-center justify-between px-6 pt-8 z-10'>
-        <div className='flex items-center gap-4'>
+      <div className='w-full flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 pt-4 sm:pt-8 z-10 gap-4 sm:gap-0'>
+        <div className='flex items-center gap-2 sm:gap-4'>
           <div>
-            <h1 className='text-2xl font-bold text-white drop-shadow-lg'>My Pet - {currentAnimal.name} 🐾</h1>
-            <p className='text-white/90 text-sm'>Take care of your virtual friend!</p>
+            <h1 className='text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg'>My Pet - {currentAnimal.name} 🐾</h1>
+            <p className='text-white/90 text-xs sm:text-sm'>Take care of your virtual friend!</p>
           </div>
         </div>
-        <div className='flex items-center gap-4'>
+        <div className='flex items-center gap-2 sm:gap-4'>
           {/* Navigation tabs */}
-          <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
-            <div className='flex gap-2'>
-              <motion.button onClick={() => navigate("/kid/dashboard")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Target className='w-4 h-4' />
-                Tasks
+          <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-1 sm:p-2 shadow-lg'>
+            <div className='flex gap-1 sm:gap-2'>
+              <motion.button onClick={() => navigate("/kid/dashboard")} className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Target className='w-3 h-3 sm:w-4 sm:h-4' />
+                <span className='hidden sm:inline'>Tasks</span>
               </motion.button>
-              <motion.button className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Play className='w-4 h-4' />
-                My Pet
+              <motion.button className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Play className='w-3 h-3 sm:w-4 sm:h-4' />
+                <span className='hidden sm:inline'>My Pet</span>
               </motion.button>
-              <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <ShoppingBag className='w-4 h-4' />
-                Shop
+              <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <ShoppingBag className='w-3 h-3 sm:w-4 sm:h-4' />
+                <span className='hidden sm:inline'>Shop</span>
               </motion.button>
             </div>
           </div>
 
-          <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2' whileHover={{ scale: 1.05 }}>
-            <Coins className='w-5 h-5 text-yellow-500' />
-            <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
+          <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-2 sm:px-4 py-1 sm:py-2 shadow-lg flex items-center gap-1 sm:gap-2' whileHover={{ scale: 1.05 }}>
+            <Coins className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-500' />
+            <span className='font-bold text-sm sm:text-lg text-gray-800'>{totalCoins}</span>
           </motion.div>
 
           {/* Inventory */}
           <Popover>
             <PopoverTrigger asChild>
-              <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:bg-white transition-colors relative' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Store className='w-5 h-5 text-gray-600' />
-                {totalItemsCount > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>{totalItemsCount}</span>}
+              <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 sm:p-3 shadow-lg hover:bg-white transition-colors relative' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Store className='w-4 h-4 sm:w-5 sm:h-5 text-gray-600' />
+                {totalItemsCount > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-xs'>{totalItemsCount}</span>}
               </motion.button>
             </PopoverTrigger>
-            <PopoverContent className='w-80 bg-white border border-gray-200 shadow-lg'>
-              <div className='p-4'>
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-bold text-gray-800 flex items-center gap-2'>
-                    <Store className='h-5 w-5' />
+            <PopoverContent className='w-72 sm:w-80 bg-white border border-gray-200 shadow-lg'>
+              <div className='p-3 sm:p-4'>
+                <div className='flex items-center justify-between mb-3 sm:mb-4'>
+                  <h3 className='text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2'>
+                    <Store className='h-4 w-4 sm:h-5 sm:w-5' />
                     My Inventory
                   </h3>
-                  <span className='text-sm text-gray-500'>{totalItemsCount} items</span>
+                  <span className='text-xs sm:text-sm text-gray-500'>{totalItemsCount} items</span>
                 </div>
 
                 {totalItemsCount === 0 ? (
-                  <div className='text-center py-8 text-gray-500'>
-                    <div className='text-4xl mb-2'>📦</div>
-                    <p>Your inventory is empty</p>
-                    <p className='text-sm'>Buy some items to see them here!</p>
+                  <div className='text-center py-6 sm:py-8 text-gray-500'>
+                    <div className='text-3xl sm:text-4xl mb-2'>📦</div>
+                    <p className='text-sm sm:text-base'>Your inventory is empty</p>
+                    <p className='text-xs sm:text-sm'>Buy some items to see them here!</p>
                   </div>
                 ) : (
-                  <div className='space-y-3 max-h-60 overflow-y-auto'>
+                  <div className='space-y-2 sm:space-y-3 max-h-48 sm:max-h-60 overflow-y-auto'>
                     {purchasedItems
                       .filter(item => item.quantity > 0)
                       .map(item => (
-                        <div key={item.name} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
-                          <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
+                        <div key={item.name} className='flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                          <div className='w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
                             <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{item.quantity}</span>
                             <img
                               src={item.image}
                               alt={item.name}
-                              className='w-8 h-8 object-contain'
+                              className='w-6 h-6 sm:w-8 sm:h-8 object-contain'
                               onError={e => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "https://via.placeholder.com/32?text=Item";
@@ -1103,10 +1103,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                             />
                           </div>
                           <div className='flex-1'>
-                            <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
+                            <h4 className='font-semibold text-gray-800 text-xs sm:text-sm'>{item.name}</h4>
                             <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
                           </div>
-                          <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
+                          <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
                             Use
                           </button>
                         </div>
@@ -1118,14 +1118,14 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           </Popover>
 
           <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <LogOut className='w-5 h-5 text-gray-600' />
+            <LogOut className='w-4 h-4 sm:w-5 sm:h-5 text-gray-600' />
           </motion.button>
         </div>
       </div>
 
       {/* Main pet board - full width */}
-      <div className='w-full flex flex-col items-center justify-center mt-6 z-10'>
-        <div className='bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg w-full flex flex-col items-center' style={{ minHeight: "calc(100vh - 100px)" }}>
+      <div className='w-full flex flex-col items-center justify-center mt-2 sm:mt-6 z-10 px-2 sm:px-0'>
+        <div className='bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg w-full flex flex-col items-center' style={{ minHeight: "calc(100vh - 120px)" }}>
           {/* Garden background */}
           <div
             className='w-full h-full absolute inset-0 rounded-2xl overflow-hidden'
@@ -1138,7 +1138,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           />
 
           {/* Progress bar */}
-          <div className='absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-[95vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
+          <div className='absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 w-[90vw] sm:w-[80vw] md:w-[60vw] lg:w-[40vw] xl:w-[30vw]'>
             <div className='w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 lg:h-5 overflow-hidden shadow-inner relative'>
               <div className='bg-green-400 h-full transition-all duration-300 ease-in-out' style={{ width: `${displayedProgress}%` }} />
               <div className='absolute inset-0 flex items-center justify-center text-[2.5vw] sm:text-[2vw] md:text-[1.5vw] lg:text-[1vw] font-bold text-gray-700'>Completion: {Math.round(displayedProgress)}%</div>
@@ -1146,17 +1146,17 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           </div>
 
           {/* Level indicator */}
-          <div className='absolute top-4 left-4 z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-2 shadow-lg'>
-            <span className='text-gray-800 font-bold text-lg'>Level {currentAnimal.level}</span>
+          <div className='absolute top-2 sm:top-4 left-2 sm:left-4 z-50 bg-white/90 border border-yellow-400 rounded-xl px-2 py-1 sm:py-2 shadow-lg'>
+            <span className='text-gray-800 font-bold text-sm sm:text-lg'>Level {currentAnimal.level}</span>
           </div>
 
           {/* Main board - with dynamic height */}
-          <div className='flex-1 relative mx-auto my-4 max-w-[90vw] h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
+          <div className='flex-1 relative mx-auto my-2 sm:my-4 max-w-[95vw] sm:max-w-[90vw] h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] lg:max-w-[800px] lg:h-[calc(100vh-250px)]'>
             {/* Static stats bar */}
             <div
-              className='absolute left-1/2 top-8 -translate-x-1/2 z-10 
-                              bg-blue-100 border-4 border-amber-700 rounded-xl 
-                              shadow-lg flex items-center gap-6 px-8 py-2 min-w-[300px]'
+              className='absolute left-1/2 top-4 sm:top-8 -translate-x-1/2 z-10 
+                              bg-blue-100 border-2 sm:border-4 border-amber-700 rounded-xl 
+                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'
             >
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
@@ -1176,7 +1176,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             </div>
 
             {/* Pet in the center */}
-            <div className={`absolute left-1/2 top-25 -translate-x-1/2 z-10 ${petAnimation ? "animate-bounce" : ""}`} style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
+            <div className={`absolute left-1/2 top-16 sm:top-25 -translate-x-1/2 z-10 ${petAnimation ? "animate-bounce" : ""}`} style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
               <div className='relative'>
                 <Benny isHappy={isHappy} isSick={isSick} />
 
@@ -1293,28 +1293,28 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
           {/* Buttons row */}
           <div className='bg-transparent border-gray-200 p-0 z-0'>
-            <div className='flex justify-center items-center gap-4 sm:gap-8 max-w-md mx-auto'>
-              <button ref={playBtnRef} onClick={handlePlay} disabled={totalCoins < 3} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 3 ? "Need 3 coins to play!" : "משחק"}>
-                <img src={IMAGES.games} alt='toy box' className='w-12 h-12 sm:w-16 sm:h-16' />
-                <span className='text-xs sm:text-sm font-medium text-gray-700'>Game</span>
+            <div className='flex justify-center items-center gap-2 sm:gap-4 md:gap-8 max-w-md mx-auto px-2 sm:px-0'>
+              <button ref={playBtnRef} onClick={handlePlay} disabled={totalCoins < 3} className={`flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 3 ? "Need 3 coins to play!" : "משחק"}>
+                <img src={IMAGES.games} alt='toy box' className='w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16' />
+                <span className='text-xs font-medium text-gray-700'>Game</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>3</span>
               </button>
 
-              <button ref={feedBtnRef} onClick={handleFeed} disabled={totalCoins < 5} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 5 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 5 ? "Need 5 coins to feed!" : "אוכל"}>
-                <img src={IMAGES.food} alt='sandwich' className='w-12 h-12 sm:w-16 sm:h-16' />
-                <span className='text-xs sm:text-sm font-medium text-gray-700'>Food</span>
+              <button ref={feedBtnRef} onClick={handleFeed} disabled={totalCoins < 5} className={`flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 5 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 5 ? "Need 5 coins to feed!" : "אוכל"}>
+                <img src={IMAGES.food} alt='sandwich' className='w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16' />
+                <span className='text-xs font-medium text-gray-700'>Food</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>5</span>
               </button>
 
-              <button onClick={handleDrink} disabled={totalCoins < 3} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 3 ? "Need 3 coins for drink!" : "שתייה"}>
-                <img src={IMAGES.drink} alt='smoothie' className='w-12 h-12 sm:w-16 sm:h-16' />
-                <span className='text-xs sm:text-sm font-medium text-gray-700'>Drink</span>
+              <button onClick={handleDrink} disabled={totalCoins < 3} className={`flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 3 ? "Need 3 coins for drink!" : "שתייה"}>
+                <img src={IMAGES.drink} alt='smoothie' className='w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16' />
+                <span className='text-xs font-medium text-gray-700'>Drink</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>3</span>
               </button>
 
-              <button ref={healBtnRef} onClick={handleHeal} disabled={totalCoins < 6} className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins for energy!" : "תרופה"}>
-                <img src={IMAGES.pill} alt='pill' className='w-12 h-12 sm:w-16 sm:h-16' />
-                <span className='text-xs sm:text-sm font-medium text-gray-700'>Energy</span>
+              <button ref={healBtnRef} onClick={handleHeal} disabled={totalCoins < 6} className={`flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg transition-all transform touch-manipulation relative ${totalCoins < 6 ? "opacity-50 cursor-not-allowed" : "hover:bg-white/80 hover:scale-105"}`} title={totalCoins < 6 ? "Need 6 coins for energy!" : "תרופה"}>
+                <img src={IMAGES.pill} alt='pill' className='w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16' />
+                <span className='text-xs font-medium text-gray-700'>Energy</span>
                 <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>6</span>
               </button>
             </div>
@@ -1327,17 +1327,17 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
       {/* Success Modal */}
       {showSuccessBadge && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
-          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
-            <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-green-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-xl p-4 sm:p-6 md:p-8 shadow-2xl text-center animate-scale-in max-w-sm sm:max-w-md w-full'>
+            <div className='w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-6 w-6 sm:h-8 sm:w-8 text-green-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
               </svg>
             </div>
-            <h2 className='text-3xl font-bold text-gray-900 mb-2'>Level Up! 🎉</h2>
-            <h1 className='text-3xl font-bold text-green-600 mb-4'>100% Complete! 🎯</h1>
-            <p className='text-gray-600 mb-6'>Your pet has grown stronger!</p>
-            <button onClick={handleNextLevel} className='bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
+            <h2 className='text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2'>Level Up! 🎉</h2>
+            <h1 className='text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-4'>100% Complete! 🎯</h1>
+            <p className='text-sm sm:text-base text-gray-600 mb-4 sm:mb-6'>Your pet has grown stronger!</p>
+            <button onClick={handleNextLevel} className='bg-green-500 hover:bg-green-600 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl text-sm sm:text-base'>
               Start Next Level
             </button>
           </div>
@@ -1346,32 +1346,32 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
       {/* Accessory Applied Modal */}
       {showAccessoryApplied && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
-          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
-            <div className='w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-blue-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-xl p-4 sm:p-6 md:p-8 shadow-2xl text-center animate-scale-in max-w-sm sm:max-w-md w-full'>
+            <div className='w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-6 w-6 sm:h-8 sm:w-8 text-blue-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
               </svg>
             </div>
-            <h2 className='text-2xl font-bold text-gray-900 mb-2'>Accessory Applied! 🎨</h2>
-            <p className='text-gray-600 mb-6'>Your pet looks amazing with the new accessory!</p>
-            <button onClick={() => setShowAccessoryApplied(false)} className='bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
+            <h2 className='text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2'>Accessory Applied! 🎨</h2>
+            <p className='text-sm sm:text-base text-gray-600 mb-4 sm:mb-6'>Your pet looks amazing with the new accessory!</p>
+            <button onClick={() => setShowAccessoryApplied(false)} className='bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl text-sm sm:text-base'>
               Awesome!
             </button>
           </div>
         </div>
       )}
       {showTimeoutModal && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
-          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
-            <div className='w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-red-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-xl p-4 sm:p-6 md:p-8 shadow-2xl text-center animate-scale-in max-w-sm sm:max-w-md w-full'>
+            <div className='w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-6 w-6 sm:h-8 sm:w-8 text-red-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z' />
               </svg>
             </div>
-            <h2 className='text-3xl font-bold text-gray-900 mb-2'>Oops!</h2>
-            <p className='text-gray-600 mb-6'>Your pet's stats dropped because you didn't complete a task in time.</p>
-            <button onClick={handleDismissWarning} className='mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow'>
+            <h2 className='text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2'>Oops!</h2>
+            <p className='text-sm sm:text-base text-gray-600 mb-4 sm:mb-6'>Your pet's stats dropped because you didn't complete a task in time.</p>
+            <button onClick={handleDismissWarning} className='mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow text-sm sm:text-base'>
               Got it
             </button>
           </div>
