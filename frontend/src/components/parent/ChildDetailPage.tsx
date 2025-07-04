@@ -1,21 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getChildren, unapproveTask, getTasks, createTask, approveTask, rejectTask, getChildById, deleteTask } from "../../lib/api";
+import { getChildren, getTasks, createTask, approveTask, rejectTask, getChildById, deleteTask } from "../../lib/api";
 import type { Task, Animal } from "../../lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, PawPrint, CheckCircle, XCircle, Clock, Grid, List, Trash2, Filter } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Clock, Grid, List, Filter, Copy, LogOut, ArrowLeft, Menu } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
-import { AppSidebar } from "../ui/app-sidebar";
-import { SiteHeader } from "../ui/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { IconUsers } from "@tabler/icons-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 
 type Child = {
   _id: string;
@@ -38,6 +36,13 @@ const taskCategories = [
   { id: "custom", name: "Custom Tasks", color: "bg-gray-100 text-gray-800" },
 ];
 
+const childColors = ["bg-blue-50", "bg-indigo-50", "bg-purple-50", "bg-teal-50", "bg-yellow-50", "bg-orange-50", "bg-pink-50", "bg-green-50"];
+function getChildColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return childColors[Math.abs(hash) % childColors.length];
+}
+
 export default function ChildDetailPage() {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
@@ -51,17 +56,14 @@ export default function ChildDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Debug: Log filter changes
   useEffect(() => {}, [selectedCategory, selectedStatus, selectedTime, tasks.length]);
 
-  const loadChildData = async (showLoading = false) => {
+  const loadChildData = async () => {
     if (!token || !childId) return;
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
       const childData = await getChildById(token, childId);
       setChild(childData);
     } catch (error) {
@@ -71,30 +73,29 @@ export default function ChildDetailPage() {
         localStorage.removeItem("user");
         navigate("/login/parent");
       }
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
     }
   };
 
   const loadChildren = async () => {
-    if (!token) return;
+    console.log("🔍 loadChildren called");
+    if (!token) {
+      console.log("🔍 No token, returning");
+      return;
+    }
 
     try {
+      console.log("🔍 Calling getChildren API...");
       const childrenData = await getChildren(token);
+      console.log("🔍 Children loaded:", childrenData);
       setChildren(childrenData);
     } catch (error) {
       console.error("Failed to load children:", error);
     }
   };
 
-  const loadTasks = async (showLoading = false) => {
+  const loadTasks = async () => {
     if (!childId) return;
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
       const tasksData = await getTasks(token, childId);
       // Removed console.log loop to prevent infinite rendering
       setTasks(tasksData);
@@ -104,10 +105,6 @@ export default function ChildDetailPage() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login/parent");
-      }
-    } finally {
-      if (showLoading) {
-        setLoading(false);
       }
     }
   };
@@ -169,8 +166,8 @@ export default function ChildDetailPage() {
     if (!childId || !token) return;
 
     const loadData = async () => {
-      await loadChildData(true);
-      await loadTasks(true);
+      await loadChildData();
+      await loadTasks();
     };
 
     loadData();
@@ -245,7 +242,7 @@ export default function ChildDetailPage() {
       const createdTask = await createTask(token, {
         ...newTask,
         child: child._id,
-        category: "custom",
+        category: newTask.category || "custom",
       });
 
       setNewTask({ title: "", description: "", reward: 0, category: undefined });
@@ -325,16 +322,9 @@ export default function ChildDetailPage() {
     setShowCategorySelector(false);
   };
 
-  // Map children to the format required by AppSidebar/NavDocuments
-  const childrenList = children.map(child => ({
-    name: child.name,
-    url: child._id, // Use _id for navigation
-    icon: IconUsers,
-  }));
-
   // Handler for navigating to child detail page
-  const handleChildSelect = (id: string) => {
-    navigate(`/parent/child/${id}`);
+  const handleChildSelect = (childId: string) => {
+    navigate(`/parent/child/${childId}`);
   };
 
   const handleApproveTask = async (taskId: string) => {
@@ -440,14 +430,12 @@ export default function ChildDetailPage() {
     );
   }
 
-  const pendingApprovalTasks = tasks.filter((task: Task) => task.completed && !task.approved);
   const approvedTasks = tasks.filter((task: Task) => task.completed && task.approved);
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? (approvedTasks.length / totalTasks) * 100 : 0;
 
   const filteredTasks = tasks.filter((task: Task) => {
-    // Category filter
-    const taskCategory = task.category || "custom"; // Default to "custom" if missing
+    const taskCategory = task.category || "custom";
     const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
 
     // Status filter
@@ -604,349 +592,370 @@ export default function ChildDetailPage() {
     return <Badge className={`${categoryInfo.color} text-xs`}>{categoryInfo.name}</Badge>;
   };
 
+  // Get parent id robustly
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}") || {};
+  console.log("user from localStorage:", userObj);
+  const parentId = userObj._id || userObj.id || "N/A";
+
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }>
-      <AppSidebar variant='inset' childrenList={childrenList} onChildSelect={handleChildSelect} />
-      <SidebarInset>
-        <SiteHeader />
-        <div className='flex flex-1 flex-col'>
-          <div className='@container/main flex flex-1 flex-col gap-2'>
-            <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
-              <div className='px-4 lg:px-6'>
-                <div className='grid gap-6'>
-                  {/* Child Info Cards */}
-                  <div className='grid gap-4 md:grid-cols-3'>
-                    <Card>
-                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <CardTitle className='text-sm font-medium'>Total Tasks</CardTitle>
-                        <Badge variant='secondary'>{totalTasks}</Badge>
-                      </CardHeader>
-                      <CardContent>
-                        <div className='text-2xl font-bold'>{approvedTasks.length}</div>
-                        <p className='text-xs text-muted-foreground'>Tasks approved</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <CardTitle className='text-sm font-medium'>Progress</CardTitle>
-                        <Badge variant='secondary'>{Math.round(progress)}%</Badge>
-                      </CardHeader>
-                      <CardContent>
-                        <Progress value={progress} className='mt-2' />
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <CardTitle className='text-sm font-medium'>Coins</CardTitle>
-                        <Badge variant='secondary'>{child.coins}</Badge>
-                      </CardHeader>
-                      <CardContent>
-                        <div className='text-2xl font-bold'>{tasks.reduce((sum, task) => sum + (task.approved ? task.reward : 0), 0)}</div>
-                        <p className='text-xs text-muted-foreground'>Earned from approved tasks</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <CardTitle className='text-sm font-medium'>Approved Tasks</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className='text-2xl font-bold'>{approvedTasks.length}</div>
-                        <p className='text-xs text-muted-foreground'>Tasks approved</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <CardTitle className='text-sm font-medium'>Pending Approval</CardTitle>
-                        {pendingApprovalTasks.length > 0 && <div className='bg-yellow-500 text-white text-xs px-2 py-1 rounded-full animate-pulse'>{pendingApprovalTasks.length} new</div>}
-                      </CardHeader>
-                      <CardContent>
-                        <div className='text-2xl font-bold'>{pendingApprovalTasks.length}</div>
-                        <p className='text-xs text-muted-foreground'>Waiting for approval</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Child Details */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{child.name}</CardTitle>
-                      <CardDescription>{child.email}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className='grid gap-4'>
-                        {child.animal ? (
-                          <div className='grid gap-4'>
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-2'>
-                                <PawPrint className='h-5 w-5 text-primary' />
-                                <span className='text-lg font-medium'>Pet</span>
-                              </div>
-                              <Badge variant='secondary' className='text-base px-3 py-1'>
-                                Level {child.animal.level}
-                              </Badge>
-                            </div>
-                            <div className='grid gap-2'>
-                              <div className='flex items-center justify-between'>
-                                <span className='text-sm text-muted-foreground'>Name</span>
-                                <span className='font-medium'>{child.animal.name}</span>
-                              </div>
-                              <div className='flex items-center justify-between'>
-                                <span className='text-sm text-muted-foreground'>Type</span>
-                                <Badge variant='outline' className='capitalize'>
-                                  {child.animal.type}
-                                </Badge>
-                              </div>
-                              <div className='flex items-center justify-between'>
-                                <span className='text-sm text-muted-foreground'>Last Fed</span>
-                                <span className='text-sm'>{new Date(child.animal.lastFed).toLocaleString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className='text-center text-muted-foreground'>Your child hasn't created a pet yet.</div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Create Task */}
-                  <Card>
-                    <CardHeader>
-                      <div className='flex items-center justify-between'>
-                        <div>
-                          <CardTitle>Create New Task</CardTitle>
-                          <CardDescription>Add a new task for {child.name}</CardDescription>
-                        </div>
-                        <div className='flex gap-2'>
-                          <Button variant={showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(!showCategorySelector)}>
-                            <Grid className='w-4 h-4 mr-2' />
-                            Task Categories
-                          </Button>
-                          <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' onClick={() => setShowCategorySelector(false)}>
-                            <List className='w-4 h-4 mr-2' />
-                            Quick Create
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {showCategorySelector ? (
-                        <TaskCategorySelector onTaskSelect={handleTaskSelect} onCustomTask={handleCustomTask} />
-                      ) : (
-                        <div className='grid gap-4'>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='title'>Title</Label>
-                            <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' />
-                          </div>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='description'>Description</Label>
-                            <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' />
-                          </div>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='reward'>Reward (coins)</Label>
-                            <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' />
-                          </div>
-                          <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.description || newTask.reward <= 0}>
-                            <Plus className='mr-2 h-4 w-4' />
-                            Create Task
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Tasks List */}
-                  <div className='grid gap-4'>
-                    <div className='flex items-center justify-between'>
-                      <h2 className='text-lg font-semibold'>Tasks</h2>
-                      <div className='flex items-center gap-2'>
-                        <Filter className='w-4 h-4 text-muted-foreground' />
-                        <Select
-                          value={selectedCategory}
-                          onValueChange={value => {
-                            console.log("Category filter changed to:", value);
-                            setSelectedCategory(value);
-                          }}>
-                          <SelectTrigger className='w-48'>
-                            <SelectValue placeholder='Filter by category' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {taskCategories.map(category => (
-                              <SelectItem key={category.id} value={category.id}>
-                                <div className='flex items-center gap-2'>
-                                  <div className={`w-3 h-3 rounded-full ${category.color.replace("bg-", "bg-").replace(" text-", "")}`}></div>
-                                  {category.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={selectedStatus}
-                          onValueChange={value => {
-                            console.log("Status filter changed to:", value);
-                            setSelectedStatus(value);
-                          }}>
-                          <SelectTrigger className='w-40'>
-                            <SelectValue placeholder='Filter by status' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value='all'>All Status</SelectItem>
-                            <SelectItem value='incomplete'>Incomplete</SelectItem>
-                            <SelectItem value='completed'>Pending Approval</SelectItem>
-                            <SelectItem value='approved'>Approved</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={selectedTime}
-                          onValueChange={value => {
-                            console.log("Time filter changed to:", value);
-                            setSelectedTime(value);
-                          }}>
-                          <SelectTrigger className='w-40'>
-                            <SelectValue placeholder='Filter by time' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value='all'>All Time</SelectItem>
-                            <SelectItem value='today'>Today</SelectItem>
-                            <SelectItem value='week'>Last Week</SelectItem>
-                            <SelectItem value='month'>Last Month</SelectItem>
-                            <SelectItem value='older'>Older than Month</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {(selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") && (
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => {
-                              setSelectedCategory("all");
-                              setSelectedStatus("all");
-                              setSelectedTime("all");
-                            }}>
-                            Clear Filters
-                          </Button>
-                        )}
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() => {
-                            console.log("=== MANUAL FILTER TEST ===");
-                            console.log("Current filters:", { selectedCategory, selectedStatus, selectedTime });
-                            console.log("Total tasks:", tasks.length);
-                            console.log("Filtered tasks:", filteredTasks.length);
-
-                            // Test each task manually
-                            tasks.forEach((task, index) => {
-                              const taskCategory = task.category || "custom";
-                              const categoryMatch = selectedCategory === "all" || taskCategory === selectedCategory;
-
-                              let statusMatch = true;
-                              if (selectedStatus === "completed") {
-                                statusMatch = task.completed && !task.approved;
-                              } else if (selectedStatus === "approved") {
-                                statusMatch = task.completed && task.approved;
-                              } else if (selectedStatus === "incomplete") {
-                                statusMatch = !task.completed;
-                              }
-
-                              let timeMatch = true;
-                              if (selectedTime !== "all") {
-                                const taskDate = new Date(task.createdAt);
-                                const now = new Date();
-                                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                                const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-                                if (selectedTime === "today") {
-                                  timeMatch = taskDate >= today;
-                                } else if (selectedTime === "week") {
-                                  timeMatch = taskDate >= weekAgo;
-                                } else if (selectedTime === "month") {
-                                  timeMatch = taskDate >= monthAgo;
-                                } else if (selectedTime === "older") {
-                                  timeMatch = taskDate < monthAgo;
-                                }
-                              }
-
-                              const shouldShow = categoryMatch && statusMatch && timeMatch;
-                              console.log(`Task ${index + 1}: "${task.title}" - Should show: ${shouldShow} (Category: ${categoryMatch}, Status: ${statusMatch}, Time: ${timeMatch})`);
-                            });
-
-                            console.log("=== END MANUAL TEST ===");
-                          }}>
-                          Debug Filters
-                        </Button>
-                      </div>
-                    </div>
-                    <div className='text-sm text-muted-foreground'>
-                      Showing {filteredTasks.length} of {tasks.length} tasks
-                      {selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all" ? (
-                        <div className='text-xs text-gray-500 mt-1'>
-                          Filters: {selectedCategory !== "all" ? `Category: ${selectedCategory}` : ""}
-                          {selectedStatus !== "all" ? ` | Status: ${selectedStatus}` : ""}
-                          {selectedTime !== "all" ? ` | Time: ${selectedTime}` : ""}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-                      {filteredTasks.map(task => (
-                        <Card key={task._id}>
-                          <CardHeader>
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-2'>
-                                {!task.completed && (
-                                  <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
-                                    <XCircle className='w-4 h-4' />
-                                  </Button>
-                                )}
-                                <CardTitle className='text-sm'>{task.title}</CardTitle>
-                              </div>
-                              {getTaskStatusIcon(task)}
-                            </div>
-                            <CardDescription>{task.description}</CardDescription>
-                            <div className='flex items-center justify-between'>
-                              <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
-                              {getCategoryBadge(task.category || "custom")}
-                              {getTaskStatusBadge(task)}
-                            </div>
-                            <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
-                          </CardHeader>
-                          <CardContent>
-                            {task.completed && !task.approved && (
-                              <div className='flex gap-2'>
-                                <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700' onClick={() => handleApproveTask(task._id)}>
-                                  <CheckCircle className='w-3 h-3 mr-1' />
-                                  Approve
-                                </Button>
-                                <Button size='sm' variant='destructive' className='flex-1' onClick={() => handleRejectTask(task._id)}>
-                                  <XCircle className='w-3 h-3 mr-1' />
-                                  Reject
-                                </Button>
-                              </div>
-                            )}
-                            {task.approved && (
-                              <div className='flex gap-2'>
-                                <div className='flex-1 text-center text-green-600 font-semibold text-sm'>✓ Coins awarded!</div>
-                              </div>
-                            )}
-                            {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+    <div className='flex h-screen bg-[#f3f3f3] font-sans'>
+      {/* Sidebar Desktop */}
+      <aside className='hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col'>
+        {/* Logo */}
+        <div className='border-b border-gray-200'>
+          <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+        </div>
+        {/* Navigation */}
+        <nav className='px-6 pt-4 pb-2'>
+          <button className='w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 font-semibold mb-4 cursor-pointer text-sm hover:bg-gray-50' onClick={() => navigate("/parent/dashboard")}>
+            <svg className='w-5 h-5 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6' />
+            </svg>
+            Dashboard
+          </button>
+        </nav>
+        {/* Children List */}
+        <div className='flex-1 px-6 pb-6 overflow-y-auto'>
+          <h3 className='text-sm font-semibold text-gray-700 mb-4 text-left'>Your Children</h3>
+          <div className='space-y-3'>
+            {children.map(child => (
+              <button key={child._id} onClick={() => handleChildSelect(child._id)} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${child._id === childId ? "bg-indigo-100 border border-indigo-300" : "hover:bg-gray-50"}`}>
+                <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
+                  <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className='flex-1 min-w-0'>
+                  <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
+                  <p className='text-xs text-gray-500'>{child.coins} coins</p>
                 </div>
-              </div>
-            </div>
+              </button>
+            ))}
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+        {/* Logout Button */}
+        <div className='p-6 border-t border-gray-200'>
+          <Button
+            variant='outline'
+            onClick={() => {
+              localStorage.removeItem("user");
+              localStorage.removeItem("token");
+              navigate("/login/parent");
+            }}
+            className='w-full flex items-center gap-2'>
+            <LogOut className='w-4 h-4' />
+            Logout
+          </Button>
+        </div>
+      </aside>
+      {/* Sidebar Mobile (Sheet) */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetTrigger asChild>
+          <button className='lg:hidden fixed top-4 left-4 z-30 bg-white rounded-full p-2 shadow border border-gray-200'>
+            <Menu className='w-6 h-6 text-gray-700' />
+          </button>
+        </SheetTrigger>
+        <SheetContent side='left' className='w-64 p-0 bg-white border-r border-gray-200 shadow-lg'>
+          <div className='flex flex-col h-full'>
+            {/* Logo */}
+            <div className='border-b border-gray-200'>
+              <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+            </div>
+            {/* Navigation */}
+            <nav className='px-6 pt-4 pb-2'>
+              <button className='w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 font-semibold mb-4 cursor-pointer text-sm hover:bg-gray-50' onClick={() => navigate("/parent/dashboard")}>
+                <svg className='w-5 h-5 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6' />
+                </svg>
+                Dashboard
+              </button>
+            </nav>
+            {/* Children List */}
+            <div className='flex-1 px-6 pb-6 overflow-y-auto'>
+              <h3 className='text-sm font-semibold text-gray-700 mb-4 text-left'>Your Children</h3>
+              <div className='space-y-3'>
+                {children.map(child => (
+                  <button key={child._id} onClick={() => handleChildSelect(child._id)} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${child._id === childId ? "bg-indigo-100 border border-indigo-300" : "hover:bg-gray-50"}`}>
+                    <Avatar className={`h-8 w-8 ${getChildColor(child.name)}`}>
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${child.name}`} alt={child.name} />
+                      <AvatarFallback className='font-medium'>{child.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-sm font-medium text-gray-900 truncate'>{child.name}</p>
+                      <p className='text-xs text-gray-500'>{child.coins} coins</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Logout Button */}
+            <div className='p-6 border-t border-gray-200'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  localStorage.removeItem("user");
+                  localStorage.removeItem("token");
+                  navigate("/login/parent");
+                }}
+                className='w-full flex items-center gap-2'>
+                <LogOut className='w-4 h-4' />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* Main Content Area */}
+      <div className='flex-1 flex flex-col overflow-hidden'>
+        <main className='flex-1 overflow-y-auto p-2 sm:p-4 md:p-6 space-y-6'>
+          <div className='container mx-auto flex-1 flex-col gap-4 px-0 sm:px-2 md:px-6 py-4'>
+            {/* Cards grid responsive */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6'>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
+                <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Total Tasks</CardTitle>
+                <div className='text-3xl font-bold text-blue-500'>{totalTasks}</div>
+                <div className='text-sm text-gray-500'>Tasks</div>
+              </Card>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
+                <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Progress</CardTitle>
+                <div className='flex items-start justify-center w-full h-20'>
+                  <span className='text-3xl font-extrabold text-green-500'>{Math.round(progress)}%</span>
+                </div>
+              </Card>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
+                <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Coins</CardTitle>
+                <div className='text-3xl font-bold text-yellow-500'>{child.coins}</div>
+                <div className='text-sm text-gray-500'>Earned</div>
+              </Card>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white '>
+                <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Approved Tasks</CardTitle>
+                <div className='text-3xl font-bold text-green-500'>{approvedTasks.length}</div>
+                <div className='text-sm text-gray-500'>Approved</div>
+              </Card>
+            </div>
+            {/* Create Task card: make form fields and buttons full width on mobile */}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-4 sm:p-6 mb-6 bg-white'>
+              <CardHeader>
+                <div className='flex flex-col sm:flex-row items-center justify-between gap-2 w-full'>
+                  <div>
+                    <CardTitle className='text-lg font-bold text-gray-900'>Create New Task</CardTitle>
+                    <CardDescription className='text-gray-500'>Add a new task for {child.name}</CardDescription>
+                  </div>
+                  <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                    <Button variant={showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold w-full sm:w-auto' onClick={() => setShowCategorySelector(!showCategorySelector)}>
+                      <Grid className='w-4 h-4 mr-2' /> Task Categories
+                    </Button>
+                    <Button variant={!showCategorySelector ? "default" : "outline"} size='sm' className='rounded-full px-4 py-2 text-base font-semibold w-full sm:w-auto' onClick={() => setShowCategorySelector(false)}>
+                      <List className='w-4 h-4 mr-2' /> Quick Create
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {showCategorySelector ? (
+                  <TaskCategorySelector onTaskSelect={handleTaskSelect} onCustomTask={handleCustomTask} />
+                ) : (
+                  <div className='grid gap-4'>
+                    <div className='grid gap-2'>
+                      <Label htmlFor='title'>Title</Label>
+                      <Input id='title' value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder='Enter task title' className='rounded-lg border-gray-300' />
+                    </div>
+                    <div className='grid gap-2'>
+                      <Label htmlFor='description'>Description</Label>
+                      <Input id='description' value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} placeholder='Enter task description' className='rounded-lg border-gray-300' />
+                    </div>
+                    <div className='grid gap-2'>
+                      <Label htmlFor='category'>Category</Label>
+                      <div className='flex items-center gap-2'>
+                        <Select value={newTask.category || "custom"} onValueChange={value => setNewTask({ ...newTask, category: value })}>
+                          <SelectTrigger className='flex-1 rounded-lg border-gray-300'>
+                            <SelectValue placeholder='Select category' />
+                          </SelectTrigger>
+                          <SelectContent className='bg-white border border-gray-200 shadow-lg'>
+                            <SelectItem value='custom'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-gray-400'></div>
+                                Custom Task
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='household'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-blue-400'></div>
+                                Household Chores
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='education'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-green-400'></div>
+                                Education & Learning
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='kitchen'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-orange-400'></div>
+                                Kitchen & Cooking
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='health'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-red-400'></div>
+                                Health & Hygiene
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='fitness'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-purple-400'></div>
+                                Sports & Fitness
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='creative'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-pink-400'></div>
+                                Creative Activities
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='music'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-indigo-400'></div>
+                                Music & Entertainment
+                              </div>
+                            </SelectItem>
+                            <SelectItem value='nature'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-3 h-3 rounded-full bg-emerald-400'></div>
+                                Nature & Outdoors
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {newTask.category && newTask.category !== "custom" && (
+                          <Badge variant='outline' className='text-xs'>
+                            {getCategoryBadge(newTask.category)}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className='grid gap-2'>
+                      <Label htmlFor='reward'>Reward (coins)</Label>
+                      <Input id='reward' type='number' value={newTask.reward} onChange={e => setNewTask({ ...newTask, reward: parseInt(e.target.value) || 0 })} placeholder='Enter reward amount' className='rounded-lg border-gray-300' />
+                    </div>
+                    <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.description || newTask.reward <= 0} className='w-full py-3 rounded-full text-lg font-semibold bg-blue-600 text-white hover:bg-blue-700'>
+                      <Plus className='mr-2 h-5 w-5' /> Create Task
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            {/* Tasks List: add overflow-x-auto for mobile */}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-4 sm:p-6 mb-6 bg-white'>
+              <CardHeader>
+                <CardTitle className='text-lg font-bold text-gray-900'>Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='flex flex-col sm:flex-row items-center gap-2 mb-4'>
+                  <Filter className='w-5 h-5 text-muted-foreground' />
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className='w-40 rounded-lg border-gray-300'>
+                      <SelectValue placeholder='Category' />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
+                      {taskCategories.map(category => (
+                        <SelectItem key={category.id} value={category.id} className='!p-0'>
+                          <div className='flex items-center gap-3 px-3 py-3 rounded-lg transition-colors hover:bg-gray-50 cursor-pointer'>
+                            <div className={`w-4 h-4 rounded-full ${category.color.split(" ")[0]}`}></div>
+                            <span className='text-sm font-medium text-gray-800 text-left flex-1'>{category.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className='w-36 rounded-lg border-gray-300'>
+                      <SelectValue placeholder='Status' />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
+                      <SelectItem value='all'>All Status</SelectItem>
+                      <SelectItem value='incomplete'>Incomplete</SelectItem>
+                      <SelectItem value='completed'>Pending Approval</SelectItem>
+                      <SelectItem value='approved'>Approved</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedTime} onValueChange={setSelectedTime}>
+                    <SelectTrigger className='w-36 rounded-lg border-gray-300'>
+                      <SelectValue placeholder='Time' />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white border border-gray-200 shadow-lg'>
+                      <SelectItem value='all'>All Time</SelectItem>
+                      <SelectItem value='today'>Today</SelectItem>
+                      <SelectItem value='week'>Last Week</SelectItem>
+                      <SelectItem value='month'>Last Month</SelectItem>
+                      <SelectItem value='older'>Older than Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(selectedCategory !== "all" || selectedStatus !== "all" || selectedTime !== "all") && (
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      className='rounded-full px-4 py-2 text-base font-semibold'
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        setSelectedStatus("all");
+                        setSelectedTime("all");
+                      }}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <div className='overflow-x-auto'>
+                  <div className='grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'>
+                    {filteredTasks.map(task => (
+                      <Card key={task._id} className='rounded-xl border border-gray-200 shadow p-4 flex flex-col w-full'>
+                        <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                          <div className='flex items-center gap-2'>
+                            {!task.completed && (
+                              <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
+                                <XCircle className='w-4 h-4' />
+                              </Button>
+                            )}
+                            <CardTitle className='text-base font-semibold'>{task.title}</CardTitle>
+                          </div>
+                          {getTaskStatusIcon(task)}
+                        </CardHeader>
+                        <CardContent className='pb-2'>
+                          <CardDescription className='text-gray-600 mb-2'>{task.description}</CardDescription>
+                          <div className='flex flex-col sm:flex-row items-center gap-2 text-yellow-600 font-semibold'>
+                            <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
+                            {getCategoryBadge(task.category || "custom")}
+                            {getTaskStatusBadge(task)}
+                          </div>
+                          <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
+                        </CardContent>
+                        <CardContent className='pt-0'>
+                          {task.completed && !task.approved && (
+                            <div className='flex gap-2'>
+                              <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700 rounded-full text-white text-base py-2' onClick={() => handleApproveTask(task._id)}>
+                                <CheckCircle className='w-4 h-4 mr-1' /> Approve
+                              </Button>
+                              <Button size='sm' variant='destructive' className='flex-1 rounded-full text-base py-2' onClick={() => handleRejectTask(task._id)}>
+                                <XCircle className='w-4 h-4 mr-1' /> Reject
+                              </Button>
+                            </div>
+                          )}
+                          {task.approved && (
+                            <div className='flex gap-2'>
+                              <div className='flex-1 text-center text-green-600 font-semibold text-base'>✓ Coins awarded!</div>
+                            </div>
+                          )}
+                          {task.completed && !task.approved && <div className='text-xs text-gray-500 mt-2 text-center'>Cannot delete - Task completed</div>}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }

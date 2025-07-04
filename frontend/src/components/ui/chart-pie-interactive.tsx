@@ -1,148 +1,60 @@
-"use client";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
-import * as React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+interface ChartData {
+  name: string;
+  value: number;
+  color: string;
+}
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
-
-export const description = "An interactive pie chart with padding angle";
-
-// Sample data - this will be replaced with real data from props
-const defaultData = [
-  { name: "Tasks Sent", value: 0, color: "#3B82F6" },
-  { name: "Pending Approval", value: 0, color: "#FFBB28" },
-  { name: "Approved Tasks", value: 0, color: "#00C49F" },
-];
-
-const defaultRightData = [
-  { name: "Coins Given by Parent", value: 0, color: "#FFD700" },
-  { name: "Total Children Coins", value: 0, color: "#4ECDC4" },
-];
-
-interface ChartPieInteractiveProps {
-  data?: Array<{
-    name: string;
-    value: number;
-    color?: string;
-  }>;
-  rightData?: Array<{
-    name: string;
-    value: number;
-    color?: string;
-  }>;
-  title?: string;
-  description?: string;
+interface Props {
+  data: ChartData[];
+  rightData?: ChartData[];
+  title: string;
+  description: string;
   rightTitle?: string;
   rightDescription?: string;
 }
 
-export function ChartPieInteractive({ data = defaultData, rightData = defaultRightData, title = "Task Distribution", description = "Overview of task completion status", rightTitle = "Coins Overview", rightDescription = "Overview of coins earned and spent" }: ChartPieInteractiveProps) {
+export function ChartPieInteractive({ data, rightData, title, description, rightTitle, rightDescription }: Props) {
   return (
-    <Card className='@container/card'>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-          {/* Left Chart */}
-          <div className='flex flex-col items-center'>
-            <h4 className='font-semibold text-lg mb-4'>{title}</h4>
-            <div className='h-[300px] w-full flex items-center justify-center'>
-              <ResponsiveContainer width='100%' height='100%'>
-                <PieChart>
-                  <Pie data={data} cx='50%' cy='50%' innerRadius={60} outerRadius={80} fill='#8884d8' paddingAngle={5} dataKey='value'>
-                    {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4'>
+      <div className='flex flex-col items-center justify-between mb-4'>
+        <h3 className='text-sm font-bold text-gray-900'>{title}</h3>
+        <p className='text-sm text-gray-600'>{description}</p>
+      </div>
+      <div className='flex flex-row items-center justify-center gap-8'>
+        {/* Compact Legend */}
+        <div className='min-w-[90px] text-left'>
+          {data.map((item, index) => (
+            <div key={index} className='flex items-center gap-2 mb-1'>
+              <div className='w-3 h-3 rounded-full' style={{ backgroundColor: item.color }} />
+              <p className='text-xs font-medium text-gray-900 truncate'>{item.name}</p>
+              <p className='text-xs text-gray-600'>{item.value}</p>
             </div>
-          </div>
-
-          {/* Right Chart */}
-          <div className='flex flex-col items-center'>
-            <h4 className='font-semibold text-lg mb-4'>{rightTitle}</h4>
-            <div className='h-[300px] w-full flex items-center justify-center'>
-              <ResponsiveContainer width='100%' height='100%'>
-                <PieChart>
-                  <Pie data={rightData} cx='50%' cy='50%' innerRadius={60} outerRadius={80} fill='#8884d8' paddingAngle={5} dataKey='value'>
-                    {rightData.map((entry, index) => (
-                      <Cell key={`cell-right-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          ))}
         </div>
-
-        {/* Legends positioned below charts */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6'>
-          {/* Left Chart Legend */}
-          <div className='flex justify-center'>
-            <div className='space-y-2 w-full max-w-xs'>
-              {data.map((item, index) => {
-                // Get icon based on task type
-                const getIcon = (name: string) => {
-                  if (name.includes("Tasks Sent")) return <div className='w-4 h-4 text-blue-600'>📤</div>;
-                  if (name.includes("Pending")) return <Clock className='w-4 h-4 text-yellow-600' />;
-                  if (name.includes("Approved")) return <CheckCircle className='w-4 h-4 text-green-600' />;
-                  return <div className='w-4 h-4 rounded-full' style={{ backgroundColor: item.color }} />;
-                };
-
-                return (
-                  <div key={index} className='flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors'>
-                    <div className='w-3 h-3 rounded-full border border-white shadow-sm' style={{ backgroundColor: item.color }} />
-                    <div className='flex-1 flex items-center gap-2'>
-                      {getIcon(item.name)}
-                      <div>
-                        <div className='font-medium text-xs'>{item.name}</div>
-                        <div className='text-xs text-muted-foreground'>
-                          {item.value} ({((item.value / data.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1)}%)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right Chart Legend */}
-          <div className='flex justify-center'>
-            <div className='space-y-2 w-full max-w-xs'>
-              {rightData.map((item, index) => {
-                // Get icon based on coin type
-                const getIcon = (name: string) => {
-                  if (name.includes("Given by Parent")) return <div className='w-4 h-4 text-yellow-600'>🎁</div>;
-                  if (name.includes("Children Coins")) return <div className='w-4 h-4 text-green-600'>👶</div>;
-                  return <div className='w-4 h-4 rounded-full' style={{ backgroundColor: item.color }} />;
-                };
-
-                return (
-                  <div key={index} className='flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors'>
-                    <div className='w-3 h-3 rounded-full border border-white shadow-sm' style={{ backgroundColor: item.color }} />
-                    <div className='flex-1 flex items-center gap-2'>
-                      {getIcon(item.name)}
-                      <div>
-                        <div className='font-medium text-xs'>{item.name}</div>
-                        <div className='text-xs text-muted-foreground'>
-                          {item.value} coins ({((item.value / rightData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1)}%)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* Pie Chart */}
+        <div className='h-[150px] w-[140px]'>
+          <ResponsiveContainer width='100%' height='100%'>
+            <PieChart>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "white",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "6px",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                  fontSize: "12px",
+                }}
+              />
+              <Pie data={data} dataKey='value' nameKey='name' outerRadius={60} innerRadius={30} paddingAngle={2}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

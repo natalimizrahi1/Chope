@@ -1,102 +1,63 @@
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { BarChart3, Users2, CheckCircle2, Coins } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+interface SectionCardsProps {
+  childrenCount?: number;
+  totalTasks?: number;
+  pendingTasks?: number;
+  totalCoinsGiven?: number;
+}
 
-export function SectionCards() {
+export function SectionCards({ childrenCount = 0, totalTasks = 0, pendingTasks = 0, totalCoinsGiven = 0 }: SectionCardsProps) {
+  const stats = [
+    {
+      title: "Total Tasks",
+      value: totalTasks.toString(),
+      icon: <BarChart3 className='w-4 h-4 text-blue-600' />,
+      color: "bg-blue-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-600",
+    },
+    {
+      title: "Pending Tasks",
+      value: pendingTasks.toString(),
+      icon: <CheckCircle2 className='w-4 h-4 text-amber-600' />,
+      color: "bg-amber-50",
+      borderColor: "border-amber-200",
+      textColor: "text-amber-600",
+    },
+    {
+      title: "Total Children",
+      value: childrenCount.toString(),
+      icon: <Users2 className='w-4 h-4 text-pink-600' />,
+      color: "bg-pink-50",
+      borderColor: "border-pink-200",
+      textColor: "text-pink-600",
+    },
+    {
+      title: "Coins Given",
+      value: totalCoinsGiven.toString(),
+      icon: <Coins className='w-4 h-4 text-green-600' />,
+      color: "bg-green-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-600",
+    },
+  ];
+
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Total Revenue</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            $1,250.00
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <IconTrendingUp />
-              +12.5%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Visitors for the last 6 months
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>New Customers</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <IconTrendingDown />
-              -20%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period <IconTrendingDown className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Acquisition needs attention
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Active Accounts</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <IconTrendingUp />
-              +12.5%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong user retention <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">Engagement exceed targets</div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Growth Rate</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4.5%
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <IconTrendingUp />
-              +4.5%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">Meets growth projections</div>
-        </CardFooter>
-      </Card>
-    </div>
-  )
+    <>
+      {stats.map((stat, index) => (
+        <Card key={index} className='bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow p-0 pt-3 gap-2'>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+            <CardTitle className='text-sm font-bold text-black'>{stat.title}</CardTitle>
+            <div className={`rounded-lg ${stat.color} ${stat.borderColor} border p-1`}>{stat.icon}</div>
+          </CardHeader>
+          <CardContent className='p-0 pl-8 text-left'>
+            <div className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</div>
+            <p className='text-xs text-gray-500'>Last updated</p>
+          </CardContent>
+        </Card>
+      ))}
+    </>
+  );
 }
