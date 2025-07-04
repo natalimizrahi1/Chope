@@ -177,11 +177,11 @@ export default function ParentDashboard() {
         });
 
         setCategoryData([
-          { name: "Homework", value: categoryCounts["Homework"] || 0, color: "#3B82F6" },
-          { name: "Chores", value: categoryCounts["Chores"] || 0, color: "#10B981" },
-          { name: "Reading", value: categoryCounts["Reading"] || 0, color: "#F59E0B" },
-          { name: "Exercise", value: categoryCounts["Exercise"] || 0, color: "#EF4444" },
-          { name: "Other", value: categoryCounts["Other"] || 0, color: "#8B5CF6" },
+          { name: "Custom", value: categoryCounts["custom"] || 0, color: "#3B82F6" },
+          { name: "Education", value: categoryCounts["education"] || 0, color: "#10B981" },
+          { name: "Health", value: categoryCounts["health"] || 0, color: "#F59E0B" },
+          { name: "Creative", value: categoryCounts["creative"] || 0, color: "#EF4444" },
+          { name: "Fitness", value: (categoryCounts["fitness"] || 0) + (categoryCounts["nature"] || 0), color: "#8B5CF6" },
         ]);
       } catch (error) {
         console.error("Failed to load tasks:", error);
@@ -316,7 +316,7 @@ export default function ParentDashboard() {
       {/* Main Content */}
       <div className='flex-1 flex flex-col overflow-hidden'>
         {/* Header */}
-        <header className='bg-[#f3f3f3] px-6 py-4 pt-10'>
+        <header className='bg-[#f3f3f3] px-6 py-0 pt-10'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-4'>
               {/* Mobile Menu Button */}
@@ -422,7 +422,7 @@ export default function ParentDashboard() {
         </header>
 
         {/* Main Content Area */}
-        <main className='flex-1 overflow-y-auto p-6 space-y-8'>
+        <main className='flex-1 overflow-y-auto p-6 space-y-6'>
           {/* Welcome Message */}
           <div className='bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4'>
             <div className='flex items-center gap-6'>
@@ -454,45 +454,183 @@ export default function ParentDashboard() {
             </div>
           </div>
 
-          {/* Category Chart - Full Width */}
-          <div className='bg-white rounded-2xl shadow-md border border-gray-200 p-6'>
-            <div className='flex items-center justify-between mb-6'>
-              <div>
-                <h3 className='text-lg font-semibold text-gray-900'>Tasks by Category</h3>
-                <p className='text-sm text-gray-500'>Breakdown of tasks by type</p>
-              </div>
-              <div className='w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center'>
-                <svg className='w-5 h-5 text-green-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' />
-                </svg>
-              </div>
-            </div>
-
-            <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'>
-              {categoryData.map((category, index) => {
-                const maxValue = Math.max(...categoryData.map(c => c.value), 1);
-                const barHeight = Math.max(30, (category.value / maxValue) * 100);
-
-                return (
-                  <div key={index} className='flex flex-col items-center bg-gray-50 rounded-xl p-4 shadow-sm'>
-                    <div className='relative w-full h-32 flex items-end justify-center mb-2'>
-                      <div
-                        className='w-6 rounded-t-md'
-                        style={{
-                          height: `${barHeight}%`,
-                          backgroundColor: category.color,
-                          transition: "height 0.4s ease",
-                        }}
-                      />
+          {/* Category Chart + Tips + Tasks Table Row */}
+          <div className='flex flex-row items-start'>
+            {/* Left Column: Category Chart + Tips Carousel */}
+            <div className='flex flex-col gap-4 max-w-sm w-full flex-shrink-0'>
+              {/* Category Chart */}
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6'>
+                <div className='flex justify-between pb-4 mb-4 border-b border-gray-200'>
+                  <div className='flex items-center'>
+                    <div className='w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center me-3'>
+                      <svg className='w-6 h-6 text-gray-500' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='currentColor' viewBox='0 0 20 19'>
+                        <path d='M14.5 0A3.987 3.987 0 0 0 11 2.1a4.977 4.977 0 0 1 3.9 5.858A3.989 3.989 0 0 0 14.5 0ZM9 13h2a4 4 0 0 1 4 4v2H5v-2a4 4 0 0 1 4-4Z' />
+                        <path d='M5 19h10v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2ZM5 7a5.008 5.008 0 0 1 4-4.9 3.988 3.988 0 1 0-3.9 5.859A4.974 4.974 0 0 1 5 7Zm5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm5-1h-.424a5.016 5.016 0 0 1-1.942 2.232A6.007 6.007 0 0 1 17 17h2a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5ZM5.424 9H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h2a6.007 6.007 0 0 1 4.366-5.768A5.016 5.016 0 0 1 5.424 9Z' />
+                      </svg>
                     </div>
-                    <p className='text-sm text-gray-600'>{category.name}</p>
-                    <p className='text-lg font-bold' style={{ color: category.color }}>
-                      {category.value}
-                    </p>
+                    <div>
+                      <h3 className='leading-none text-xl font-bold text-gray-900 pb-1 text-left'>{allTasks.length}</h3>
+                      <p className='text-sm font-normal text-gray-500'>Total tasks created</p>
+                    </div>
                   </div>
-                );
-              })}
+                  <div>
+                    <span className='bg-green-100 text-green-800 text-xs font-medium inline-flex items-center px-2.5 py-1 rounded-md'>
+                      <svg className='w-2.5 h-2.5 me-1.5' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 10 14'>
+                        <path stroke='currentColor' strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M5 13V1m0 0L1 5m4-4 4 4' />
+                      </svg>
+                      {allTasks.length > 0 ? Math.round((allTasks.filter(task => task.completed && task.approved).length / allTasks.length) * 100) : 0}%
+                    </span>
+                  </div>
+                </div>
+                <div className='grid grid-cols-2'>
+                  <dl className='flex items-center'>
+                    <dt className='text-gray-500 text-sm font-normal me-1'>Completed:</dt>
+                    <dd className='text-gray-900 text-sm font-semibold'>{allTasks.filter(task => task.completed && task.approved).length}</dd>
+                  </dl>
+                  <dl className='flex items-center justify-end'>
+                    <dt className='text-gray-500 text-sm font-normal me-1'>Pending:</dt>
+                    <dd className='text-gray-900 text-sm font-semibold'>{pendingTasksCount}</dd>
+                  </dl>
+                </div>
+                {/* Column Chart */}
+                <div className='mt-6 h-48'>
+                  <div className='grid grid-cols-5 gap-2 h-full items-end'>
+                    {categoryData.map((category, index) => {
+                      const maxValue = Math.max(...categoryData.map(c => c.value), 1);
+                      const barHeight = Math.max(40, (category.value / maxValue) * 80);
+                      return (
+                        <div key={index} className='flex flex-col items-center'>
+                          <div className='w-full flex items-end justify-center mb-2 h-32'>
+                            <div
+                              className='w-3 rounded-t-sm transition-all duration-300'
+                              style={{
+                                height: `${barHeight}%`,
+                                backgroundColor: category.color,
+                                minHeight: "8px",
+                              }}
+                            />
+                          </div>
+                          <p className='text-xs text-gray-600 text-center'>{category.name}</p>
+                          <p className='text-xs font-semibold' style={{ color: category.color }}>
+                            {category.value}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              {/* Tips Section - Carousel */}
+              <div className='bg-white rounded-2xl shadow-sm border border-gray-200 p-4 w-full max-w-sm'>
+                <div className='flex items-center justify-between mb-4'>
+                  <div>
+                    <h3 className='text-base font-bold text-gray-900'>Parent Tips</h3>
+                    <p className='text-xs text-gray-600'>Helpful tips to manage your children's tasks</p>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <Button variant='outline' size='sm' onClick={prevTip} disabled={currentTipIndex === 0} className='w-8 h-8 p-0'>
+                      <ChevronLeft className='w-4 h-4' />
+                    </Button>
+                    <Button variant='outline' size='sm' onClick={nextTip} disabled={currentTipIndex === 5} className='w-8 h-8 p-0'>
+                      <ChevronRight className='w-4 h-4' />
+                    </Button>
+                  </div>
+                </div>
+                <div className='relative'>
+                  <div ref={carouselRef} className='flex gap-4 overflow-x-auto pb-2 scrollbar-hide'>
+                    <div className='bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-blue-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-blue-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-blue-900 text-xs'>How to Approve Tasks</h4>
+                      </div>
+                      <p className='text-xs text-blue-700'>Click the "Approve" button in the table below when your child completes a task</p>
+                    </div>
+                    <div className='bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-green-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-green-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6v6m0 0v6m0-6h6m-6 0H6' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-green-900 text-xs'>Send New Task</h4>
+                      </div>
+                      <p className='text-xs text-green-700'>Select a child from the sidebar and click "Add Task" to create a new task</p>
+                    </div>
+                    <div className='bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-yellow-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-yellow-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-yellow-900 text-xs'>Track Coins</h4>
+                      </div>
+                      <p className='text-xs text-yellow-700'>See how many coins were given this week and track achievements</p>
+                    </div>
+                    <div className='bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-purple-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-purple-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-purple-900 text-xs'>Performance Check</h4>
+                      </div>
+                      <p className='text-xs text-purple-700'>The charts above show task distribution and coins overview</p>
+                    </div>
+                    <div className='bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-orange-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-orange-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-orange-900 text-xs'>Pending Tasks</h4>
+                      </div>
+                      <p className='text-xs text-orange-700'>When there are tasks pending approval, you'll see a yellow alert</p>
+                    </div>
+                    <div className='bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-4 min-w-[220px]'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <div className='w-7 h-7 bg-pink-200 rounded-lg flex items-center justify-center'>
+                          <svg className='w-4 h-4 text-pink-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 6h16M4 12h16M4 18h16' />
+                          </svg>
+                        </div>
+                        <h4 className='font-semibold text-pink-900 text-xs'>Quick Navigation</h4>
+                      </div>
+                      <p className='text-xs text-pink-700'>Use the sidebar to quickly navigate between different children</p>
+                    </div>
+                  </div>
+                  {/* Carousel Indicators */}
+                  <div className='flex justify-center gap-1 mt-2'>
+                    {[0, 1, 2, 3, 4, 5].map(index => (
+                      <button key={index} onClick={() => scrollToTip(index)} className={`w-2 h-2 rounded-full transition-colors ${index === currentTipIndex ? "bg-purple-600" : "bg-gray-300"}`} />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
+            {/* Right Column: Tasks Table */}
+            {taskTableData.length > 0 && (
+              <div className='flex-1 ml-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-4'>
+                <div className='flex items-center justify-between mb-4'>
+                  <div>
+                    <h3 className='text-base font-bold text-gray-900 text-left'>Recent Tasks</h3>
+                    <p className='text-sm text-gray-600'>Overview of all tasks across your children</p>
+                  </div>
+                  <div className='w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center'>
+                    <svg className='w-5 h-5 text-indigo-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' />
+                    </svg>
+                  </div>
+                </div>
+                <DataTable data={taskTableData} onApproveTask={handleApproveTask} onReloadTasks={() => window.location.reload()} onViewDetails={handleViewDetails} />
+              </div>
+            )}
           </div>
 
           {/* Pending Tasks Alert */}
@@ -523,124 +661,6 @@ export default function ParentDashboard() {
                   Review Now
                 </Button>
               </div>
-            </div>
-          )}
-
-          {/* Tips Section - Carousel */}
-          <div className='bg-white rounded-2xl shadow-sm border border-gray-200 p-6'>
-            <div className='flex items-center justify-between mb-6'>
-              <div>
-                <h3 className='text-xl font-bold text-gray-900'>Parent Tips</h3>
-                <p className='text-gray-600'>Helpful tips to manage your children's tasks</p>
-              </div>
-              <div className='flex items-center gap-2'>
-                <Button variant='outline' size='sm' onClick={prevTip} disabled={currentTipIndex === 0} className='w-8 h-8 p-0'>
-                  <ChevronLeft className='w-4 h-4' />
-                </Button>
-                <Button variant='outline' size='sm' onClick={nextTip} disabled={currentTipIndex === 5} className='w-8 h-8 p-0'>
-                  <ChevronRight className='w-4 h-4' />
-                </Button>
-                <div className='w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center ml-2'>
-                  <svg className='w-6 h-6 text-purple-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div className='relative'>
-              <div ref={carouselRef} className='flex gap-6 overflow-x-auto pb-4 scrollbar-hide'>
-                <div className='bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-blue-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-blue-900'>How to Approve Tasks</h4>
-                  </div>
-                  <p className='text-sm text-blue-700'>Click the "Approve" button in the table below when your child completes a task</p>
-                </div>
-                <div className='bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-green-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-green-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6v6m0 0v6m0-6h6m-6 0H6' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-green-900'>Send New Task</h4>
-                  </div>
-                  <p className='text-sm text-green-700'>Select a child from the sidebar and click "Add Task" to create a new task</p>
-                </div>
-                <div className='bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-yellow-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-yellow-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-yellow-900'>Track Coins</h4>
-                  </div>
-                  <p className='text-sm text-yellow-700'>See how many coins were given this week and track achievements</p>
-                </div>
-                <div className='bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-purple-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-purple-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-purple-900'>Performance Check</h4>
-                  </div>
-                  <p className='text-sm text-purple-700'>The charts above show task distribution and coins overview</p>
-                </div>
-                <div className='bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-orange-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-orange-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-orange-900'>Pending Tasks</h4>
-                  </div>
-                  <p className='text-sm text-orange-700'>When there are tasks pending approval, you'll see a yellow alert</p>
-                </div>
-                <div className='bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-6 min-w-[300px]'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <div className='w-8 h-8 bg-pink-200 rounded-lg flex items-center justify-center'>
-                      <svg className='w-4 h-4 text-pink-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 6h16M4 12h16M4 18h16' />
-                      </svg>
-                    </div>
-                    <h4 className='font-semibold text-pink-900'>Quick Navigation</h4>
-                  </div>
-                  <p className='text-sm text-pink-700'>Use the sidebar to quickly navigate between different children</p>
-                </div>
-              </div>
-
-              {/* Carousel Indicators */}
-              <div className='flex justify-center gap-2 mt-4'>
-                {[0, 1, 2, 3, 4, 5].map(index => (
-                  <button key={index} onClick={() => scrollToTip(index)} className={`w-2 h-2 rounded-full transition-colors ${index === currentTipIndex ? "bg-purple-600" : "bg-gray-300"}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Tasks Table */}
-          {taskTableData.length > 0 && (
-            <div className='bg-white rounded-2xl shadow-sm border border-gray-200 p-6'>
-              <div className='flex items-center justify-between mb-6'>
-                <div>
-                  <h3 className='text-xl font-bold text-gray-900'>Recent Tasks</h3>
-                  <p className='text-gray-600'>Overview of all tasks across your children</p>
-                </div>
-                <div className='w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center'>
-                  <svg className='w-6 h-6 text-indigo-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' />
-                  </svg>
-                </div>
-              </div>
-              <DataTable data={taskTableData} onApproveTask={handleApproveTask} onReloadTasks={() => window.location.reload()} onViewDetails={handleViewDetails} />
             </div>
           )}
         </main>
