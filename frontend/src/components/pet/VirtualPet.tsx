@@ -1116,6 +1116,11 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                         return { top: "-45%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
                       }
 
+                      // Special case for suit - move it down a bit
+                      if (accessory.name.toLowerCase().includes("suit")) {
+                        return { top: "-25%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
+                      }
+
                       switch (slot) {
                         case "head":
                           return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
@@ -1159,7 +1164,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                           position: "absolute",
                           ...position,
                           transformOrigin: "center center",
-                          transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") ? "3.0" : "2.5"})`,
+                          transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") || accessory.name.toLowerCase().includes("suit") ? "3.0" : "2.5"})`,
                         }}
                         onClick={() => handleRemoveAccessory(accessory)}
                         title={`Click to remove ${accessory.name} (Slot: ${slot})`}
