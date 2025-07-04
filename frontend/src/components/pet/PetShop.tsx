@@ -16,7 +16,7 @@ export default function PetShop() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [coins, setCoins] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<PurchasedItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<"all" | "food" | "toy" | "energy" | "accessory">("all");
+  const [activeCategory, setActiveCategory] = useState<"all" | "clothes" | "accessories">("all");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
@@ -146,7 +146,7 @@ export default function PetShop() {
       name: "Cool Scarf",
       price: 4,
       image: "/images/shop/accessories/accessory1.png",
-      type: "accessory",
+      type: "accessories",
       slot: "body",
 
       description: "Make your pet look awesome! 🧣",
@@ -156,7 +156,7 @@ export default function PetShop() {
       name: "Cool Hat",
       price: 6,
       image: "/images/shop/accessories/accessory2.png",
-      type: "accessory",
+      type: "accessories",
       slot: "hair",
       description: "Make your pet look awesome! 🎩",
     },
@@ -165,7 +165,7 @@ export default function PetShop() {
       name: "Cool Cap",
       price: 4,
       image: "/images/shop/accessories/accessory3.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
 
       description: "Make your pet look awesome! 🧢",
@@ -175,7 +175,7 @@ export default function PetShop() {
       name: "Cool winter hat",
       price: 5,
       image: "/images/shop/accessories/accessory4.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
 
       description: "Make your pet look awesome! 🥶",
@@ -185,7 +185,7 @@ export default function PetShop() {
       name: "Cool bow tie",
       price: 7,
       image: "/images/shop/accessories/accessory5.png",
-      type: "accessory",
+      type: "accessories",
       slot: "body",
 
       description: "Make your pet look awesome! 🤵",
@@ -195,7 +195,7 @@ export default function PetShop() {
       name: "Cool Dress",
       price: 8,
       image: "/images/shop/clothes/dress.png",
-      type: "accessory",
+      type: "clothes",
       description: "Make your pet look awesome! 👗",
     },
     {
@@ -203,65 +203,61 @@ export default function PetShop() {
       name: "Cool Shirt",
       price: 10,
       image: "/images/shop/clothes/shirt.png",
-      type: "accessory",
-      description: "Make your pet look awesome! �",
+      type: "clothes",
+      description: "Make your pet look awesome! 👕",
     },
     {
       id: "suit",
       name: "Cool Suit",
       price: 12,
       image: "/images/shop/clothes/suit.png",
-      type: "accessory",
-      description: "Make your pet look awesome! �",
+      type: "clothes",
+      description: "Make your pet look awesome! 🤵",
     },
     {
       id: "hair",
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/Hair1.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
-      description: "Make your pet look awesome! �",
+      description: "Make your pet look awesome! 💇",
     },
     {
       id: "hair2",
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair2.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
-
-      description: "Make your pet look awesome! �",
+      description: "Make your pet look awesome! 💇",
     },
     {
       id: "hair3",
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair3.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
-
-      description: "Make your pet look awesome! �",
+      description: "Make your pet look awesome! 💇",
     },
     {
       id: "hair4",
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair4.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
-
-      description: "Make your pet look awesome! �",
+      description: "Make your pet look awesome! 💇",
     },
     {
       id: "hair5",
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair5.png",
-      type: "accessory",
+      type: "accessories",
       slot: "head",
-
-      description: "Make your pet look awesome! �",
+      description: "Make your pet look awesome! 💇",
     },
   ];
 
@@ -477,11 +473,9 @@ export default function PetShop() {
         <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-1 sm:p-2 shadow-lg'>
           <div className='flex gap-1 sm:gap-2 overflow-x-auto'>
             {[
+              { key: "clothes", label: "Clothes", icon: "👕" },
+              { key: "accessories", label: "Accessories", icon: "🎩" },
               { key: "all", label: "All", icon: "🛍️" },
-              { key: "food", label: "Food", icon: "🍎" },
-              { key: "toy", label: "Toys", icon: "🎮" },
-              { key: "energy", label: "Energy", icon: "⚡" },
-              { key: "accessory", label: "Accessories", icon: "👕" },
             ].map(category => (
               <motion.button key={category.key} onClick={() => setActiveCategory(category.key as any)} className={`flex items-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-4 rounded-xl font-semibold transition-all whitespace-nowrap text-xs sm:text-sm ${activeCategory === category.key ? "bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg" : "text-gray-600 hover:text-gray-800"}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <span>{category.icon}</span>

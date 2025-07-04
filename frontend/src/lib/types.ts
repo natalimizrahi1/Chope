@@ -51,7 +51,7 @@ export interface ShopItem {
   id: string;
   name: string;
   image: string;
-  type: "food" | "toy" | "energy" | "accessory";
+  type: "all" | "clothes" | "accessories";
   slot?: "head" | "body" | "eyes" | "hair";
 
   price: number;
@@ -64,4 +64,3 @@ export interface PurchasedItem extends ShopItem {
   purchasedAt: string;
   slot?: "head" | "body" | "eyes" | "hair";
 }
-
