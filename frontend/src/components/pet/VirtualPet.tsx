@@ -3,7 +3,7 @@ import { Play, Coins, Store, Target, ShoppingBag, LogOut } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks, getChildCoins, spendCoinsOnPetCare, getChildItems, useChildItem, removeChildItem, returnChildItem } from "../../lib/api";
+import { getTasks, getChildCoins, spendCoinsOnPetCare, getChildItems, useChildItem, removeChildItem, returnChildItem, getPetState, updatePetState, updatePetStats, updatePetAccessories } from "../../lib/api";
 import { Task, ShopItem, PurchasedItem } from "../../lib/types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -126,51 +126,62 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   // Track if we've loaded from localStorage to prevent overwriting
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
-  // Load pet from localStorage on mount - ONLY ONCE
+  // Load pet from database on mount - ONLY ONCE
   useEffect(() => {
-    if (!childId) return; // Don't load if no user is logged in
+    if (!childId || !token) return; // Don't load if no user is logged in
 
-    const petKey = `pet_${childId}`;
-    const savedPet = localStorage.getItem(petKey);
-    console.log("🦖 Loading pet from localStorage:", savedPet); // Debug log
-
-    if (savedPet) {
+    const loadPetFromDatabase = async () => {
       try {
-        const parsedPet = JSON.parse(savedPet);
-        // Ensure pet always has fixed scale
-        const petWithFixedScale = {
-          ...parsedPet,
-          scale: 0.7,
-        };
-        console.log("🦖 Setting pet from localStorage:", petWithFixedScale); // Debug log
-        currentSetAnimal(petWithFixedScale);
+        console.log("🦖 Loading pet from database...");
+        const response = await getPetState(token);
+        console.log("🦖 Database response:", response);
+
+        if (response.petState) {
+          // Ensure pet always has fixed scale
+          const petWithFixedScale = {
+            ...response.petState,
+            scale: 0.7,
+          };
+          console.log("🦖 Setting pet from database:", petWithFixedScale);
+          currentSetAnimal(petWithFixedScale);
+        } else {
+          console.log("🦖 No pet state in database, using default");
+        }
         setHasLoadedFromStorage(true);
       } catch (error) {
-        console.error("Failed to parse saved pet:", error);
+        console.error("Failed to load pet from database:", error);
         setHasLoadedFromStorage(true);
       }
-    } else {
-      console.log("🦖 No saved pet found, using default"); // Debug log
-      setHasLoadedFromStorage(true);
-    }
-  }, [childId]); // Run when childId changes
+    };
 
-  // Save pet to localStorage whenever it changes - ONLY ONE PLACE TO SAVE
+    loadPetFromDatabase();
+  }, [childId, token]); // Run when childId or token changes
+
+  // Save pet to database whenever it changes - ONLY ONE PLACE TO SAVE
   useEffect(() => {
-    if (currentAnimal && childId && hasLoadedFromStorage) {
-      const petKey = `pet_${childId}`;
-      // Ensure accessories have slot information when saving
-      const petToSave = {
-        ...currentAnimal,
-        accessories: currentAnimal.accessories.map(acc => ({
-          ...acc,
-          slot: (acc as any).slot || "body",
-        })),
+    if (currentAnimal && childId && token && hasLoadedFromStorage) {
+      const savePetToDatabase = async () => {
+        try {
+          // Ensure accessories have slot information when saving
+          const petToSave = {
+            ...currentAnimal,
+            accessories: currentAnimal.accessories.map(acc => ({
+              ...acc,
+              slot: (acc as any).slot || "body",
+            })),
+          };
+
+          console.log("🦖 Saving pet to database:", petToSave);
+          await updatePetState(token, petToSave);
+          console.log("🦖 Pet saved to database successfully");
+        } catch (error) {
+          console.error("Failed to save pet to database:", error);
+        }
       };
-      localStorage.setItem(petKey, JSON.stringify(petToSave));
-    } else if (!hasLoadedFromStorage) {
+
+      savePetToDatabase();
     }
-  }, [currentAnimal, childId, hasLoadedFromStorage]);
+  }, [currentAnimal, childId, token, hasLoadedFromStorage]);
   const [timeAlive, setTimeAlive] = useState(0);
   const [isDead, setIsDead] = useState(false);
   const [isFeeding, setIsFeeding] = useState(false);
@@ -581,6 +592,12 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           },
         };
         console.log("🦖 Feeding pet - new stats:", newPet.stats); // Debug log
+
+        // Save stats to database
+        updatePetStats(token, newPet.stats).catch(error => {
+          console.error("Failed to save stats to database:", error);
+        });
+
         return newPet;
       });
     } catch (error) {
@@ -617,13 +634,22 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
       // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          hunger: Math.min(100, prev.stats.hunger + 15),
-        },
-      }));
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            hunger: Math.min(100, prev.stats.hunger + 15),
+          },
+        };
+
+        // Save stats to database
+        updatePetStats(token, newPet.stats).catch(error => {
+          console.error("Failed to save stats to database:", error);
+        });
+
+        return newPet;
+      });
     } catch (error) {
       console.error("Failed to spend coins on drinking:", error);
       alert("Failed to give pet a drink. Please try again.");
@@ -661,13 +687,22 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
       // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          energy: Math.min(100, prev.stats.energy + 25),
-        },
-      }));
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            energy: Math.min(100, prev.stats.energy + 25),
+          },
+        };
+
+        // Save stats to database
+        updatePetStats(token, newPet.stats).catch(error => {
+          console.error("Failed to save stats to database:", error);
+        });
+
+        return newPet;
+      });
     } catch (error) {
       console.error("Failed to spend coins on healing:", error);
       alert("Failed to give pet energy. Please try again.");
@@ -711,13 +746,20 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
       // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          happiness: Math.min(100, prev.stats.happiness + 25),
-        },
-      }));
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            happiness: Math.min(100, prev.stats.happiness + 25),
+          },
+        };
+        // Save stats to database
+        updatePetStats(token, newPet.stats).catch(error => {
+          console.error("Failed to save stats to database:", error);
+        });
+        return newPet;
+      });
     } catch (error) {
       console.error("Failed to spend coins on playing:", error);
       alert("Failed to play with pet. Please try again.");
@@ -756,13 +798,20 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
       // Update animal stats only
-      currentSetAnimal?.(prev => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          happiness: Math.min(100, prev.stats.happiness + 25),
-        },
-      }));
+      currentSetAnimal?.(prev => {
+        const newPet = {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            happiness: Math.min(100, prev.stats.happiness + 25),
+          },
+        };
+        // Save stats to database
+        updatePetStats(token, newPet.stats).catch(error => {
+          console.error("Failed to save stats to database:", error);
+        });
+        return newPet;
+      });
     } catch (error) {
       console.error("Failed to spend coins on playing with toy:", error);
       alert("Failed to play with toy. Please try again.");

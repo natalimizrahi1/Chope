@@ -32,6 +32,53 @@ const childSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Animal",
   },
+  petState: {
+    name: {
+      type: String,
+      default: "Benny",
+    },
+    type: {
+      type: String,
+      default: "Cute Pet",
+    },
+    level: {
+      type: Number,
+      default: 1,
+    },
+    xp: {
+      type: Number,
+      default: 0,
+    },
+    stats: {
+      hunger: {
+        type: Number,
+        default: 0,
+      },
+      happiness: {
+        type: Number,
+        default: 0,
+      },
+      energy: {
+        type: Number,
+        default: 0,
+      },
+    },
+    accessories: [
+      {
+        id: String,
+        name: String,
+        image: String,
+        type: String,
+        price: Number,
+        quantity: Number,
+        slot: String,
+      },
+    ],
+    scale: {
+      type: Number,
+      default: 0.7,
+    },
+  },
   tasks: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -151,6 +198,20 @@ childSchema.methods.removeItem = function (itemId) {
 // Method to compare password
 childSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to update pet state
+childSchema.methods.updatePetState = function (newPetState) {
+  this.petState = {
+    ...this.petState,
+    ...newPetState,
+  };
+  return this.save();
+};
+
+// Method to get pet state
+childSchema.methods.getPetState = function () {
+  return this.petState;
 };
 
 const Child = mongoose.model("Child", childSchema);
