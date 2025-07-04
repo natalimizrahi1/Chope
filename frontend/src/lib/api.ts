@@ -185,6 +185,130 @@ export const getChildCoins = async (token: string, childId: string) => {
   return result;
 };
 
+// Update child's coins in database
+export const updateChildCoins = async (token: string, childId: string, amount: number, action: string, description?: string) => {
+  console.log("=== API: UPDATING CHILD COINS ===");
+  console.log("Child ID:", childId);
+  console.log("Amount:", amount);
+  console.log("Action:", action);
+
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/coins`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount, action, description }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Child coins updated successfully:", result);
+  console.log("=== API: UPDATING CHILD COINS COMPLETE ===");
+  return result;
+};
+
+// Spend coins on pet care actions
+export const spendCoinsOnPetCare = async (token: string, childId: string, action: string, cost: number) => {
+  console.log("=== API: SPENDING COINS ON PET CARE ===");
+  console.log("Child ID:", childId);
+  console.log("Action:", action);
+  console.log("Cost:", cost);
+
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/pet-care`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action, cost }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Pet care coins spent successfully:", result);
+  console.log("=== API: SPENDING COINS ON PET CARE COMPLETE ===");
+  return result;
+};
+
+// Buy items from shop
+export const buyItemsFromShop = async (token: string, childId: string, items: any[], totalCost: number) => {
+  console.log("=== API: BUYING ITEMS FROM SHOP ===");
+  console.log("Child ID:", childId);
+  console.log("Items:", items);
+  console.log("Total Cost:", totalCost);
+
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/buy-items`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ items, totalCost }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Items purchased successfully:", result);
+  console.log("=== API: BUYING ITEMS FROM SHOP COMPLETE ===");
+  return result;
+};
+
+// Get child's purchased items
+export const getChildItems = async (token: string, childId: string) => {
+  console.log("=== API: GETTING CHILD ITEMS ===");
+  console.log("Child ID:", childId);
+
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/items`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
+// Use an item from inventory
+export const useChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/use-item`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ itemId }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
+// Remove an item from inventory
+export const removeChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/items/${itemId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+
+  return result;
+};
+
 // Animal API functions
 export const getAnimals = async (token: string) => {
   const response = await fetch(`${API_BASE_URL}/animals`, {
@@ -331,3 +455,98 @@ export async function getChildById(token: string, childId: string) {
   console.log("API: Success response:", result);
   return result;
 }
+
+export const returnChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/return-item/${itemId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return handleResponse(response);
+};
+
+// Pet API functions
+export const getPetState = async (token: string) => {
+  console.log("=== API: GETTING PET STATE ===");
+  console.log("Token:", token ? "Present" : "Missing");
+
+  const response = await fetch(`${API_BASE_URL}/pet/state`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Pet state loaded successfully:", result);
+  console.log("=== API: GETTING PET STATE COMPLETE ===");
+  return result;
+};
+
+export const updatePetState = async (token: string, petState: any) => {
+  console.log("=== API: UPDATING PET STATE ===");
+  console.log("Pet State:", petState);
+  console.log("Token:", token ? "Present" : "Missing");
+
+  const response = await fetch(`${API_BASE_URL}/pet/state`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ petState }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Pet state updated successfully:", result);
+  console.log("=== API: UPDATING PET STATE COMPLETE ===");
+  return result;
+};
+
+export const updatePetStats = async (token: string, stats: any) => {
+  console.log("=== API: UPDATING PET STATS ===");
+  console.log("Stats:", stats);
+  console.log("Token:", token ? "Present" : "Missing");
+
+  const response = await fetch(`${API_BASE_URL}/pet/stats`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ stats }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Pet stats updated successfully:", result);
+  console.log("=== API: UPDATING PET STATS COMPLETE ===");
+  return result;
+};
+
+export const updatePetAccessories = async (token: string, accessories: any[]) => {
+  console.log("=== API: UPDATING PET ACCESSORIES ===");
+  console.log("Accessories:", accessories);
+  console.log("Token:", token ? "Present" : "Missing");
+
+  const response = await fetch(`${API_BASE_URL}/pet/accessories`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ accessories }),
+  });
+
+  console.log("API response status:", response.status);
+
+  const result = await handleResponse(response);
+  console.log("API: Pet accessories updated successfully:", result);
+  console.log("=== API: UPDATING PET ACCESSORIES COMPLETE ===");
+  return result;
+};

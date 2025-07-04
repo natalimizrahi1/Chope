@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.js";
 import taskRoutes from "./routes/task.js";
 import animalRoutes from "./routes/animal.js";
 import parentRoutes from "./routes/parent.js";
+import petRoutes from "./routes/pet.js";
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/task", taskRoutes);
 app.use("/api/animals", animalRoutes);
 app.use("/api/parent", parentRoutes);
+app.use("/api/pet", petRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

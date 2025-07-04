@@ -46,3 +46,21 @@ export interface Animal {
   lastPlayed: string;
   lastSlept: string;
 }
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  image: string;
+  type: "all" | "clothes" | "accessories";
+  slot?: "head" | "body" | "eyes" | "hair";
+
+  price: number;
+  category?: string;
+  description?: string;
+}
+
+export interface PurchasedItem extends ShopItem {
+  quantity: number;
+  purchasedAt: string;
+  slot?: "head" | "body" | "eyes" | "hair";
+}
