@@ -7,8 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
-import { Plus, CheckCircle, XCircle, Clock, Grid, List, Filter, Copy, LogOut, ArrowLeft, Menu } from "lucide-react";
-import { Progress } from "../ui/progress";
+import { Plus, CheckCircle, XCircle, Trash, Clock, Grid, List, Filter, LogOut, Menu } from "lucide-react";
 import { Badge } from "../ui/badge";
 import TaskCategorySelector from "./TaskCategorySelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -571,7 +570,7 @@ export default function ChildDetailPage() {
     if (task.approved) {
       return <Badge className='bg-green-100 text-green-800'>Approved</Badge>;
     } else if (task.completed) {
-      return <Badge className='bg-yellow-100 text-yellow-800'>Pending Approval</Badge>;
+      return <Badge className='bg-yellow-100 text-yellow-800'>Pending</Badge>;
     }
     return <Badge variant='outline'>Incomplete</Badge>;
   };
@@ -603,7 +602,7 @@ export default function ChildDetailPage() {
       <aside className='hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col'>
         {/* Logo */}
         <div className='border-b border-gray-200'>
-          <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+          <img src='/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
         </div>
         {/* Navigation */}
         <nav className='px-6 pt-4 pb-2'>
@@ -658,7 +657,7 @@ export default function ChildDetailPage() {
           <div className='flex flex-col h-full'>
             {/* Logo */}
             <div className='border-b border-gray-200'>
-              <img src='/public/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
+              <img src='/lic/light_logo.svg' alt='CHOPE Logo' className='mx-0 my-[-30px] w-40 h-40' />
             </div>
             {/* Navigation */}
             <nav className='px-6 pt-4 pb-2'>
@@ -913,21 +912,21 @@ export default function ChildDetailPage() {
                           <div className='flex items-center gap-2'>
                             {!task.completed && (
                               <Button size='sm' variant='ghost' className='h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700' onClick={() => handleDeleteTask(task._id)}>
-                                <XCircle className='w-4 h-4' />
+                                <Trash className='w-4 h-4' />
                               </Button>
                             )}
                             <CardTitle className='text-base font-semibold'>{task.title}</CardTitle>
                           </div>
                           {getTaskStatusIcon(task)}
                         </CardHeader>
-                        <CardContent className='pb-2'>
+                        <CardContent className='pb-1'>
                           <CardDescription className='text-gray-600 mb-2'>{task.description}</CardDescription>
-                          <div className='flex flex-col sm:flex-row items-center gap-2 text-yellow-600 font-semibold'>
+                          <div className='flex flex-row flex-nowrap items-center gap-2 mt-4 text-yellow-600 font-semibold text-xs'>
                             <Badge variant={task.completed ? "default" : "outline"}>{task.reward} coins</Badge>
                             {getCategoryBadge(task.category || "custom")}
                             {getTaskStatusBadge(task)}
                           </div>
-                          <div className='text-xs text-muted-foreground mt-1'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
+                          <div className='text-xs text-muted-foreground mt-3'>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
                         </CardContent>
                         <CardContent className='pt-0'>
                           {task.completed && !task.approved && (
@@ -935,7 +934,7 @@ export default function ChildDetailPage() {
                               <Button size='sm' className='flex-1 bg-green-600 hover:bg-green-700 rounded-full text-white text-base py-2' onClick={() => handleApproveTask(task._id)}>
                                 <CheckCircle className='w-4 h-4 mr-1' /> Approve
                               </Button>
-                              <Button size='sm' variant='destructive' className='flex-1 rounded-full text-base py-2' onClick={() => handleRejectTask(task._id)}>
+                              <Button size='sm' variant='outline' className='flex-1 rounded-full text-base py-2 text-gray-800 border-gray-300' onClick={() => handleRejectTask(task._id)}>
                                 <XCircle className='w-4 h-4 mr-1' /> Reject
                               </Button>
                             </div>

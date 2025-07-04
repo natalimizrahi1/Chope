@@ -537,7 +537,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           energy: 0,
         },
       };
-      console.log("🦖 Level up! New level:", newPet.level, "New stats:", newPet.stats); // Debug log
+      console.log("🦖 Level up! New level:", newPet.level, "New stats:", newPet.stats);
       return newPet;
     });
 
@@ -1156,8 +1156,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             <div
               className='absolute left-1/2 top-4 sm:top-8 -translate-x-1/2 z-10 
                               bg-blue-100 border-2 sm:border-4 border-amber-700 rounded-xl 
-                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'
-            >
+                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'>
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
                 {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
@@ -1206,7 +1205,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                       }
 
                       // Special case for suit - move it down a bit
-                      if (accessory.name.toLowerCase().includes("suit")) {
+                      if (accessory.name && accessory.name.toLowerCase().includes("suit")) {
                         return { top: "-25%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
                       }
 
@@ -1278,11 +1277,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                           position: "absolute",
                           ...position,
                           transformOrigin: "center center",
-                          transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") || accessory.name.toLowerCase().includes("suit") ? "3.0" : "2.5"})`,
+                          transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name && (accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") || accessory.name.toLowerCase().includes("suit")) ? "3.0" : "2.5"})`,
                         }}
                         onClick={() => handleRemoveAccessory(accessory)}
-                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}
-                      >
+                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}>
                         <img src={accessory.image} alt={accessory.name} className='object-contain' style={size} />
                       </div>
                     );
