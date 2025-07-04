@@ -844,6 +844,25 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
               return true;
             });
             newAccessories = [...filteredAccessories, accessoryWithSlot];
+          } else if (slot === "hair") {
+            // Special handling for hair accessories - replace existing hair accessory
+            const oldHair = currentAccessories.find(acc => (acc.slot || "body") === "hair" && (acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5"));
+            if (oldHair && oldHair.id !== item.id) {
+              // Return the old hair to inventory
+              await returnChildItem(token, childId, oldHair.id);
+              console.log(`Returned previous hair (${oldHair.name}, ${oldHair.id}) to inventory before equipping new hair.`);
+            }
+            // Remove any existing hair accessories
+            const filteredAccessories = currentAccessories.filter(acc => {
+              const accSlot = (acc as any).slot || "body";
+              if (accSlot === "hair") {
+                // Determine if this is a hair accessory based on ID
+                const isHairAccessory = acc.id === "hair" || acc.id === "hair1" || acc.id === "hair2" || acc.id === "hair3" || acc.id === "hair4" || acc.id === "hair5";
+                return !isHairAccessory;
+              }
+              return true;
+            });
+            newAccessories = [...filteredAccessories, accessoryWithSlot];
           } else {
             newAccessories = [...currentAccessories, accessoryWithSlot];
           }
