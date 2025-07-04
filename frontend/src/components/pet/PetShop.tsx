@@ -152,20 +152,12 @@ export default function PetShop() {
       description: "Make your pet look awesome! 🧣",
     },
     {
-      id: "glasses",
-      name: "Cool Glasses",
-      price: 3,
-      image: "/images/shop/accessories/sunglasses.png",
-      type: "accessory",
-      slot: "eyes",
-      description: "Make your pet look awesome! 🕶️",
-    },
-    {
       id: "accessory2",
       name: "Cool Hat",
       price: 6,
       image: "/images/shop/accessories/accessory2.png",
       type: "accessory",
+      slot: "hair",
       description: "Make your pet look awesome! 🎩",
     },
     {

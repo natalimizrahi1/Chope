@@ -455,3 +455,13 @@ export async function getChildById(token: string, childId: string) {
   console.log("API: Success response:", result);
   return result;
 }
+
+export const returnChildItem = async (token: string, childId: string, itemId: string) => {
+  const response = await fetch(`${API_BASE_URL}/parent/child/${childId}/return-item/${itemId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return handleResponse(response);
+};

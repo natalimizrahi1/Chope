@@ -120,11 +120,19 @@ childSchema.methods.useItem = function (itemId) {
   }
 
   item.quantity -= 1;
-  if (item.quantity === 0) {
+
+  if (item.quantity === 0 && item.type !== "accessory") {
     this.purchasedItems = this.purchasedItems.filter(purchased => purchased.id !== itemId);
   }
 
-  return { success: true, message: `${item.name} used successfully` };
+  return {
+    success: true,
+    message: `${item.name} used successfully`,
+    itemType: item.type,
+    itemName: item.name,
+    itemImage: item.image,
+    itemPrice: item.price,
+  };
 };
 
 // Method to remove an item

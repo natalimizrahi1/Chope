@@ -3,7 +3,7 @@ import { Play, Coins, Store, Target, ShoppingBag, LogOut } from "lucide-react";
 import garden from "../../assets/garden.png";
 import { Dispatch, SetStateAction } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { getTasks, getChildCoins, spendCoinsOnPetCare, getChildItems, useChildItem, removeChildItem } from "../../lib/api";
+import { getTasks, getChildCoins, spendCoinsOnPetCare, getChildItems, useChildItem, removeChildItem, returnChildItem } from "../../lib/api";
 import { Task, ShopItem, PurchasedItem } from "../../lib/types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -157,10 +157,16 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   useEffect(() => {
     if (currentAnimal && childId && hasLoadedFromStorage) {
       const petKey = `pet_${childId}`;
-      localStorage.setItem(petKey, JSON.stringify(currentAnimal));
-      console.log("🦖 Saved pet to localStorage:", currentAnimal); // Debug log
+      // Ensure accessories have slot information when saving
+      const petToSave = {
+        ...currentAnimal,
+        accessories: currentAnimal.accessories.map(acc => ({
+          ...acc,
+          slot: (acc as any).slot || "body",
+        })),
+      };
+      localStorage.setItem(petKey, JSON.stringify(petToSave));
     } else if (!hasLoadedFromStorage) {
-      console.log("🦖 Not saving yet - still loading from storage");
     }
   }, [currentAnimal, childId, hasLoadedFromStorage]);
   const [timeAlive, setTimeAlive] = useState(0);
@@ -197,6 +203,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
   const [purchasedItems, setPurchasedItems] = useState<PurchasedItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [showProgressComplete, setShowProgressComplete] = useState(false);
+  const [showAccessoryApplied, setShowAccessoryApplied] = useState(false);
+  const [petAnimation, setPetAnimation] = useState(false);
 
   const initialLastTaskTime = () => {
     if (!childId) return Date.now();
@@ -338,7 +346,22 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       try {
         if (token && childId) {
           const itemsData = await getChildItems(token, childId);
-          setPurchasedItems(itemsData.purchasedItems || []);
+          const itemsWithSlots = (itemsData.purchasedItems || []).map((item: any) => {
+            // Add slot information based on item ID
+            let slot: "head" | "body" | "eyes" | "hair" = "body";
+            if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
+              slot = "head";
+            } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
+              slot = "hair";
+            } else if (item.id === "accessory1" || item.id === "accessory5") {
+              slot = "body";
+            }
+            return {
+              ...item,
+              slot: slot,
+            };
+          });
+          setPurchasedItems(itemsWithSlots);
         }
       } catch (error) {
         console.error("Failed to load items:", error);
@@ -346,9 +369,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === `purchasedItems_${childId}`) {
-        loadItems();
-      }
+      // No-op: removed localStorage logic for items
     };
 
     // Listen for custom events from shop
@@ -737,13 +758,22 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       // Use item through API
       const result = await useChildItem(token, childId, item.id);
 
-      // Update local state
-      setPurchasedItems(result.purchasedItems);
-
-      // Update localStorage as backup
-      if (childId) {
-        localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(result.purchasedItems));
-      }
+      // Update local state with slot information
+      const itemsWithSlots = result.purchasedItems.map((item: any) => {
+        let slot: "head" | "body" | "eyes" | "hair" = "body";
+        if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
+          slot = "head";
+        } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
+          slot = "hair";
+        } else if (item.id === "accessory1" || item.id === "accessory5") {
+          slot = "body";
+        }
+        return {
+          ...item,
+          slot: slot,
+        };
+      });
+      setPurchasedItems(itemsWithSlots);
 
       // Apply item effects based on type
       switch (item.type) {
@@ -775,9 +805,49 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
           }));
           break;
         case "accessory":
-          // Add accessory to pet
+          // Add accessory to pet with slot information based on item ID
           const currentAccessories = currentAnimal.accessories || [];
-          const newAccessories = [...currentAccessories, item];
+
+          // Determine slot based on item ID
+          let slot: "head" | "body" | "eyes" | "hair" = "body"; // default
+          if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
+            slot = "head";
+          } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
+            slot = "hair";
+          } else if (item.id === "accessory1" || item.id === "accessory5") {
+            slot = "body";
+          }
+
+          const accessoryWithSlot = {
+            ...item,
+            slot: slot,
+          };
+
+          // Special handling for head accessories - replace existing head accessory
+          let newAccessories;
+          if (slot === "head") {
+            // If there is already a head accessory, return it to inventory before equipping the new one
+            const oldHat = currentAccessories.find(acc => (acc.slot || "body") === "head" && (acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4"));
+            if (oldHat && oldHat.id !== item.id) {
+              // Return the old hat to inventory
+              await returnChildItem(token, childId, oldHat.id);
+              console.log(`Returned previous hat (${oldHat.name}, ${oldHat.id}) to inventory before equipping new hat.`);
+            }
+            // Remove any existing head accessories (accessory2, accessory3, accessory4)
+            const filteredAccessories = currentAccessories.filter(acc => {
+              const accSlot = (acc as any).slot || "body";
+              if (accSlot === "head") {
+                // Determine if this is a head accessory based on ID
+                const isHeadAccessory = acc.id === "accessory2" || acc.id === "accessory3" || acc.id === "accessory4";
+                return !isHeadAccessory;
+              }
+              return true;
+            });
+            newAccessories = [...filteredAccessories, accessoryWithSlot];
+          } else {
+            newAccessories = [...currentAccessories, accessoryWithSlot];
+          }
+
           currentSetAnimal?.(prev => ({
             ...prev,
             accessories: newAccessories,
@@ -791,7 +861,16 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       }
 
       const message = item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
-      alert(message);
+
+      // Show success message with better UX
+      if (item.type === "accessory") {
+        setShowAccessoryApplied(true);
+        setPetAnimation(true);
+        setTimeout(() => setShowAccessoryApplied(false), 3000);
+        setTimeout(() => setPetAnimation(false), 1000);
+      } else {
+        alert(message);
+      }
 
       // Notify other components
       window.dispatchEvent(new CustomEvent("itemsUpdated"));
@@ -803,6 +882,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
 
   const handleRemoveAccessory = async (accessory: PurchasedItem) => {
     try {
+      console.log(`🗑️ Removing accessory:`, accessory);
       // Remove accessory from pet
       const updatedAccessories = currentAnimal.accessories.filter(acc => acc.name !== accessory.name);
       currentSetAnimal?.(prev => ({
@@ -810,17 +890,29 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         accessories: updatedAccessories,
       }));
 
-      // Remove item from database
-      await removeChildItem(token, childId, accessory.id);
+      // Return item to inventory (increase quantity)
+      console.log(`🔄 Returning accessory ${accessory.name} (${accessory.id}) to inventory`);
+      const result = await returnChildItem(token, childId, accessory.id);
+      console.log(`✅ Item returned successfully:`, result);
 
-      // Reload items from database
+      // Reload items from database with slot information
       const itemsData = await getChildItems(token, childId);
-      setPurchasedItems(itemsData.purchasedItems || []);
-
-      // Update localStorage as backup
-      if (childId) {
-        localStorage.setItem(`purchasedItems_${childId}`, JSON.stringify(itemsData.purchasedItems || []));
-      }
+      const itemsWithSlots = (itemsData.purchasedItems || []).map((item: any) => {
+        let slot: "head" | "body" | "eyes" | "hair" = "body";
+        if (item.id === "accessory2" || item.id === "accessory3" || item.id === "accessory4") {
+          slot = "head";
+        } else if (item.id === "hair" || item.id === "hair2" || item.id === "hair3" || item.id === "hair4" || item.id === "hair5") {
+          slot = "hair";
+        } else if (item.id === "accessory1" || item.id === "accessory5") {
+          slot = "body";
+        }
+        return {
+          ...item,
+          slot: slot,
+        };
+      });
+      console.log(`🔄 After removal - reloaded items:`, itemsWithSlots);
+      setPurchasedItems(itemsWithSlots);
 
       // Notify other components
       window.dispatchEvent(new CustomEvent("itemsUpdated"));
@@ -830,8 +922,8 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
     }
   };
 
-  // Calculate total items count for display
-  const totalItemsCount = purchasedItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Calculate total items count for display (only items with quantity > 0)
+  const totalItemsCount = purchasedItems.filter(item => item.quantity > 0).reduce((sum, item) => sum + item.quantity, 0);
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -905,29 +997,31 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                   </div>
                 ) : (
                   <div className='space-y-3 max-h-60 overflow-y-auto'>
-                    {purchasedItems.map(item => (
-                      <div key={item.name} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
-                        <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
-                          <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{item.quantity}</span>
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className='w-8 h-8 object-contain'
-                            onError={e => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "https://via.placeholder.com/32?text=Item";
-                            }}
-                          />
+                    {purchasedItems
+                      .filter(item => item.quantity > 0)
+                      .map(item => (
+                        <div key={item.name} className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                          <div className='w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center relative'>
+                            <span className='absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow'>×{item.quantity}</span>
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className='w-8 h-8 object-contain'
+                              onError={e => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "https://via.placeholder.com/32?text=Item";
+                              }}
+                            />
+                          </div>
+                          <div className='flex-1'>
+                            <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
+                            <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
+                          </div>
+                          <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
+                            Use
+                          </button>
                         </div>
-                        <div className='flex-1'>
-                          <h4 className='font-semibold text-gray-800 text-sm'>{item.name}</h4>
-                          <p className='text-xs text-gray-500 capitalize'>{item.type}</p>
-                        </div>
-                        <button onClick={() => handleUseItem(item)} className='bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors' title={`Use ${item.name}`}>
-                          Use
-                        </button>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
@@ -993,16 +1087,82 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             </div>
 
             {/* Pet in the center */}
-            <div className='absolute left-1/2 top-25 -translate-x-1/2 z-10' style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
+            <div className={`absolute left-1/2 top-25 -translate-x-1/2 z-10 ${petAnimation ? "animate-bounce" : ""}`} style={{ transition: "transform 0.5s cubic-bezier(.4,2,.6,1)", transform: `scale(${petScale})` }}>
               <div className='relative'>
                 <Benny />
-                {/* Display accessories */}
+
+                {/* Display accessories based on slot */}
                 {currentAnimal.accessories &&
-                  currentAnimal.accessories.map(accessory => (
-                    <div key={accessory.name} className='absolute top-0 left-0 w-full h-full cursor-pointer' style={{ zIndex: 1 }} onClick={() => handleRemoveAccessory(accessory)} title={`Click to remove ${accessory.name}`}>
-                      <img src={accessory.image} alt={accessory.name} className='w-full h-full object-contain' />
-                    </div>
-                  ))}
+                  currentAnimal.accessories.map(accessory => {
+                    // Get slot from the accessory or determine by ID
+                    let slot = (accessory as any).slot;
+                    if (!slot) {
+                      // Determine slot based on item ID if not set
+                      if (accessory.id === "accessory2" || accessory.id === "accessory3" || accessory.id === "accessory4") {
+                        slot = "head";
+                      } else if (accessory.id === "hair" || accessory.id === "hair2" || accessory.id === "hair3" || accessory.id === "hair4" || accessory.id === "hair5") {
+                        slot = "hair";
+                      } else {
+                        slot = "body";
+                      }
+                    }
+
+                    console.log(`🎯 Final slot for ${accessory.name}: ${slot}`);
+
+                    // Define positioning based on slot
+                    const getSlotPosition = (slot: string) => {
+                      switch (slot) {
+                        case "head":
+                          return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 2 };
+                        case "hair":
+                          return { top: "-60%", left: "50%", transform: "translateX(-50%)", zIndex: 3 };
+                        case "eyes":
+                          return { top: "-40%", left: "50%", transform: "translateX(-50%)", zIndex: 4 };
+                        case "body":
+                        default:
+                          return { top: "-35%", left: "50%", transform: "translateX(-50%)", zIndex: 1 };
+                      }
+                    };
+
+                    const position = getSlotPosition(slot);
+
+                    console.log(`📍 Position for ${accessory.name} (${slot}):`, position);
+
+                    // Define size based on slot
+                    const getSlotSize = (slot: string) => {
+                      switch (slot) {
+                        case "head":
+                          return { width: "540px", height: "540px" };
+                        case "hair":
+                          return { width: "720px", height: "720px" };
+                        case "eyes":
+                          return { width: "200px", height: "200px" };
+                        case "body":
+                        default:
+                          return { width: "900px", height: "900px" };
+                      }
+                    };
+
+                    const size = getSlotSize(slot);
+
+                    console.log(`Accessory: ${accessory.name}, Slot: ${slot}, ID: ${accessory.id}`);
+                    return (
+                      <div
+                        key={`${accessory.id}-${accessory.name}`}
+                        className='absolute cursor-pointer transition-transform hover:scale-110 hover:rotate-2 accessory-float'
+                        style={{
+                          position: "absolute",
+                          ...position,
+                          transformOrigin: "center center",
+                          transform: `${position.transform} scale(2.5)`,
+                        }}
+                        onClick={() => handleRemoveAccessory(accessory)}
+                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}
+                      >
+                        <img src={accessory.image} alt={accessory.name} className='object-contain' style={size} />
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>
@@ -1055,6 +1215,24 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             <p className='text-gray-600 mb-6'>Your pet has grown stronger!</p>
             <button onClick={handleNextLevel} className='bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
               Start Next Level
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Accessory Applied Modal */}
+      {showAccessoryApplied && (
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
+          <div className='bg-white rounded-xl p-8 shadow-2xl text-center animate-scale-in'>
+            <div className='w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-8 w-8 text-blue-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
+              </svg>
+            </div>
+            <h2 className='text-2xl font-bold text-gray-900 mb-2'>Accessory Applied! 🎨</h2>
+            <p className='text-gray-600 mb-6'>Your pet looks amazing with the new accessory!</p>
+            <button onClick={() => setShowAccessoryApplied(false)} className='bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg hover:shadow-xl'>
+              Awesome!
             </button>
           </div>
         </div>

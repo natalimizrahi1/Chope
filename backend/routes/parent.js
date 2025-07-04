@@ -208,13 +208,37 @@ router.post("/child/:childId/use-item", auth, async (req, res) => {
       return res.status(404).json({ error: "Child not found" });
     }
 
+    console.log(`Using item ${itemId} for child ${child.name}`);
+    console.log(`Current purchasedItems:`, child.purchasedItems);
+
     const result = child.useItem(itemId);
 
     if (!result.success) {
       return res.status(400).json({ error: result.message });
     }
 
+    console.log(`Item used successfully:`, result);
+
+    // For accessories, keep the item in inventory with quantity=0 so it can be returned later
+    if (result.itemType === "accessory") {
+      const existingItem = child.purchasedItems.find(i => i.id === itemId);
+      if (!existingItem) {
+        // Add the item back with quantity=0
+        const newItem = {
+          id: itemId,
+          name: result.itemName || "Accessory",
+          image: result.itemImage || "",
+          type: "accessory",
+          price: result.itemPrice || 0,
+          quantity: 0,
+        };
+        child.purchasedItems.push(newItem);
+        console.log(`Added accessory back to inventory with quantity=0:`, newItem);
+      }
+    }
+
     await child.save();
+    console.log(`After saving - purchasedItems:`, child.purchasedItems);
 
     res.json({
       success: true,
@@ -253,6 +277,36 @@ router.delete("/child/:childId/remove-item", auth, async (req, res) => {
     });
   } catch (err) {
     console.error("Error removing item:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Return item to inventory (increase quantity)
+router.post("/child/:childId/return-item/:itemId", auth, async (req, res) => {
+  try {
+    const child = await Child.findById(req.params.childId);
+    if (!child) return res.status(404).json({ error: "Child not found" });
+
+    console.log(`Returning item ${req.params.itemId} for child ${child.name}`);
+    console.log(`Current purchasedItems:`, child.purchasedItems);
+
+    const item = child.purchasedItems.find(i => i.id === req.params.itemId);
+    if (item) {
+      item.quantity += 1;
+      console.log(`Item ${item.name} (${item.id}) returned to inventory. New quantity: ${item.quantity}`);
+    } else {
+      console.log(`Item ${req.params.itemId} not found in inventory for child ${child.name}`);
+      console.log(
+        `Available items:`,
+        child.purchasedItems.map(i => ({ id: i.id, name: i.name, quantity: i.quantity }))
+      );
+      return res.status(404).json({ error: "Item not found in inventory" });
+    }
+    await child.save();
+    console.log(`After saving - purchasedItems:`, child.purchasedItems);
+    res.json({ purchasedItems: child.purchasedItems, message: "Item returned to inventory" });
+  } catch (err) {
+    console.error("Error returning item to inventory:", err);
     res.status(400).json({ error: err.message });
   }
 });

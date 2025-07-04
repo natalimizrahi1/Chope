@@ -52,7 +52,7 @@ export interface ShopItem {
   name: string;
   image: string;
   type: "food" | "toy" | "energy" | "accessory";
-  slot?: "head" | "body" | "eyes" ;
+  slot?: "head" | "body" | "eyes" | "hair";
 
   price: number;
   category?: string;
@@ -62,4 +62,6 @@ export interface ShopItem {
 export interface PurchasedItem extends ShopItem {
   quantity: number;
   purchasedAt: string;
+  slot?: "head" | "body" | "eyes" | "hair";
 }
+
