@@ -649,31 +649,32 @@ export default function ChildDetailPage() {
       <div className='flex-1 flex flex-col overflow-hidden'>
         <main className='flex-1 overflow-y-auto p-6 space-y-6'>
           <div className='container mx-auto flex-1 flex-col gap-4 px-2 sm:px-6 py-6'>
-            {/* כרטיסי מידע */}
+            {/* Cards*/}
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
-              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center'>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
                 <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Total Tasks</CardTitle>
                 <div className='text-3xl font-bold text-blue-500'>{totalTasks}</div>
                 <div className='text-sm text-gray-500'>Tasks</div>
               </Card>
-              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center'>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
                 <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Progress</CardTitle>
-                <Progress value={progress} className='mt-2' />
-                <div className='text-xl font-bold text-green-500 mt-2'>{Math.round(progress)}%</div>
+                <div className='flex items-start justify-center w-full h-20'>
+                  <span className='text-3xl font-extrabold text-green-500'>{Math.round(progress)}%</span>
+                </div>
               </Card>
-              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center'>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white'>
                 <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Coins</CardTitle>
                 <div className='text-3xl font-bold text-yellow-500'>{child.coins}</div>
                 <div className='text-sm text-gray-500'>Earned</div>
               </Card>
-              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center'>
+              <Card className='rounded-2xl border border-gray-200 shadow-md p-6 flex flex-col items-center bg-white '>
                 <CardTitle className='text-lg font-bold text-gray-800 mb-2'>Approved Tasks</CardTitle>
                 <div className='text-3xl font-bold text-green-500'>{approvedTasks.length}</div>
                 <div className='text-sm text-gray-500'>Approved</div>
               </Card>
             </div>
-            {/* יצירת משימה */}
-            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8'>
+            {/* Craete a new task*/}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8 bg-white'>
               <CardHeader>
                 <div className='flex items-center justify-between'>
                   <div>
@@ -785,8 +786,8 @@ export default function ChildDetailPage() {
                 )}
               </CardContent>
             </Card>
-            {/* רשימת משימות */}
-            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8'>
+            {/* Tasks List*/}
+            <Card className='rounded-2xl border border-gray-200 shadow-md p-6 mb-8 bg-white'>
               <CardHeader>
                 <CardTitle className='text-lg font-bold text-gray-900'>Tasks</CardTitle>
               </CardHeader>
