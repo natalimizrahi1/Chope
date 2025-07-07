@@ -146,7 +146,7 @@ export default function PetShop() {
       name: "Cool Scarf",
       price: 4,
       image: "/images/shop/accessories/accessory1.png",
-      type: "accessories",
+      type: "accessory",
       slot: "body",
 
       description: "Make your pet look awesome! 🧣",
@@ -156,7 +156,7 @@ export default function PetShop() {
       name: "Cool Hat",
       price: 6,
       image: "/images/shop/accessories/accessory2.png",
-      type: "accessories",
+      type: "accessory",
       slot: "hair",
       description: "Make your pet look awesome! 🎩",
     },
@@ -165,7 +165,7 @@ export default function PetShop() {
       name: "Cool Cap",
       price: 4,
       image: "/images/shop/accessories/accessory3.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
 
       description: "Make your pet look awesome! 🧢",
@@ -175,7 +175,7 @@ export default function PetShop() {
       name: "Cool winter hat",
       price: 5,
       image: "/images/shop/accessories/accessory4.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
 
       description: "Make your pet look awesome! 🥶",
@@ -185,7 +185,7 @@ export default function PetShop() {
       name: "Cool bow tie",
       price: 7,
       image: "/images/shop/accessories/accessory5.png",
-      type: "accessories",
+      type: "accessory",
       slot: "body",
 
       description: "Make your pet look awesome! 🤵",
@@ -195,7 +195,7 @@ export default function PetShop() {
       name: "Cool Dress",
       price: 8,
       image: "/images/shop/clothes/dress.png",
-      type: "accessories",
+      type: "accessory",
       description: "Make your pet look awesome! 👗",
     },
     {
@@ -203,7 +203,7 @@ export default function PetShop() {
       name: "Cool Shirt",
       price: 10,
       image: "/images/shop/clothes/shirt.png",
-      type: "accessories",
+      type: "accessory",
       description: "Make your pet look awesome! 👕",
     },
     {
@@ -211,7 +211,7 @@ export default function PetShop() {
       name: "Cool Suit",
       price: 12,
       image: "/images/shop/clothes/suit.png",
-      type: "accessories",
+      type: "accessory",
       description: "Make your pet look awesome! 🤵",
     },
     {
@@ -219,7 +219,7 @@ export default function PetShop() {
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/Hair1.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
       description: "Make your pet look awesome! 💇",
     },
@@ -228,7 +228,7 @@ export default function PetShop() {
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair2.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
       description: "Make your pet look awesome! 💇",
     },
@@ -237,7 +237,7 @@ export default function PetShop() {
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair3.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
       description: "Make your pet look awesome! 💇",
     },
@@ -246,7 +246,7 @@ export default function PetShop() {
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair4.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
       description: "Make your pet look awesome! 💇",
     },
@@ -255,7 +255,7 @@ export default function PetShop() {
       name: "Cool Hair",
       price: 10,
       image: "/images/shop/hair/hair5.png",
-      type: "accessories",
+      type: "accessory",
       slot: "head",
       description: "Make your pet look awesome! 💇",
     },
@@ -503,8 +503,7 @@ export default function PetShop() {
                     "opacity-50 cursor-not-allowed": !affordable,
                     "border-[#ffd986] ring-4 ring-[#ffbacc]/30": isSelected,
                     "border-transparent hover:border-[#87d4ee]": affordable && !isSelected,
-                  })}
-                >
+                  })}>
                   <div className='w-full h-20 sm:h-24 overflow-hidden rounded-xl bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] mb-2 sm:mb-3 flex items-center justify-center'>
                     <img
                       src={item.image}
@@ -550,8 +549,7 @@ export default function PetShop() {
               className={clsx("text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2", {
                 "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7]": canAfford,
                 "bg-gray-400 cursor-not-allowed": !canAfford,
-              })}
-            >
+              })}>
               <ShoppingCart className='w-5 h-5' />
               {canAfford ? `Buy Now! (${totalCost} coins)` : `Need ${totalCost - coins} more coins`}
             </motion.button>

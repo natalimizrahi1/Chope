@@ -51,7 +51,7 @@ export interface ShopItem {
   id: string;
   name: string;
   image: string;
-  type: "all" | "clothes" | "accessories";
+  type: "all" | "clothes" | "accessory";
   slot?: "head" | "body" | "eyes" | "hair";
 
   price: number;

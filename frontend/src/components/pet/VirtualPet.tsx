@@ -898,7 +898,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
       console.log("🎯 Updated purchased items:", itemsWithSlots);
 
       // Apply item effects based on type
-      if ((item.type as any) === "clothes" || (item.type as any) === "accessories" || (item.type as any) === "accessory") {
+      if ((item.type as any) === "clothes" || (item.type as any) === "accessory") {
         console.log("🎯 Processing accessory item:", item.type);
         const currentAccessories = currentAnimal.accessories || [];
         console.log("🎯 Current accessories before adding:", currentAccessories);
@@ -1029,10 +1029,10 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
         localStorage.setItem(`lastTaskTime_${childId}`, Date.now().toString());
       }
 
-      const message = item.type === "clothes" || item.type === "accessories" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
+      const message = item.type === "clothes" || item.type === "accessory" ? `Applied ${item.name} to your pet!` : `Used ${item.name}! Your pet feels better!`;
 
       // Show success message with better UX
-      if (item.type === "clothes" || item.type === "accessories") {
+      if (item.type === "clothes" || item.type === "accessory") {
         setShowAccessoryApplied(true);
         setPetAnimation(true);
         setTimeout(() => setShowAccessoryApplied(false), 3000);
@@ -1273,8 +1273,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
             <div
               className='absolute left-1/2 top-4 sm:top-8 -translate-x-1/2 z-10 
                               bg-blue-100 border-2 sm:border-4 border-amber-700 rounded-xl 
-                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'
-            >
+                              shadow-lg flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-1 sm:py-2 min-w-[250px] sm:min-w-[300px]'>
               <div className='stat-icon-container' ref={donutStatRef} style={{ position: "relative" }}>
                 <img src={IMAGES.donut[donutLevel]} alt='doughnut' className='stat-icon' />
                 {isFeeding && <img src={IMAGES.donut[donutLevel]} alt='doughnut fill' className='stat-icon-fill' />}
@@ -1386,8 +1385,7 @@ export default function VirtualPet({ animal: propAnimal, onFeed = () => {}, onPl
                           transform: `${position.transform} scale(${accessory.id === "accessory5" ? "1.5" : accessory.name && (accessory.name.toLowerCase().includes("dress") || accessory.name.toLowerCase().includes("shirt") || accessory.name.toLowerCase().includes("suit")) ? "3.0" : "2.5"})`,
                         }}
                         onClick={() => handleRemoveAccessory(accessory)}
-                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}
-                      >
+                        title={`Click to remove ${accessory.name} (Slot: ${slot})`}>
                         <img src={accessory.image} alt={accessory.name} className='object-contain' style={size} />
                       </div>
                     );
