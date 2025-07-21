@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getTasks, getChildCoins, buyItemsFromShop, getChildItems } from "../../lib/api";
 import { Task, ShopItem, PurchasedItem } from "../../lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play, LogOut } from "lucide-react";
+import { ShoppingCart, Coins, Star, ShoppingBag, Store, Target, Play, LogOut, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -17,6 +17,7 @@ export default function PetShop() {
   const [coins, setCoins] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState<PurchasedItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<"all" | "accessories" | "clothes">("all");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const childId = user?.id;
@@ -385,36 +386,45 @@ export default function PetShop() {
           </div>
 
           {/* Coins and inventory */}
-          <div className='flex items-center gap-2 sm:gap-4'>
-            {/* Navigation tabs */}
-            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-1 sm:p-2 shadow-lg'>
-              <div className='flex gap-1 sm:gap-2'>
-                <motion.button onClick={() => navigate("/kid/dashboard")} className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Target className='w-3 h-3 sm:w-4 sm:h-4' />
-                  <span className='hidden sm:inline'>Tasks</span>
+          <div className='flex flex-row items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto'>
+            {/* Mobile Hamburger Menu */}
+            <div className='sm:hidden'>
+              <motion.button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors w-10 h-10 flex items-center justify-center' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div animate={isMobileMenuOpen ? "open" : "closed"} transition={{ duration: 0.2 }}>
+                  {isMobileMenuOpen ? <X className='w-4 h-4 text-gray-600' /> : <Menu className='w-4 h-4 text-gray-600' />}
+                </motion.div>
+              </motion.button>
+            </div>
+
+            {/* Desktop Navigation tabs */}
+            <div className='hidden sm:block bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
+              <div className='flex flex-row gap-2'>
+                <motion.button onClick={() => navigate("/kid/dashboard")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Target className='w-4 h-4' />
+                  Tasks
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/virtualpet")} className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all text-gray-600 hover:text-gray-800 text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Play className='w-3 h-3 sm:w-4 sm:h-4' />
-                  <span className='hidden sm:inline'>My Pet</span>
+                <motion.button onClick={() => navigate("/kid/virtualpet")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm h-10' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Play className='w-4 h-4' />
+                  My Pet
                 </motion.button>
-                <motion.button className='flex items-center justify-center gap-1 sm:gap-2 py-1 sm:py-2 px-2 sm:px-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg text-xs sm:text-sm' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <ShoppingBag className='w-3 h-3 sm:w-4 sm:h-4' />
-                  <span className='hidden sm:inline'>Shop</span>
+                <motion.button className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg h-10' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <ShoppingBag className='w-4 h-4' />
+                  Shop
                 </motion.button>
               </div>
             </div>
 
-            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-2 sm:px-4 py-1 sm:py-2 shadow-lg flex items-center gap-1 sm:gap-2' whileHover={{ scale: 1.05 }}>
-              <Coins className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-500' />
-              <span className='font-bold text-sm sm:text-lg text-gray-800'>{coins}</span>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2 w-16 h-10 justify-center' whileHover={{ scale: 1.05 }}>
+              <Coins className='w-4 h-4 text-yellow-500' />
+              <span className='font-bold text-sm text-gray-800'>{coins}</span>
             </motion.div>
 
             {/* Inventory */}
             <Popover>
               <PopoverTrigger asChild>
-                <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 sm:p-3 shadow-lg hover:bg-white transition-colors relative' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Store className='w-4 h-4 sm:w-5 sm:h-5 text-gray-600' />
-                  {purchasedItems.length > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-xs'>{purchasedItems.reduce((sum, item) => sum + item.quantity, 0)}</span>}
+                <motion.button className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors relative w-10 h-10 flex items-center justify-center' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Store className='w-4 h-4 text-gray-600' />
+                  {purchasedItems.length > 0 && <span className='absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center text-xs'>{purchasedItems.reduce((sum, item) => sum + item.quantity, 0)}</span>}
                 </motion.button>
               </PopoverTrigger>
               <PopoverContent className='w-72 sm:w-80 bg-white border border-gray-200 shadow-lg'>
@@ -461,12 +471,83 @@ export default function PetShop() {
               </PopoverContent>
             </Popover>
 
-            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <LogOut className='w-4 h-4 sm:w-5 sm:h-5 text-gray-600' />
+            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors w-10 h-10 flex items-center justify-center' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <LogOut className='w-4 h-4 text-gray-600' />
             </motion.button>
           </div>
         </div>
       </motion.div>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className='fixed inset-0 bg-black/50 z-50 sm:hidden' onClick={() => setIsMobileMenuOpen(false)}>
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className='absolute right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-sm shadow-2xl' onClick={e => e.stopPropagation()}>
+              <div className='p-6'>
+                <div className='flex items-center justify-between mb-8'>
+                  <h2 className='text-xl font-bold text-gray-800'>Menu</h2>
+                  <motion.button onClick={() => setIsMobileMenuOpen(false)} className='p-2 rounded-lg hover:bg-gray-100 transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <X className='w-6 h-6 text-gray-600' />
+                  </motion.button>
+                </div>
+
+                <div className='space-y-4'>
+                  <motion.button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/kid/dashboard");
+                    }}
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gray-100 hover:bg-gray-200 transition-colors'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Target className='w-5 h-5 text-gray-600' />
+                    <span className='text-gray-800'>Tasks</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/kid/virtualpet");
+                    }}
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gray-100 hover:bg-gray-200 transition-colors'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Play className='w-5 h-5 text-gray-600' />
+                    <span className='text-gray-800'>My Pet</span>
+                  </motion.button>
+
+                  <motion.button
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <ShoppingBag className='w-5 h-5' />
+                    <span>Shop</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-red-50 hover:bg-red-100 transition-colors'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <LogOut className='w-5 h-5 text-red-600' />
+                    <span className='text-red-600'>Logout</span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Category tabs */}
       <motion.div className='relative z-10 px-4 sm:px-6 mb-4 sm:mb-6' initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
@@ -503,7 +584,8 @@ export default function PetShop() {
                     "opacity-50 cursor-not-allowed": !affordable,
                     "border-[#ffd986] ring-4 ring-[#ffbacc]/30": isSelected,
                     "border-transparent hover:border-[#87d4ee]": affordable && !isSelected,
-                  })}>
+                  })}
+                >
                   <div className='w-full h-20 sm:h-24 overflow-hidden rounded-xl bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] mb-2 sm:mb-3 flex items-center justify-center'>
                     <img
                       src={item.image}
@@ -549,7 +631,8 @@ export default function PetShop() {
               className={clsx("text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2", {
                 "bg-gradient-to-r from-[#87d4ee] to-[#4ec3f7]": canAfford,
                 "bg-gray-400 cursor-not-allowed": !canAfford,
-              })}>
+              })}
+            >
               <ShoppingCart className='w-5 h-5' />
               {canAfford ? `Buy Now! (${totalCost} coins)` : `Need ${totalCost - coins} more coins`}
             </motion.button>
