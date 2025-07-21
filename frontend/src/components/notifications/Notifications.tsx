@@ -656,7 +656,8 @@ const Notifications = ({ childId, token, userRole }: NotificationsProps) => {
 
           setIsOpen(!isOpen);
           setShowBadge(false);
-        }}>
+        }}
+      >
         <Bell className={`w-5 h-5 ${unreadCount > 0 ? "text-blue-600" : "text-gray-600"}`} />
         {showBadge && unreadCount > 0 && (
           <motion.span
@@ -669,7 +670,8 @@ const Notifications = ({ childId, token, userRole }: NotificationsProps) => {
               duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut",
-            }}>
+            }}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </motion.span>
         )}

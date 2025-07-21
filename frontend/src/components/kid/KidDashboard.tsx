@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getTasks, completeTask, undoTask, getChildCoins } from "../../lib/api";
 import { Task } from "../../lib/types";
 import { Toaster } from "../ui/toaster";
-import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut, Clock, Trash2, Shirt, Sun, Dog, Droplets, Feather, Flower2, Brush, Store, Star, ListTodo, BookOpen, Utensils, Heart, Dumbbell, Palette, Music, Leaf } from "lucide-react";
+import { Trophy, Coins, Target, CheckCircle, Play, ShoppingBag, LogOut, Clock, Trash2, Shirt, Sun, Dog, Droplets, Feather, Flower2, Brush, Store, Star, ListTodo, BookOpen, Utensils, Heart, Dumbbell, Palette, Music, Leaf, Menu, X } from "lucide-react";
 import Notifications from "../notifications/Notifications";
 import { useToast } from "../ui/use-toast";
 
@@ -20,6 +20,7 @@ const KidDashboard = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [userName, setUserName] = useState("");
   const [activeTaskTab, setActiveTaskTab] = useState<"incomplete" | "pending" | "completed">("incomplete");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Add refs for tracking last update times
   const lastTaskUpdateRef = useRef<number>(0);
@@ -370,54 +371,122 @@ const KidDashboard = () => {
       </div>
 
       {/* Modern Header */}
-      <motion.div className='relative z-10 p-4 sm:p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-        <div className='flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8'>
+      <motion.div className='relative z-10 p-3 sm:p-6' initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <div className='flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-8'>
           {/* User info */}
-          <div className='flex items-center gap-4 mb-2 sm:mb-0'>
-            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg' whileHover={{ scale: 1.05 }}>
-              <Avatar className='w-12 h-12'>
+          <div className='flex items-center gap-3 sm:gap-4 mb-2 sm:mb-0'>
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 sm:p-3 shadow-lg' whileHover={{ scale: 1.05 }}>
+              <Avatar className='w-10 h-10 sm:w-12 sm:h-12'>
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} />
                 <AvatarFallback className='bg-gradient-to-br from-[#ffbacc] to-[#f9a8d4] text-white font-bold'>{userName.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </motion.div>
             <div>
-              <h1 className='text-xl sm:text-2xl font-bold text-white drop-shadow-lg break-words'>Hello {userName}! 👋</h1>
-              <p className='text-white/90 text-sm sm:text-base'>Let's play and progress! 🎮</p>
+              <h1 className='text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg break-words'>Hello {userName}! 👋</h1>
+              <p className='text-white/90 text-xs sm:text-sm md:text-base'>Let's play and progress! 🎮</p>
             </div>
           </div>
           {/* Coins, navigation and logout */}
-          <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto'>
-            {/* Navigation tabs */}
-            <div className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg w-full sm:w-auto'>
-              <div className='flex flex-col sm:flex-row gap-2 w-full'>
-                <motion.button className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Target className='w-5 h-5 sm:w-4 sm:h-4' />
+          <div className='flex flex-row items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto'>
+            {/* Mobile Hamburger Menu */}
+            <div className='sm:hidden'>
+              <motion.button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors w-10 h-10 flex items-center justify-center' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div animate={isMobileMenuOpen ? "open" : "closed"} transition={{ duration: 0.2 }}>
+                  {isMobileMenuOpen ? <X className='w-4 h-4 text-gray-600' /> : <Menu className='w-4 h-4 text-gray-600' />}
+                </motion.div>
+              </motion.button>
+            </div>
+
+            {/* Desktop Navigation tabs */}
+            <div className='hidden sm:block bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg'>
+              <div className='flex flex-row gap-2'>
+                <motion.button className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg h-10' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Target className='w-4 h-4' />
                   Tasks
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/virtualpet")} className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Play className='w-5 h-5 sm:w-4 sm:h-4' />
+                <motion.button onClick={() => navigate("/kid/virtualpet")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm h-10' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Play className='w-4 h-4' />
                   My Pet
                 </motion.button>
-                <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all text-base sm:text-sm w-full sm:w-auto' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <ShoppingBag className='w-5 h-5 sm:w-4 sm:h-4' />
+                <motion.button onClick={() => navigate("/kid/shop")} className='flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-semibold transition-all text-sm h-10' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <ShoppingBag className='w-4 h-4' />
                   Shop
                 </motion.button>
               </div>
             </div>
-            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2' whileHover={{ scale: 1.05 }}>
-              <Coins className='w-5 h-5 text-yellow-500' />
-              <span className='font-bold text-lg text-gray-800'>{totalCoins}</span>
+
+            <motion.div className='bg-white/90 backdrop-blur-sm rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2 w-16 h-10 justify-center' whileHover={{ scale: 1.05 }}>
+              <Coins className='w-4 h-4 text-yellow-500' />
+              <span className='font-bold text-sm text-gray-800'>{totalCoins}</span>
             </motion.div>
             {/* Notifications */}
             <div className='relative z-50'>
               <Notifications childId={userId} token={token} userRole='child' />
             </div>
-            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <LogOut className='w-5 h-5 text-gray-600' />
+            <motion.button onClick={handleLogout} className='bg-white/90 backdrop-blur-sm rounded-2xl p-2 shadow-lg hover:bg-white transition-colors w-10 h-10 flex items-center justify-center' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <LogOut className='w-4 h-4 text-gray-600' />
             </motion.button>
           </div>
         </div>
       </motion.div>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className='fixed inset-0 bg-black/50 z-50 sm:hidden' onClick={() => setIsMobileMenuOpen(false)}>
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className='absolute right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-sm shadow-2xl' onClick={e => e.stopPropagation()}>
+              <div className='p-6'>
+                <div className='flex items-center justify-between mb-8'>
+                  <h2 className='text-xl font-bold text-gray-800'>Menu</h2>
+                  <motion.button onClick={() => setIsMobileMenuOpen(false)} className='p-2 rounded-lg hover:bg-gray-100 transition-colors' whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <X className='w-6 h-6 text-gray-600' />
+                  </motion.button>
+                </div>
+
+                <div className='space-y-4'>
+                  <motion.button
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gradient-to-r from-[#ffd986] to-[#ffbacc] text-white shadow-lg'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <Target className='w-5 h-5' />
+                    <span>Tasks</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/kid/virtualpet");
+                    }}
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gray-100 hover:bg-gray-200 transition-colors'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Play className='w-5 h-5 text-gray-600' />
+                    <span className='text-gray-800'>My Pet</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/kid/shop");
+                    }}
+                    className='flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-left bg-gray-100 hover:bg-gray-200 transition-colors'
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <ShoppingBag className='w-5 h-5 text-gray-600' />
+                    <span className='text-gray-800'>Shop</span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main content */}
       <AnimatePresence mode='wait'>
